@@ -1,0 +1,5 @@
+:root { --bg: #07080a; --fg: #e8e6df; --dim: #7d7a70; --hot: #ff5a1f; --line: #1d1f24; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 14px; }
+a { color: inherit; }
