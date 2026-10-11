@@ -18,8 +18,9 @@ Early. The skeleton is up: Qloo client, database schema, the floor page. The age
 
 ```
 npm install
-cp .env.example .env    # add your Qloo hackathon key
-npm run qloo:smoke      # checks the key works
+vercel env pull .env.local   # Neon + gateway vars, if you have the Vercel project
+# add QLOO_API_KEY to .env.local (see .env.example)
+npm run qloo:smoke           # checks the key works
 npm run db:migrate
 npm run dev
 ```

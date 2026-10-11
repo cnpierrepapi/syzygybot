@@ -7,8 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:migrate": "node --env-file=.env scripts/migrate.mjs",
-    "qloo:smoke": "node --env-file=.env scripts/qloo-smoke.mjs"
+    "db:migrate": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/migrate.mjs",
+    "qloo:smoke": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/qloo-smoke.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
