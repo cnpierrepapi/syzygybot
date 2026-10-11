@@ -6,3 +6,10 @@ out
 .vercel
 *.tsbuildinfo
 next-env.d.ts
+
+# agent/tooling files that integrations drop in
+CLAUDE.md
+AGENTS.md
+.claude/
+.agents/
+skills-lock.json
