@@ -1,17 +1,19 @@
-// Rubric v1. Pure scoring: raw Qloo measurements in, 0..1 dimension scores and a band out.
-// Weights and cut-offs are the v1 proposal from 11 Oct; change them here and bump VERSION.
+// Rubric v1.1. Pure scoring: raw Qloo measurements in, 0..1 dimension scores and a band out.
+// v1 proposed 11 Oct. v1.1 (12 Oct): timing's 5 points moved to surprise, because Qloo has no
+// trending data for brands and the artist series is flat, so timing scored 0.5 for every pair.
+// Change weights here and bump VERSION.
 
-export const RUBRIC_VERSION = "v1";
+export const RUBRIC_VERSION = "v1.1";
 
 export const WEIGHTS = {
   fit: 30,        // how much each audience likes the other (mean pull)
-  surprise: 20,   // high affinity, but not already in each other's top lists
+  surprise: 25,   // high affinity, but not already in each other's top lists
   mutuality: 10,  // both gain, rather than one carrying the other
   category: 10,   // cross-category = cross-promo; same category = competitors
   shared: 10,     // overlapping taste tags (source of the thesis sentence)
   reach: 10,      // audiences close enough to fit, different enough to add fans
   where: 5,       // cities where both audiences are strong
-  timing: 5,      // is either side rising
+  timing: 0,      // is either side rising (still measured and shown; no weight until Qloo's data has movement)
 } as const;
 
 export type Dim = keyof typeof WEIGHTS;
@@ -122,7 +124,7 @@ export function score(r: Raw): Scored {
     },
   };
 
-  const total = Object.values(WEIGHTS).reduce((s, w) => s + w, 0);
+  const total = Object.values(WEIGHTS).reduce<number>((s, w) => s + w, 0);
   const s = (Object.keys(WEIGHTS) as Dim[]).reduce((acc, d) => acc + dims[d].score * WEIGHTS[d], 0) / total;
 
   const gate = minPull < CUTOFFS.minPull ? `lower pull ${minPull.toFixed(3)} < ${CUTOFFS.minPull}` : null;

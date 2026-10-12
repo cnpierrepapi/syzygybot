@@ -1,0 +1,3 @@
+{
+  "crons": [{ "path": "/api/scout", "schedule": "0 */3 * * *" }]
+}
