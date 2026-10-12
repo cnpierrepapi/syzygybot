@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "db:migrate": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/migrate.mjs",
-    "qloo:smoke": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/qloo-smoke.mjs"
+    "qloo:smoke": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/qloo-smoke.mjs",
+    "scout": "tsx --env-file-if-exists=.env.local scripts/scout.mts",
+    "check": "tsx scripts/offline-check.mts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
@@ -22,6 +24,7 @@
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }

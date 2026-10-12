@@ -2,12 +2,14 @@ import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-type Row = { id: string; agent: string; kind: string; summary: string; created_at: string };
+type Row = { id: string; agent: string; kind: string; summary: string; created_at: string; ref_table: string | null; ref_id: string | null };
+
+const SUBPAGE: Record<string, string> = { pairs: "/thesis/" };
 
 async function recent(): Promise<Row[]> {
   if (!process.env.DATABASE_URL) return [];
   try {
-    return (await sql()`select id, agent, kind, summary, created_at from actions order by created_at desc limit 50`) as Row[];
+    return (await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id from actions order by created_at desc limit 50`) as Row[];
   } catch {
     return [];
   }
@@ -28,7 +30,7 @@ export default async function Floor() {
           <div key={r.id} style={{ display: "grid", gridTemplateColumns: "180px 140px 1fr", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
             <span style={{ color: "var(--dim)" }}>{new Date(r.created_at).toISOString().replace("T", " ").slice(0, 19)}</span>
             <span style={{ color: "var(--hot)" }}>{r.agent}</span>
-            <span>{r.summary}</span>
+            <span>{r.ref_table && r.ref_id && SUBPAGE[r.ref_table] ? <a href={SUBPAGE[r.ref_table] + r.ref_id}>{r.summary}</a> : r.summary}</span>
           </div>
         ))}
       </section>
