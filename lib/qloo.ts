@@ -10,7 +10,7 @@ export type EntityType =
 export const urn = (t: EntityType) => `urn:entity:${t}`;
 
 const ALLOWED = new Set([
-  "query", "types", "take", "page",
+  "query", "types", "take", "page", "entity_ids",
   "filter.type", "filter.entities", "filter.tags", "filter.location.query",
   "filter.start_date", "filter.end_date",
   "signal.interests.entities", "signal.interests.tags",
@@ -39,13 +39,43 @@ export async function qloo<T = unknown>(path: string, params: Params): Promise<T
     if (!ALLOWED.has(k)) throw new Error(`Qloo param "${k}" is not whitelisted; Qloo would ignore it silently`);
     qs.set(k, Array.isArray(v) ? v.join(",") : String(v));
   }
-  const res = await fetch(`${BASE}${path}?${qs}`, {
-    headers: { "X-Api-Key": key, accept: "application/json" },
-    cache: "no-store",
-  });
-  const text = await res.text();
-  if (!res.ok) throw new QlooError(res.status, path, text);
-  return JSON.parse(text) as T;
+  for (let attempt = 0; ; attempt++) {
+    const { status, ok, text, retryAfter } = await throttled(async () => {
+      const res = await fetch(`${BASE}${path}?${qs}`, {
+        headers: { "X-Api-Key": key, accept: "application/json" },
+        cache: "no-store",
+      });
+      return { status: res.status, ok: res.ok, text: await res.text(), retryAfter: Number(res.headers.get("retry-after")) };
+    });
+    if (ok) return JSON.parse(text) as T;
+    if (status === 429 && attempt < 6) {
+      await sleep(retryAfter > 0 ? retryAfter * 1000 : 1000 * 2 ** attempt);
+      continue;
+    }
+    throw new QlooError(status, path, text);
+  }
+}
+
+// Qloo publishes no quota and returns 429 under bursts, so calls go out in a narrow, spaced queue.
+const MAX_IN_FLIGHT = 2;
+const MIN_GAP_MS = 250;
+let inFlight = 0;
+let lastStart = 0;
+const waiting: (() => void)[] = [];
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+async function throttled<R>(fn: () => Promise<R>): Promise<R> {
+  if (inFlight >= MAX_IN_FLIGHT) await new Promise<void>(r => waiting.push(r));
+  inFlight++;
+  try {
+    const gap = lastStart + MIN_GAP_MS - Date.now();
+    if (gap > 0) await sleep(gap);
+    lastStart = Date.now();
+    return await fn();
+  } finally {
+    inFlight--;
+    waiting.shift()?.();
+  }
 }
 
 export interface QlooEntity {
@@ -138,4 +168,26 @@ export async function compare(a: string[], b: string[]) {
     "a.signal.interests.entities": a,
     "b.signal.interests.entities": b,
   });
+}
+
+/**
+ * Taste tags the signal's AUDIENCE over-indexes on, across every domain.
+ * Entity tags don't work for this: brands and artists use different tag vocabularies.
+ * Place-utility tags (credit cards, price bands, hotel stars) show up for nearly every audience, so they're dropped.
+ */
+export async function audienceTags(signalIds: string[], take = 50) {
+  const r = await qloo<{ results?: { tags?: { name: string; subtype?: string }[] } }>("/v2/insights", {
+    "filter.type": "urn:tag",
+    "signal.interests.entities": signalIds,
+    take,
+  });
+  return (r.results?.tags ?? [])
+    .filter(t => !(t.subtype ?? "").endsWith(":place"))
+    .map(t => t.name.trim().toLowerCase());
+}
+
+/** Full records. Insights results omit properties.external (the X / Wikidata ids), so re-fetch here. */
+export async function entities(ids: string[]) {
+  if (!ids.length) return [];
+  return entitiesOf(await qloo<ResultsEnvelope>("/entities", { entity_ids: ids }));
 }

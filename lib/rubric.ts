@@ -30,7 +30,7 @@ export interface Raw {
   rankBinA: number | null;         // B's 1-based rank in A's top list of B's type (null = not in it)
   rankAinB: number | null;
   listSize: number;
-  tagsA: string[];
+  tagsA: string[];                 // audience taste tags (Qloo urn:tag insights)
   tagsB: string[];
   ageA: Record<string, number> | null;
   ageB: Record<string, number> | null;
@@ -84,13 +84,13 @@ export function score(r: Raw): Scored {
   const surprise = ranks.map(rankScore).reduce((s, x) => s + x, 0) / 2;
 
   const shared = sharedTags(r.tagsA, r.tagsB);
-  const union = new Set([...r.tagsA, ...r.tagsB]).size;
-  const jaccard = union ? shared.length / union : 0;
+  const smaller = Math.min(new Set(r.tagsA).size, new Set(r.tagsB).size);
+  const overlap = smaller ? shared.length / smaller : 0;
 
   const ageSim = r.ageA && r.ageB ? cosine(r.ageA, r.ageB) : null;
 
   const cellsB = new Set(r.cellsB);
-  const overlap = r.cellsA.filter(c => cellsB.has(c)).length;
+  const cellOverlap = r.cellsA.filter(c => cellsB.has(c)).length;
   const cellBase = Math.min(r.cellsA.length, r.cellsB.length);
 
   const moms = [r.momentumA, r.momentumB].filter((m): m is number => m != null);
@@ -104,15 +104,15 @@ export function score(r: Raw): Scored {
       raw: { sameType: r.sameType, sameIndustry: r.sameIndustry },
       note: !r.sameType ? "different entity types" : "same entity type",
     },
-    shared: { score: lerp(jaccard, 0, 0.3), raw: { jaccard, shared }, note: "tag overlap, 0.30 Jaccard = full marks" },
+    shared: { score: lerp(overlap, 0, 0.4), raw: { overlap, shared }, note: "share of audience taste tags in common, 40% = full marks" },
     reach: {
       score: ageSim == null ? 0.5 : clamp(1 - Math.abs(ageSim - 0.5) / 0.5),
       raw: ageSim,
       note: ageSim == null ? "no demographic data" : "age-skew similarity, sweet spot 0.5",
     },
     where: {
-      score: cellBase ? lerp(overlap / cellBase, 0, 0.5) : 0.5,
-      raw: { overlap, of: cellBase },
+      score: cellBase ? lerp(cellOverlap / cellBase, 0, 0.5) : 0.5,
+      raw: { overlap: cellOverlap, of: cellBase },
       note: cellBase ? "shared strong heatmap cells" : "no heatmap data",
     },
     timing: {

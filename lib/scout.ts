@@ -7,7 +7,7 @@ import { ask } from "./llm";
 import { resolveHandle } from "./handles";
 import { RUBRIC_VERSION, score, sharedTags, type Raw } from "./rubric";
 import {
-  demographics, heatmap, pull, search, topFor, trending,
+  audienceTags, demographics, entities, heatmap, pull, search, topFor, trending,
   type EntityType, type QlooEntity,
 } from "./qloo";
 
@@ -84,7 +84,8 @@ export function topCells(resp: unknown, n = 25): string[] {
 
 /** -1..1: change in the last week's mean vs the week before, from whatever daily series comes back. */
 export function momentum(resp: unknown): number | null {
-  const pts = findArrays(resp, x => "date" in x || "day" in x);
+  const pts = findArrays(resp, x => "date" in x || "day" in x)
+    .sort((x, y) => String(x.date ?? x.day).localeCompare(String(y.date ?? y.day))); // arrives newest-first
   const vals = pts
     .map(p => Number(p.population_percentile ?? p.percentile ?? p.value ?? p.population_rank ?? NaN))
     .filter(Number.isFinite);
@@ -94,8 +95,6 @@ export function momentum(resp: unknown): number | null {
   const base = m(before) || 1;
   return Math.max(-1, Math.min(1, (m(recent) - m(before)) / Math.abs(base)));
 }
-
-const tagNames = (e: QlooEntity) => (e.tags ?? []).map(t => t.name.toLowerCase());
 
 function industryOf(e: QlooEntity): string | null {
   const i = e.properties?.industry;
@@ -127,7 +126,7 @@ const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 async function trendFor(e: QlooEntity) {
   const t = typeOf(e);
   if (t === "brand") return null; // Qloo has no trending data for brands
-  const end = new Date(), start = new Date(Date.now() - 28 * 864e5);
+  const end = new Date(), start = new Date(Date.now() - 120 * 864e5); // data lags by weeks;
   try { return momentum(await trending([e.entity_id], t, isoDay(start), isoDay(end))); } catch { return null; }
 }
 
@@ -140,7 +139,7 @@ const safe = <T,>(p: Promise<T>) => p.catch(() => null);
 
 export async function measure(a: QlooEntity, b: QlooEntity): Promise<Raw> {
   const ta = typeOf(a), tb = typeOf(b);
-  const [pAB, pBA, listA, listB, demA, demB, heatA, heatB, momA, momB] = await Promise.all([
+  const [pAB, pBA, listA, listB, demA, demB, heatA, heatB, momA, momB, tagsA, tagsB] = await Promise.all([
     pull([a.entity_id], b.entity_id, tb),
     pull([b.entity_id], a.entity_id, ta),
     topFor([a.entity_id], tb, LIST),
@@ -151,6 +150,8 @@ export async function measure(a: QlooEntity, b: QlooEntity): Promise<Raw> {
     safe(heatmap([b.entity_id], HEAT_LOCATION)),
     trendFor(a),
     trendFor(b),
+    audienceTags([a.entity_id]).catch(() => [] as string[]),
+    audienceTags([b.entity_id]).catch(() => [] as string[]),
   ]);
   const ia = industryOf(a), ib = industryOf(b);
   return {
@@ -163,8 +164,8 @@ export async function measure(a: QlooEntity, b: QlooEntity): Promise<Raw> {
     rankBinA: rankIn(listA, b.entity_id),
     rankAinB: rankIn(listB, a.entity_id),
     listSize: LIST,
-    tagsA: tagNames(pBA?.entity ?? a),
-    tagsB: tagNames(pAB?.entity ?? b),
+    tagsA,
+    tagsB,
     ageA: ageVector(demA),
     ageB: ageVector(demB),
     cellsA: topCells(heatA),
@@ -196,7 +197,13 @@ export async function writeThesis(a: QlooEntity, b: QlooEntity, raw: Raw, scored
   }
 }
 
-export async function scorePair(a: QlooEntity, b: QlooEntity) {
+export async function scorePair(a0: QlooEntity, b0: QlooEntity) {
+  const full = await entities([a0.entity_id, b0.entity_id]).catch(() => [] as QlooEntity[]);
+  const pick = (e: QlooEntity) => {
+    const f = full.find(x => x.entity_id === e.entity_id);
+    return f ? { ...e, ...f, properties: { ...e.properties, ...f.properties } } : e;
+  };
+  const a = pick(a0), b = pick(b0);
   await Promise.all([saveEntity(a), saveEntity(b)]);
   const raw = await measure(a, b);
   const scored = score(raw);
