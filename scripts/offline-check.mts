@@ -56,3 +56,13 @@ ok("sequencer: daily cap pushes the 21st to another day", last.toISOString().sli
 ok("sequencer: 4 business days from Thu is Wed", local(addBusinessDays(new Date("2026-10-22T08:00:00Z"), 4, "Europe/Rome"), "Europe/Rome").weekday === "Wed");
 ok("inbox: good answer passes", Object.values(answerChecks("Thanks. Built on Qloo's taste data, A24 fans score Glossier at 0.81. Syzygy (an AI agent)")).every(Boolean));
 ok("inbox: percentage fails", !answerChecks("Syzygy (an AI agent): 81% of fans").no_percentages);
+
+// Source list and sweep helpers (14 Oct).
+import { SOURCES, groupsFor } from "../lib/sources";
+import { searchName } from "../lib/sweep";
+ok("sources: 500+ unique domains listed", new Set(SOURCES.map(s => s.domain)).size >= 500);
+ok("sources: no LinkedIn", !SOURCES.some(s => s.domain.includes("linkedin")));
+ok("groups: skincare is beauty, not auto", groupsFor("brand", ["Skincare", "Beauty"]).includes("beauty") && !groupsFor("brand", ["Skincare", "Beauty"]).includes("auto"));
+ok("groups: one red-carpet tag doesn't add film", !groupsFor("brand", ["Fashion", "Luxury brands", "Footwear", "Red Carpet Events"]).includes("film_tv"));
+ok("groups: Italian brand gets EU trade press", groupsFor("brand", ["Clothing brands of Italy", "Fashion"]).includes("regional_eu"));
+ok("sweep: club suffix dropped", searchName("Real Madrid CF") === "Real Madrid" && searchName("Nike, Inc.") === "Nike" && searchName("A24") === "A24");

@@ -1,0 +1,3887 @@
+{
+ "checked_at": "2026-10-13T20:32:51.308Z",
+ "user_agent": "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.vercel.app)",
+ "results": {
+  "businesswire.com": {
+   "status": 403,
+   "final": "https://businesswire.com/",
+   "robots_block": false
+  },
+  "presseportal.de": {
+   "status": 503,
+   "final": "https://presseportal.de/",
+   "robots_block": false
+  },
+  "prweb.com": {
+   "status": 200,
+   "final": "https://www.prweb.com/",
+   "robots_block": false
+  },
+  "prnewswire.com": {
+   "status": 200,
+   "final": "https://www.prnewswire.com/",
+   "robots_block": false
+  },
+  "cision.com": {
+   "status": 200,
+   "final": "https://www.cision.com/",
+   "robots_block": false
+  },
+  "newswire.ca": {
+   "status": 200,
+   "final": "https://www.newswire.ca/",
+   "robots_block": false
+  },
+  "globenewswire.com": {
+   "status": 403,
+   "final": "https://www.globenewswire.com/",
+   "robots_block": false
+  },
+  "openpr.com": {
+   "status": 200,
+   "final": "https://www.openpr.com/",
+   "robots_block": false
+  },
+  "markets.businessinsider.com": {
+   "status": 200,
+   "final": "https://markets.businessinsider.com/",
+   "robots_block": false
+  },
+  "mynewsdesk.com": {
+   "status": 200,
+   "final": "https://www.mynewsdesk.com/en/",
+   "robots_block": false
+  },
+  "einpresswire.com": {
+   "status": 200,
+   "final": "https://www.einpresswire.com/",
+   "robots_block": false
+  },
+  "pressat.co.uk": {
+   "status": 200,
+   "final": "https://pressat.co.uk/",
+   "robots_block": false
+  },
+  "newswire.com": {
+   "status": 200,
+   "final": "https://www.newswire.com/",
+   "robots_block": false
+  },
+  "prlog.org": {
+   "status": 200,
+   "final": "https://www.prlog.org/",
+   "robots_block": false
+  },
+  "finance.yahoo.com": {
+   "status": 0,
+   "error": "UND_ERR_HEADERS_OVERFLOW"
+  },
+  "newsfilecorp.com": {
+   "status": 200,
+   "final": "https://www.newsfilecorp.com/",
+   "robots_block": false
+  },
+  "businesswire.de": {
+   "status": 403,
+   "final": "https://businesswire.de/",
+   "robots_block": false
+  },
+  "24-7pressrelease.com": {
+   "status": 200,
+   "final": "https://www.24-7pressrelease.com/",
+   "robots_block": false
+  },
+  "campaignlive.com": {
+   "status": 403,
+   "final": "https://campaignlive.com/",
+   "robots_block": false
+  },
+  "adage.com": {
+   "status": 403,
+   "final": "https://adage.com/",
+   "robots_block": false
+  },
+  "campaignlive.co.uk": {
+   "status": 403,
+   "final": "https://campaignlive.co.uk/",
+   "robots_block": false
+  },
+  "prnewswire.co.uk": {
+   "status": 200,
+   "final": "https://www.prnewswire.co.uk/",
+   "robots_block": false
+  },
+  "stocktitan.net": {
+   "status": 200,
+   "final": "https://www.stocktitan.net/",
+   "robots_block": false
+  },
+  "digiday.com": {
+   "status": 200,
+   "final": "https://digiday.com/",
+   "robots_block": false,
+   "search_feed": "https://digiday.com"
+  },
+  "marketscreener.com": {
+   "status": 200,
+   "final": "https://www.marketscreener.com/",
+   "robots_block": false
+  },
+  "pressebox.de": {
+   "status": 403,
+   "final": "https://pressebox.de/",
+   "robots_block": false
+  },
+  "lbbonline.com": {
+   "status": 403,
+   "final": "https://lbbonline.com/",
+   "robots_block": false
+  },
+  "musebyclios.com": {
+   "status": 200,
+   "final": "https://musebyclios.com/",
+   "robots_block": false,
+   "search_feed": "https://musebyclios.com"
+  },
+  "issuewire.com": {
+   "status": 200,
+   "final": "https://www.issuewire.com/",
+   "robots_block": false
+  },
+  "adweek.com": {
+   "status": 200,
+   "final": "https://www.adweek.com/",
+   "robots_block": false,
+   "search_feed": "https://www.adweek.com"
+  },
+  "adnews.com.au": {
+   "status": 403,
+   "final": "https://www.adnews.com.au/",
+   "robots_block": false
+  },
+  "thedrum.com": {
+   "status": 200,
+   "final": "https://www.thedrum.com/",
+   "robots_block": false
+  },
+  "marketingbrew.com": {
+   "status": 200,
+   "final": "https://www.marketingbrew.com/",
+   "robots_block": false
+  },
+  "aap.com.au": {
+   "status": 200,
+   "final": "https://aap.com.au/",
+   "robots_block": false
+  },
+  "marketingdive.com": {
+   "status": 200,
+   "final": "https://www.marketingdive.com/",
+   "robots_block": false
+  },
+  "adforum.com": {
+   "status": 403,
+   "final": "https://adforum.com/",
+   "robots_block": false
+  },
+  "mediapost.com": {
+   "status": 200,
+   "final": "https://www.mediapost.com/",
+   "robots_block": false
+  },
+  "mumbrella.com.au": {
+   "status": 403,
+   "final": "https://mumbrella.com.au/",
+   "robots_block": false
+  },
+  "bandt.com.au": {
+   "status": 200,
+   "final": "https://www.bandt.com.au/",
+   "robots_block": false,
+   "search_feed": "https://www.bandt.com.au"
+  },
+  "shots.net": {
+   "status": 200,
+   "final": "https://shots.net/",
+   "robots_block": false
+  },
+  "adsoftheworld.com": {
+   "status": 403,
+   "final": "http://www.adsoftheworld.com/",
+   "robots_block": false
+  },
+  "itsnicethat.com": {
+   "status": 200,
+   "final": "https://www.itsnicethat.com/",
+   "robots_block": false
+  },
+  "campaignbrief.com": {
+   "status": 200,
+   "final": "https://campaignbrief.com/",
+   "robots_block": false,
+   "search_feed": "https://campaignbrief.com"
+  },
+  "brandequity.economictimes.indiatimes.com": {
+   "status": 200,
+   "final": "https://brandequity.economictimes.indiatimes.com/",
+   "robots_block": false
+  },
+  "strategyonline.ca": {
+   "status": 202,
+   "final": "https://strategyonline.ca/",
+   "robots_block": false
+  },
+  "mediaincanada.com": {
+   "status": 202,
+   "final": "https://mediaincanada.com/",
+   "robots_block": false
+  },
+  "marketingmag.com.au": {
+   "status": 403,
+   "final": "https://marketingmag.com.au/",
+   "robots_block": false
+  },
+  "creativereview.co.uk": {
+   "status": 200,
+   "final": "https://www.creativereview.co.uk/",
+   "robots_block": false,
+   "search_feed": "https://www.creativereview.co.uk"
+  },
+  "marketingweek.com": {
+   "status": 403,
+   "final": "https://marketingweek.com/",
+   "robots_block": false
+  },
+  "afaqs.com": {
+   "status": 200,
+   "final": "https://www.afaqs.com/",
+   "robots_block": false
+  },
+  "cmo.com.au": {
+   "status": 200,
+   "final": "https://foundryco.com/our-brands/",
+   "robots_block": false,
+   "search_feed": "https://foundryco.com"
+  },
+  "exchange4media.com": {
+   "status": 403,
+   "final": "https://exchange4media.com/",
+   "robots_block": false
+  },
+  "martech.org": {
+   "status": 403,
+   "final": "https://martech.org/",
+   "robots_block": false
+  },
+  "chiefmarketer.com": {
+   "status": 200,
+   "final": "https://www.chiefmarketer.com/",
+   "robots_block": false
+  },
+  "cmswire.com": {
+   "status": 200,
+   "final": "https://www.cmswire.com/",
+   "robots_block": false
+  },
+  "campaignasia.com": {
+   "status": 200,
+   "final": "https://www.campaignasia.com/",
+   "robots_block": false
+  },
+  "adobomagazine.com": {
+   "status": 200,
+   "final": "https://www.adobomagazine.com/",
+   "robots_block": false,
+   "search_feed": "https://www.adobomagazine.com"
+  },
+  "marketing-interactive.com": {
+   "status": 200,
+   "final": "https://www.marketing-interactive.com/",
+   "robots_block": false
+  },
+  "contentmarketinginstitute.com": {
+   "status": 200,
+   "final": "https://contentmarketinginstitute.com/",
+   "robots_block": false
+  },
+  "adexchanger.com": {
+   "status": 200,
+   "final": "https://www.adexchanger.com/",
+   "robots_block": false
+  },
+  "tvrev.com": {
+   "status": 200,
+   "final": "https://www.tvrev.com/",
+   "robots_block": false
+  },
+  "cynopsis.com": {
+   "status": 200,
+   "final": "https://www.cynopsis.com/",
+   "robots_block": false
+  },
+  "marketingtechnews.net": {
+   "status": 200,
+   "final": "https://www.marketingtechnews.net/",
+   "robots_block": false
+  },
+  "warc.com": {
+   "status": 200,
+   "final": "https://www.warc.com/en",
+   "robots_block": false
+  },
+  "sponsorshipnews.com": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "ana.net": {
+   "status": 200,
+   "final": "https://www.ana.net/",
+   "robots_block": false
+  },
+  "influencermarketinghub.com": {
+   "status": 200,
+   "final": "https://influencermarketinghub.com/",
+   "robots_block": false,
+   "search_feed": "https://influencermarketinghub.com"
+  },
+  "socialmediatoday.com": {
+   "status": 200,
+   "final": "https://www.socialmediatoday.com/",
+   "robots_block": false
+  },
+  "emarketer.com": {
+   "status": 403,
+   "final": "https://www.emarketer.com/",
+   "robots_block": false
+  },
+  "insiderintelligence.com": {
+   "status": 403,
+   "final": "https://www.emarketer.com/",
+   "robots_block": false
+  },
+  "sponsorship.com": {
+   "status": 200,
+   "final": "https://sponsorship.com/",
+   "robots_block": false,
+   "search_feed": "https://sponsorship.com"
+  },
+  "accesswire.com": {
+   "status": 403,
+   "final": "https://accesswire.com/",
+   "robots_block": false
+  },
+  "prweek.com": {
+   "status": 403,
+   "final": "https://prweek.com/",
+   "robots_block": false
+  },
+  "mmaglobal.com": {
+   "status": 200,
+   "final": "https://mmaglobal.com/",
+   "robots_block": false
+  },
+  "provokemedia.com": {
+   "status": 403,
+   "final": "https://provokemedia.com/",
+   "robots_block": false
+  },
+  "netinfluencer.com": {
+   "status": 200,
+   "final": "https://www.netinfluencer.com/",
+   "robots_block": false,
+   "search_feed": "https://www.netinfluencer.com"
+  },
+  "cmoalliance.com": {
+   "status": 200,
+   "final": "https://www.cmoalliance.com/",
+   "robots_block": false
+  },
+  "brandingmag.com": {
+   "status": 200,
+   "final": "https://www.brandingmag.com/",
+   "robots_block": false,
+   "search_feed": "https://www.brandingmag.com"
+  },
+  "businessofinfluencers.com": {
+   "status": 200,
+   "final": "https://www.hugedomains.com/domain_profile.cfm?d=businessofinfluencers.com",
+   "robots_block": false
+  },
+  "tubefilter.com": {
+   "status": 200,
+   "final": "https://www.tubefilter.com/",
+   "robots_block": false,
+   "search_feed": "https://www.tubefilter.com"
+  },
+  "iabuk.com": {
+   "status": 200,
+   "final": "https://www.iabuk.com/",
+   "robots_block": false
+  },
+  "spinsucks.com": {
+   "status": 200,
+   "final": "https://spinsucks.com/",
+   "robots_block": false,
+   "search_feed": "https://spinsucks.com"
+  },
+  "prdaily.com": {
+   "status": 200,
+   "final": "https://www.prdaily.com/",
+   "robots_block": false,
+   "search_feed": "https://www.prdaily.com"
+  },
+  "prnewsonline.com": {
+   "status": 200,
+   "final": "https://www.prnewsonline.com/",
+   "robots_block": false
+  },
+  "everything-pr.com": {
+   "status": 200,
+   "final": "https://everything-pr.com/",
+   "robots_block": false
+  },
+  "holmesreport.com": {
+   "status": 403,
+   "final": "https://www.provokemedia.com/",
+   "robots_block": false
+  },
+  "thebrandingjournal.com": {
+   "status": 200,
+   "final": "https://www.thebrandingjournal.com/",
+   "robots_block": false
+  },
+  "ragan.com": {
+   "status": 200,
+   "final": "https://www.ragan.com/",
+   "robots_block": false,
+   "search_feed": "https://www.ragan.com"
+  },
+  "odwyerpr.com": {
+   "status": 200,
+   "final": "https://www.odwyerpr.com/",
+   "robots_block": false
+  },
+  "cmocouncil.org": {
+   "status": 200,
+   "final": "https://www.cmocouncil.org/",
+   "robots_block": false
+  },
+  "niemanlab.org": {
+   "status": 403,
+   "final": "https://niemanlab.org/",
+   "robots_block": false
+  },
+  "thecmoclub.com": {
+   "status": 0,
+   "error": "ECONNREFUSED"
+  },
+  "pressgazette.co.uk": {
+   "status": 200,
+   "final": "https://pressgazette.co.uk/",
+   "robots_block": false
+  },
+  "puck.news": {
+   "status": 403,
+   "final": "https://puck.news/",
+   "robots_block": false
+  },
+  "axios.com": {
+   "status": 403,
+   "final": "https://www.axios.com/",
+   "robots_block": false
+  },
+  "prmoment.com": {
+   "status": 200,
+   "final": "https://www.prmoment.com/",
+   "robots_block": false
+  },
+  "thewrap.com": {
+   "status": 200,
+   "final": "https://www.thewrap.com/",
+   "robots_block": false,
+   "search_feed": "https://www.thewrap.com"
+  },
+  "semafor.com": {
+   "status": 200,
+   "final": "https://www.semafor.com/",
+   "robots_block": false
+  },
+  "thestreamable.com": {
+   "status": 200,
+   "final": "https://thestreamable.com/",
+   "robots_block": false
+  },
+  "iab.com": {
+   "status": 200,
+   "final": "https://www.iab.com/",
+   "robots_block": false,
+   "search_feed": "https://www.iab.com"
+  },
+  "podnews.net": {
+   "status": 200,
+   "final": "https://podnews.net/",
+   "robots_block": false
+  },
+  "nexttv.com": {
+   "status": 200,
+   "final": "https://www.nexttv.com/",
+   "robots_block": false
+  },
+  "tvtechnology.com": {
+   "status": 200,
+   "final": "https://www.tvtechnology.com/",
+   "robots_block": false
+  },
+  "radioink.com": {
+   "status": 200,
+   "final": "https://radioink.com/",
+   "robots_block": false,
+   "search_feed": "https://radioink.com"
+  },
+  "streamtvinsider.com": {
+   "status": 403,
+   "final": "https://streamtvinsider.com/",
+   "robots_block": false
+  },
+  "fiercevideo.com": {
+   "status": 403,
+   "final": "https://fiercevideo.com/",
+   "robots_block": false
+  },
+  "lightreading.com": {
+   "status": 200,
+   "final": "https://www.lightreading.com/",
+   "robots_block": false
+  },
+  "mediaweek.com.au": {
+   "status": 200,
+   "final": "https://www.mediaweek.com.au/",
+   "robots_block": false
+  },
+  "variety.com": {
+   "status": 200,
+   "final": "https://variety.com/",
+   "robots_block": false
+  },
+  "radiotoday.co.uk": {
+   "status": 200,
+   "final": "https://radiotoday.co.uk/",
+   "robots_block": false,
+   "search_feed": "https://radiotoday.co.uk"
+  },
+  "broadcastingcable.com": {
+   "status": 200,
+   "final": "https://www.nexttv.com/broadcasting-cable",
+   "robots_block": false
+  },
+  "cineuropa.org": {
+   "status": 403,
+   "final": "https://cineuropa.org/",
+   "robots_block": false
+  },
+  "deadline.com": {
+   "status": 200,
+   "final": "https://deadline.com/",
+   "robots_block": false
+  },
+  "insideradio.com": {
+   "status": 200,
+   "final": "https://www.insideradio.com/",
+   "robots_block": false
+  },
+  "filmmakermagazine.com": {
+   "status": 403,
+   "final": "https://filmmakermagazine.com/",
+   "robots_block": false
+  },
+  "indiewire.com": {
+   "status": 200,
+   "final": "https://www.indiewire.com/",
+   "robots_block": false
+  },
+  "boxofficepro.com": {
+   "status": 403,
+   "final": "https://boxofficepro.com/",
+   "robots_block": false
+  },
+  "realscreen.com": {
+   "status": 202,
+   "final": "https://realscreen.com/",
+   "robots_block": false
+  },
+  "tbivision.com": {
+   "status": 200,
+   "final": "https://www.lightreading.com/",
+   "robots_block": false
+  },
+  "screendaily.com": {
+   "status": 200,
+   "final": "https://www.screendaily.com/",
+   "robots_block": false
+  },
+  "whats-on-netflix.com": {
+   "status": 200,
+   "final": "https://www.whats-on-netflix.com/",
+   "robots_block": false
+  },
+  "c21media.net": {
+   "status": 200,
+   "final": "https://www.c21media.net/",
+   "robots_block": false,
+   "search_feed": "https://www.c21media.net"
+  },
+  "kidscreen.com": {
+   "status": 202,
+   "final": "https://kidscreen.com/",
+   "robots_block": false
+  },
+  "mediaplaynews.com": {
+   "status": 200,
+   "final": "https://www.mediaplaynews.com/",
+   "robots_block": false,
+   "search_feed": "https://www.mediaplaynews.com"
+  },
+  "animationmagazine.net": {
+   "status": 403,
+   "final": "https://animationmagazine.net/",
+   "robots_block": false
+  },
+  "backstage.com": {
+   "status": 403,
+   "final": "https://backstage.com/",
+   "robots_block": false
+  },
+  "hollywoodreporter.com": {
+   "status": 200,
+   "final": "https://www.hollywoodreporter.com/",
+   "robots_block": false
+  },
+  "broadcastnow.co.uk": {
+   "status": 200,
+   "final": "https://www.broadcastnow.co.uk/",
+   "robots_block": false
+  },
+  "thefilmstage.com": {
+   "status": 200,
+   "final": "https://thefilmstage.com/",
+   "robots_block": false
+  },
+  "worldscreen.com": {
+   "status": 403,
+   "final": "https://worldscreen.com/",
+   "robots_block": false
+  },
+  "televisual.com": {
+   "status": 200,
+   "final": "https://www.televisual.com/",
+   "robots_block": false,
+   "search_feed": "https://www.televisual.com"
+  },
+  "ew.com": {
+   "status": 402,
+   "final": "https://ew.com/",
+   "robots_block": false
+  },
+  "awn.com": {
+   "status": 403,
+   "final": "https://www.awn.com/",
+   "robots_block": false
+  },
+  "collider.com": {
+   "status": 200,
+   "final": "https://collider.com/",
+   "robots_block": false
+  },
+  "screenrant.com": {
+   "status": 200,
+   "final": "https://screenrant.com/",
+   "robots_block": false
+  },
+  "thedesk.net": {
+   "status": 200,
+   "final": "https://thedesk.net/",
+   "robots_block": false,
+   "search_feed": "https://thedesk.net"
+  },
+  "programminginsider.com": {
+   "status": 200,
+   "final": "https://programminginsider.com/",
+   "robots_block": false,
+   "search_feed": "https://programminginsider.com"
+  },
+  "slashfilm.com": {
+   "status": 200,
+   "final": "https://www.slashfilm.com/",
+   "robots_block": false
+  },
+  "vulture.com": {
+   "status": 200,
+   "final": "https://www.vulture.com/",
+   "robots_block": false
+  },
+  "tribecafilm.com": {
+   "status": 200,
+   "final": "https://tribecafilm.com/",
+   "robots_block": false
+  },
+  "tvline.com": {
+   "status": 200,
+   "final": "https://www.tvline.com/",
+   "robots_block": false
+  },
+  "tiff.net": {
+   "status": 202,
+   "final": "https://tiff.net/",
+   "robots_block": false
+  },
+  "filmindependent.org": {
+   "status": 200,
+   "final": "https://www.filmindependent.org/",
+   "robots_block": false,
+   "search_feed": "https://www.filmindependent.org"
+  },
+  "sxsw.com": {
+   "status": 200,
+   "final": "https://sxsw.com/",
+   "robots_block": false
+  },
+  "miptv.com": {
+   "status": 200,
+   "final": "https://www.mip-london.com/",
+   "robots_block": false
+  },
+  "mipcom.com": {
+   "status": 200,
+   "final": "https://www.mipcom.com/",
+   "robots_block": false
+  },
+  "sundance.org": {
+   "status": 403,
+   "final": "https://sundance.org/",
+   "robots_block": false
+  },
+  "festival-cannes.com": {
+   "status": 200,
+   "final": "https://www.festival-cannes.com/",
+   "robots_block": false
+  },
+  "cartoonbrew.com": {
+   "status": 200,
+   "final": "https://www.cartoonbrew.com/",
+   "robots_block": false,
+   "search_feed": "https://www.cartoonbrew.com"
+  },
+  "tvinsider.com": {
+   "status": 403,
+   "final": "https://tvinsider.com/",
+   "robots_block": false
+  },
+  "goldenglobes.com": {
+   "status": 200,
+   "final": "https://goldenglobes.com/",
+   "robots_block": false,
+   "search_feed": "https://goldenglobes.com"
+  },
+  "brandinnovators.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "berlinale.de": {
+   "status": 200,
+   "final": "https://www.berlinale.de/en/home.html",
+   "robots_block": false
+  },
+  "bafta.org": {
+   "status": 403,
+   "final": "https://www.bafta.org/",
+   "robots_block": false
+  },
+  "musically.com": {
+   "status": 200,
+   "final": "https://musically.com/",
+   "robots_block": false
+  },
+  "oscars.org": {
+   "status": 200,
+   "final": "https://www.oscars.org/",
+   "robots_block": false
+  },
+  "completemusicupdate.com": {
+   "status": 200,
+   "final": "https://completemusicupdate.com/",
+   "robots_block": false
+  },
+  "musicbusinessworldwide.com": {
+   "status": 403,
+   "final": "https://musicbusinessworldwide.com/",
+   "robots_block": false
+  },
+  "natpe.com": {
+   "status": 200,
+   "final": "https://global.natpe.com/",
+   "robots_block": false
+  },
+  "labiennale.org": {
+   "status": 200,
+   "final": "https://www.labiennale.org/it",
+   "robots_block": false
+  },
+  "pollstar.com": {
+   "status": 200,
+   "final": "https://pollstar.com/",
+   "robots_block": false
+  },
+  "emmys.com": {
+   "status": 200,
+   "final": "https://www.televisionacademy.com/",
+   "robots_block": false
+  },
+  "billboard.com": {
+   "status": 200,
+   "final": "https://www.billboard.com/",
+   "robots_block": false
+  },
+  "hitsdailydouble.com": {
+   "status": 200,
+   "final": "https://www.hitsdailydouble.com/",
+   "robots_block": false
+  },
+  "pitchfork.com": {
+   "status": 200,
+   "final": "https://pitchfork.com/",
+   "robots_block": false
+  },
+  "motionpictures.org": {
+   "status": 200,
+   "final": "https://www.motionpictures.org/",
+   "robots_block": false,
+   "search_feed": "https://www.motionpictures.org"
+  },
+  "musicweek.com": {
+   "status": 200,
+   "final": "https://www.musicweek.com/",
+   "robots_block": false
+  },
+  "stereogum.com": {
+   "status": 200,
+   "final": "https://stereogum.com/",
+   "robots_block": false
+  },
+  "hypebot.com": {
+   "status": 200,
+   "final": "https://www.hypebot.com/",
+   "robots_block": false
+  },
+  "uproxx.com": {
+   "status": 200,
+   "final": "https://uproxx.com/",
+   "robots_block": false,
+   "search_feed": "https://uproxx.com"
+  },
+  "mpa-apac.org": {
+   "status": 200,
+   "final": "https://www.mpa-apac.org/",
+   "robots_block": false
+  },
+  "djmag.com": {
+   "status": 403,
+   "final": "https://djmag.com/",
+   "robots_block": false
+  },
+  "mixmag.net": {
+   "status": 200,
+   "final": "https://mixmag.net/",
+   "robots_block": false
+  },
+  "nme.com": {
+   "status": 200,
+   "final": "https://www.nme.com/",
+   "robots_block": false
+  },
+  "edm.com": {
+   "status": 403,
+   "final": "https://edm.com/",
+   "robots_block": false
+  },
+  "complex.com": {
+   "status": 200,
+   "final": "https://www.complex.com/",
+   "robots_block": false
+  },
+  "consequence.net": {
+   "status": 200,
+   "final": "https://consequence.net/",
+   "robots_block": false,
+   "search_feed": "https://consequence.net"
+  },
+  "musicconnection.com": {
+   "status": 200,
+   "final": "https://www.musicconnection.com/",
+   "robots_block": false,
+   "search_feed": "https://www.musicconnection.com"
+  },
+  "thefader.com": {
+   "status": 200,
+   "final": "https://www.thefader.com/",
+   "robots_block": false
+  },
+  "hiphopdx.com": {
+   "status": 200,
+   "final": "https://www.instagram.com/hiphopdx",
+   "robots_block": false
+  },
+  "amplifymusic.com": {
+   "status": 0,
+   "error": "EAI_AGAIN"
+  },
+  "rollingstone.com": {
+   "status": 200,
+   "final": "https://www.rollingstone.com/",
+   "robots_block": false
+  },
+  "musicrow.com": {
+   "status": 403,
+   "final": "https://musicrow.com/",
+   "robots_block": false
+  },
+  "digitalmusicnews.com": {
+   "status": 200,
+   "final": "https://www.digitalmusicnews.com/",
+   "robots_block": false,
+   "search_feed": "https://www.digitalmusicnews.com"
+  },
+  "residentadvisor.net": {
+   "status": 403,
+   "final": "https://ra.co/",
+   "robots_block": false
+  },
+  "iq-mag.net": {
+   "status": 403,
+   "final": "https://www.iqmagazine.com/",
+   "robots_block": false
+  },
+  "xxlmag.com": {
+   "status": 200,
+   "final": "https://www.xxlmag.com/",
+   "robots_block": false
+  },
+  "celebrityaccess.com": {
+   "status": 200,
+   "final": "https://celebrityaccess.com/",
+   "robots_block": false,
+   "search_feed": "https://celebrityaccess.com"
+  },
+  "ascap.com": {
+   "status": 403,
+   "final": "https://ascap.com/",
+   "robots_block": false
+  },
+  "musicbiz.org": {
+   "status": 200,
+   "final": "https://musicbiz.org/",
+   "robots_block": false,
+   "search_feed": "https://musicbiz.org"
+  },
+  "a2im.org": {
+   "status": 200,
+   "final": "https://a2im.org/",
+   "robots_block": false,
+   "search_feed": "https://a2im.org"
+  },
+  "bpi.co.uk": {
+   "status": 200,
+   "final": "https://www.bpi.co.uk/",
+   "robots_block": false
+  },
+  "countryaircheck.com": {
+   "status": 200,
+   "final": "https://www.countryaircheck.com/pages/go-to-homepage/",
+   "robots_block": false
+  },
+  "riaa.com": {
+   "status": 200,
+   "final": "https://www.riaa.com/",
+   "robots_block": false,
+   "search_feed": "https://www.riaa.com"
+  },
+  "grammy.com": {
+   "status": 200,
+   "final": "https://www.grammy.com/",
+   "robots_block": false
+  },
+  "wmg.com": {
+   "status": 200,
+   "final": "https://www.wmg.com/",
+   "robots_block": false,
+   "search_feed": "https://www.wmg.com"
+  },
+  "bmg.com": {
+   "status": 200,
+   "final": "https://www.bmg.com/",
+   "robots_block": false
+  },
+  "cmaworld.com": {
+   "status": 200,
+   "final": "https://www.cmaworld.com/",
+   "robots_block": false
+  },
+  "ifpi.org": {
+   "status": 200,
+   "final": "https://www.ifpi.org/",
+   "robots_block": false
+  },
+  "beggars.com": {
+   "status": 200,
+   "final": "https://beggars.com/",
+   "robots_block": false,
+   "search_feed": "https://beggars.com"
+  },
+  "concord.com": {
+   "status": 200,
+   "final": "https://www.bmg.com/",
+   "robots_block": false
+  },
+  "nmpa.org": {
+   "status": 200,
+   "final": "https://www.nmpa.org/",
+   "robots_block": false
+  },
+  "bmi.com": {
+   "status": 403,
+   "final": "https://www.bmi.com/",
+   "robots_block": false
+  },
+  "sesac.com": {
+   "status": 200,
+   "final": "https://www.sesac.com/",
+   "robots_block": false,
+   "search_feed": "https://www.sesac.com"
+  },
+  "livenationentertainment.com": {
+   "status": 200,
+   "final": "https://www.livenationentertainment.com/",
+   "robots_block": false
+  },
+  "umusic.com": {
+   "status": 200,
+   "final": "https://www.universalmusic.com/",
+   "robots_block": false,
+   "search_feed": "https://www.universalmusic.com"
+  },
+  "sonymusic.com": {
+   "status": 403,
+   "final": "https://sonymusic.com/",
+   "robots_block": false
+  },
+  "ticketmaster.com": {
+   "status": 200,
+   "final": "https://www.ticketmaster.com/",
+   "robots_block": false
+  },
+  "aegpresents.com": {
+   "status": 200,
+   "final": "https://aegpresents.com/",
+   "robots_block": false
+  },
+  "specialevents.com": {
+   "status": 200,
+   "final": "https://www.cater-event.com/",
+   "robots_block": false
+  },
+  "eventmarketer.com": {
+   "status": 200,
+   "final": "https://www.eventmarketer.com/",
+   "robots_block": false
+  },
+  "tsnn.com": {
+   "status": 200,
+   "final": "https://www.tsnn.com/",
+   "robots_block": false
+  },
+  "venuesnow.com": {
+   "status": 200,
+   "final": "https://www.pollstar.com/?utm_source=website&utm_medium=redirect&utm_campaign=vn_web_redirect&utm_id=pollstarhomepage",
+   "robots_block": false
+  },
+  "eventbrite.com": {
+   "status": 200,
+   "final": "https://www.eventbrite.com/",
+   "robots_block": false
+  },
+  "bizbash.com": {
+   "status": 200,
+   "final": "https://www.bizbash.com/",
+   "robots_block": false
+  },
+  "coachella.com": {
+   "status": 200,
+   "final": "https://coachella.com/",
+   "robots_block": false
+  },
+  "festivalinsights.com": {
+   "status": 200,
+   "final": "https://www.festivalinsights.com/",
+   "robots_block": false,
+   "search_feed": "https://www.festivalinsights.com"
+  },
+  "exhibitoronline.com": {
+   "status": 200,
+   "final": "https://www.exhibitoronline.com/",
+   "robots_block": false
+  },
+  "eventindustrynews.com": {
+   "status": 200,
+   "final": "https://www.eventindustrynews.com/",
+   "robots_block": false,
+   "search_feed": "https://www.eventindustrynews.com"
+  },
+  "access-aa.co.uk": {
+   "status": 0,
+   "error": "ERR_TLS_CERT_ALTNAME_INVALID"
+  },
+  "glastonburyfestivals.co.uk": {
+   "status": 200,
+   "final": "https://glastonburyfestivals.co.uk/",
+   "robots_block": false,
+   "search_feed": "https://glastonburyfestivals.co.uk"
+  },
+  "sportbusiness.com": {
+   "status": 403,
+   "final": "https://sportbusiness.com/",
+   "robots_block": false
+  },
+  "sportsbusinessjournal.com": {
+   "status": 200,
+   "final": "https://www.sportsbusinessjournal.com/",
+   "robots_block": false
+  },
+  "insidersport.com": {
+   "status": 403,
+   "final": "https://insidersport.com/",
+   "robots_block": false
+  },
+  "sportstechie.net": {
+   "status": 200,
+   "final": "https://sportstechie.net/",
+   "robots_block": false,
+   "search_feed": "https://sportstechie.net"
+  },
+  "offthepitch.com": {
+   "status": 200,
+   "final": "https://offthepitch.com/",
+   "robots_block": false
+  },
+  "leadersinsport.com": {
+   "status": 200,
+   "final": "https://leadersinsport.com/",
+   "robots_block": false,
+   "search_feed": "https://leadersinsport.com"
+  },
+  "frontofficesports.com": {
+   "status": 200,
+   "final": "https://frontofficesports.com/",
+   "robots_block": false,
+   "search_feed": "https://frontofficesports.com"
+  },
+  "sportico.com": {
+   "status": 200,
+   "final": "https://www.sportico.com/",
+   "robots_block": false,
+   "search_feed": "https://www.sportico.com"
+  },
+  "twocircles.com": {
+   "status": 200,
+   "final": "https://twocircles.com/gb/",
+   "robots_block": false
+  },
+  "athleticbusiness.com": {
+   "status": 403,
+   "final": "https://www.athleticbusiness.com/",
+   "robots_block": false
+  },
+  "blackbookmotorsport.com": {
+   "status": 200,
+   "final": "https://www.blackbookmotorsport.com/",
+   "robots_block": false,
+   "search_feed": "https://www.blackbookmotorsport.com"
+  },
+  "insideworldfootball.com": {
+   "status": 200,
+   "final": "https://www.insideworldfootball.com/",
+   "robots_block": false,
+   "search_feed": "https://www.insideworldfootball.com"
+  },
+  "insidethegames.biz": {
+   "status": 403,
+   "final": "https://www.insidethegames.biz/",
+   "robots_block": false
+  },
+  "theathletic.com": {
+   "status": 403,
+   "final": "https://www.nytimes.com/athletic/",
+   "robots_block": false
+  },
+  "footballbenchmark.com": {
+   "status": 200,
+   "final": "https://footballbenchmark.com/en/home",
+   "robots_block": false
+  },
+  "sportspromedia.com": {
+   "status": 403,
+   "final": "https://www.sportspromedia.com/",
+   "robots_block": false
+  },
+  "nba.com": {
+   "status": 403,
+   "final": "https://www.nba.com/",
+   "robots_block": false
+  },
+  "skysports.com": {
+   "status": 200,
+   "final": "https://www.skysports.com/",
+   "robots_block": false
+  },
+  "espn.com": {
+   "status": 200,
+   "final": "https://www.espn.com/",
+   "robots_block": false
+  },
+  "sportsvideo.org": {
+   "status": 200,
+   "final": "https://www.sportsvideo.org/",
+   "robots_block": false,
+   "search_feed": "https://www.sportsvideo.org"
+  },
+  "mlb.com": {
+   "status": 200,
+   "final": "https://www.mlb.com/",
+   "robots_block": false
+  },
+  "ligue1.com": {
+   "status": 200,
+   "final": "https://ligue1.com/",
+   "robots_block": false
+  },
+  "nhl.com": {
+   "status": 200,
+   "final": "https://www.nhl.com/",
+   "robots_block": false
+  },
+  "legaseriea.it": {
+   "status": 307,
+   "final": "https://www.legaseriea.it/",
+   "robots_block": false
+  },
+  "bundesliga.com": {
+   "status": 200,
+   "final": "https://www.bundesliga.com/en/bundesliga",
+   "robots_block": false
+  },
+  "premierleague.com": {
+   "status": 200,
+   "final": "https://www.premierleague.com/",
+   "robots_block": false
+  },
+  "mlssoccer.com": {
+   "status": 200,
+   "final": "https://www.mlssoccer.com/",
+   "robots_block": false
+  },
+  "nascar.com": {
+   "status": 403,
+   "final": "https://www.nascar.com/",
+   "robots_block": false
+  },
+  "esportsinsider.com": {
+   "status": 403,
+   "final": "https://esportsinsider.com/",
+   "robots_block": false
+  },
+  "uefa.com": {
+   "status": 200,
+   "final": "https://www.uefa.com/",
+   "robots_block": false
+  },
+  "wnba.com": {
+   "status": 200,
+   "final": "https://www.wnba.com/",
+   "robots_block": false
+  },
+  "nfl.com": {
+   "status": 200,
+   "final": "https://www.nfl.com/international",
+   "robots_block": false
+  },
+  "dotesports.com": {
+   "status": 200,
+   "final": "https://dotesports.com/",
+   "robots_block": false
+  },
+  "nwslsoccer.com": {
+   "status": 200,
+   "final": "https://www.nwslsoccer.com/",
+   "robots_block": false
+  },
+  "atptour.com": {
+   "status": 403,
+   "final": "https://www.atptour.com/",
+   "robots_block": false
+  },
+  "wtatennis.com": {
+   "status": 200,
+   "final": "https://www.wtatennis.com/",
+   "robots_block": false
+  },
+  "ufc.com": {
+   "status": 200,
+   "final": "https://www.ufc.com/",
+   "robots_block": false
+  },
+  "fifa.com": {
+   "status": 200,
+   "final": "https://www.fifa.com/",
+   "robots_block": false
+  },
+  "wwe.com": {
+   "status": 200,
+   "final": "https://www.wwe.com/",
+   "robots_block": false
+  },
+  "formula1.com": {
+   "status": 200,
+   "final": "https://www.formula1.com/",
+   "robots_block": false
+  },
+  "sportsmediawatch.com": {
+   "status": 200,
+   "final": "https://www.sportsmediawatch.com/",
+   "robots_block": false,
+   "search_feed": "https://www.sportsmediawatch.com"
+  },
+  "palcosports.com": {
+   "status": 0,
+   "error": "UNABLE_TO_GET_ISSUER_CERT_LOCALLY"
+  },
+  "sportsbusinessdaily.com": {
+   "status": 200,
+   "final": "https://www.sportsbusinessjournal.com/",
+   "robots_block": false
+  },
+  "fashionista.com": {
+   "status": 403,
+   "final": "https://fashionista.com/",
+   "robots_block": false
+  },
+  "awfulannouncing.com": {
+   "status": 200,
+   "final": "https://awfulannouncing.com/",
+   "robots_block": false,
+   "search_feed": "https://awfulannouncing.com"
+  },
+  "sportcal.com": {
+   "status": 200,
+   "final": "https://www.sportcal.com/",
+   "robots_block": false,
+   "search_feed": "https://www.sportcal.com"
+  },
+  "pgatour.com": {
+   "status": 200,
+   "final": "https://www.pgatour.com/",
+   "robots_block": false
+  },
+  "fashionunited.com": {
+   "status": 200,
+   "final": "https://fashionunited.com/",
+   "robots_block": false
+  },
+  "fashionunited.uk": {
+   "status": 200,
+   "final": "https://fashionunited.uk/",
+   "robots_block": false
+  },
+  "businessoffashion.com": {
+   "status": 403,
+   "final": "https://www.businessoffashion.com/",
+   "robots_block": false
+  },
+  "hypebeast.com": {
+   "status": 200,
+   "final": "https://hypebeast.com/",
+   "robots_block": false
+  },
+  "glossy.co": {
+   "status": 200,
+   "final": "https://www.glossy.co/",
+   "robots_block": false,
+   "search_feed": "https://www.glossy.co"
+  },
+  "wwd.com": {
+   "status": 200,
+   "final": "https://wwd.com/",
+   "robots_block": false
+  },
+  "esportsobserver.com": {
+   "status": 200,
+   "final": "https://www.sportsbusinessjournal.com/tags/esports/",
+   "robots_block": false
+  },
+  "drapersonline.com": {
+   "status": 200,
+   "final": "https://www.drapersonline.com/",
+   "robots_block": false
+  },
+  "footwearnews.com": {
+   "status": 200,
+   "final": "https://wwd.com/footwear-news/",
+   "robots_block": false
+  },
+  "fashionnetwork.com": {
+   "status": 403,
+   "final": "https://fashionnetwork.com/",
+   "robots_block": false
+  },
+  "thecut.com": {
+   "status": 200,
+   "final": "https://www.thecut.com/",
+   "robots_block": false
+  },
+  "highsnobiety.com": {
+   "status": 200,
+   "final": "https://www.highsnobiety.com/",
+   "robots_block": false
+  },
+  "vogue.com": {
+   "status": 200,
+   "final": "https://www.vogue.com/",
+   "robots_block": false
+  },
+  "sourcingjournal.com": {
+   "status": 200,
+   "final": "https://wwd.com/sourcing-journal/",
+   "robots_block": false
+  },
+  "apparelnews.net": {
+   "status": 403,
+   "final": "https://apparelnews.net/",
+   "robots_block": false
+  },
+  "harpersbazaar.com": {
+   "status": 200,
+   "final": "https://www.harpersbazaar.com/",
+   "robots_block": false
+  },
+  "vogue.co.uk": {
+   "status": 200,
+   "final": "https://www.vogue.co.uk/",
+   "robots_block": false
+  },
+  "sportsvalue.com.br": {
+   "status": 200,
+   "final": "https://www.sportsvalue.com.br/",
+   "robots_block": false,
+   "search_feed": "https://www.sportsvalue.com.br"
+  },
+  "elle.com": {
+   "status": 200,
+   "final": "https://www.elle.com/",
+   "robots_block": false
+  },
+  "laliga.com": {
+   "status": 200,
+   "final": "https://www.laliga.com/en-MT",
+   "robots_block": false
+  },
+  "esquire.com": {
+   "status": 200,
+   "final": "https://www.esquire.com/",
+   "robots_block": false
+  },
+  "gq.com": {
+   "status": 200,
+   "final": "https://www.gq.com/",
+   "robots_block": false
+  },
+  "olympics.com": {
+   "status": 0,
+   "error": "The operation was aborted due to timeout"
+  },
+  "textileexcellence.com": {
+   "status": 200,
+   "final": "https://textileexcellence.com/",
+   "robots_block": false
+  },
+  "mffashion.com": {
+   "status": 0,
+   "error": "CERT_HAS_EXPIRED"
+  },
+  "complexcon.com": {
+   "status": 200,
+   "final": "https://www.complexcon.com/",
+   "robots_block": false
+  },
+  "camera-moda.it": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "luxurysociety.com": {
+   "status": 200,
+   "final": "https://luxurysociety.com/",
+   "robots_block": false
+  },
+  "just-style.com": {
+   "status": 200,
+   "final": "https://www.just-style.com/",
+   "robots_block": false,
+   "search_feed": "https://www.just-style.com"
+  },
+  "luxurydaily.com": {
+   "status": 403,
+   "final": "https://luxurydaily.com/",
+   "robots_block": false
+  },
+  "modaes.com": {
+   "status": 403,
+   "final": "https://modaes.com/",
+   "robots_block": false
+  },
+  "britishfashioncouncil.co.uk": {
+   "status": 200,
+   "final": "https://britishfashioncouncil.co.uk/",
+   "robots_block": false
+  },
+  "fibre2fashion.com": {
+   "status": 405,
+   "final": "https://fibre2fashion.com/",
+   "robots_block": false
+  },
+  "cfda.com": {
+   "status": 200,
+   "final": "https://cfda.com/",
+   "robots_block": false
+  },
+  "cosmeticsbusiness.com": {
+   "status": 200,
+   "final": "https://cosmeticsbusiness.com/",
+   "robots_block": false
+  },
+  "fashionmagazine.it": {
+   "status": 200,
+   "final": "https://www.fashionmagazine.it/",
+   "robots_block": false
+  },
+  "thefashionlaw.com": {
+   "status": 200,
+   "final": "https://www.thefashionlaw.com/",
+   "robots_block": false
+  },
+  "jingdaily.com": {
+   "status": 200,
+   "final": "https://jingdaily.com/",
+   "robots_block": false
+  },
+  "beautyindependent.com": {
+   "status": 200,
+   "final": "https://www.beautyindependent.com/",
+   "robots_block": false
+  },
+  "beautypackaging.com": {
+   "status": 403,
+   "final": "https://beautypackaging.com/",
+   "robots_block": false
+  },
+  "happi.com": {
+   "status": 403,
+   "final": "https://www.happi.com/",
+   "robots_block": false
+  },
+  "cosmeticsdesign.com": {
+   "status": 410,
+   "final": "https://www.cosmeticsdesign.com/",
+   "robots_block": false
+  },
+  "cosmeticsdesign-asia.com": {
+   "status": 410,
+   "final": "https://www.cosmeticsdesign-asia.com/",
+   "robots_block": false
+  },
+  "cosmeticsdesign-europe.com": {
+   "status": 410,
+   "final": "https://www.cosmeticsdesign-europe.com/",
+   "robots_block": false
+  },
+  "journalduluxe.fr": {
+   "status": 200,
+   "final": "https://www.journalduluxe.fr/fr/",
+   "robots_block": false
+  },
+  "globalcosmeticsnews.com": {
+   "status": 200,
+   "final": "https://www.globalcosmeticsnews.com/",
+   "robots_block": false,
+   "search_feed": "https://www.globalcosmeticsnews.com"
+  },
+  "personalcarecouncil.org": {
+   "status": 200,
+   "final": "https://www.personalcarecouncil.org/",
+   "robots_block": false
+  },
+  "allure.com": {
+   "status": 200,
+   "final": "https://www.allure.com/",
+   "robots_block": false
+  },
+  "pambianconews.com": {
+   "status": 200,
+   "final": "https://www.pambianconews.com/",
+   "robots_block": false,
+   "search_feed": "https://www.pambianconews.com"
+  },
+  "beautymatter.com": {
+   "status": 200,
+   "final": "https://beautymatter.com/",
+   "robots_block": false
+  },
+  "intothegloss.com": {
+   "status": 200,
+   "final": "https://intothegloss.com/",
+   "robots_block": false
+  },
+  "byrdie.com": {
+   "status": 402,
+   "final": "https://www.byrdie.com/",
+   "robots_block": false
+  },
+  "cew.org": {
+   "status": 200,
+   "final": "https://cew.org/",
+   "robots_block": false
+  },
+  "gcimagazine.com": {
+   "status": 403,
+   "final": "https://www.gcimagazine.com/",
+   "robots_block": false
+  },
+  "retailtouchpoints.com": {
+   "status": 403,
+   "final": "https://retailtouchpoints.com/",
+   "robots_block": false
+  },
+  "chainstoreage.com": {
+   "status": 403,
+   "final": "https://chainstoreage.com/",
+   "robots_block": false
+  },
+  "progressivegrocer.com": {
+   "status": 403,
+   "final": "https://progressivegrocer.com/",
+   "robots_block": false
+  },
+  "fhcm.paris": {
+   "status": 200,
+   "final": "https://www.fhcm.paris/fr",
+   "robots_block": false
+  },
+  "spaandbeauty.com": {
+   "status": 200,
+   "final": "https://spaandbeauty.com/",
+   "robots_block": false
+  },
+  "retailwire.com": {
+   "status": 429,
+   "final": "https://retailwire.com/",
+   "robots_block": false
+  },
+  "modernretail.co": {
+   "status": 200,
+   "final": "https://www.modernretail.co/",
+   "robots_block": false,
+   "search_feed": "https://www.modernretail.co"
+  },
+  "nrf.com": {
+   "status": 200,
+   "final": "https://nrf.com/",
+   "robots_block": false
+  },
+  "retaildive.com": {
+   "status": 200,
+   "final": "https://www.retaildive.com/",
+   "robots_block": false
+  },
+  "cosmeticsandtoiletries.com": {
+   "status": 403,
+   "final": "https://www.cosmeticsandtoiletries.com/",
+   "robots_block": false
+  },
+  "ecommercetimes.com": {
+   "status": 403,
+   "final": "https://ecommercetimes.com/",
+   "robots_block": false
+  },
+  "retailgazette.co.uk": {
+   "status": 403,
+   "final": "https://www.retailgazette.co.uk/",
+   "robots_block": false
+  },
+  "retailbrew.com": {
+   "status": 403,
+   "final": "https://www.retailbrew.com/",
+   "robots_block": false
+  },
+  "grocerydive.com": {
+   "status": 200,
+   "final": "https://www.grocerydive.com/",
+   "robots_block": false
+  },
+  "retail-week.com": {
+   "status": 200,
+   "final": "https://www.retail-week.com/",
+   "robots_block": false
+  },
+  "csnews.com": {
+   "status": 403,
+   "final": "https://csnews.com/",
+   "robots_block": false
+  },
+  "practicalecommerce.com": {
+   "status": 200,
+   "final": "https://www.practicalecommerce.com/",
+   "robots_block": false,
+   "search_feed": "https://www.practicalecommerce.com"
+  },
+  "digitalcommerce360.com": {
+   "status": 200,
+   "final": "https://www.digitalcommerce360.com/",
+   "robots_block": false
+  },
+  "storebrands.com": {
+   "status": 403,
+   "final": "https://storebrands.com/",
+   "robots_block": false
+  },
+  "thegrocer.co.uk": {
+   "status": 200,
+   "final": "https://www.thegrocer.co.uk/",
+   "robots_block": false
+  },
+  "drugstorenews.com": {
+   "status": 403,
+   "final": "https://drugstorenews.com/",
+   "robots_block": false
+  },
+  "shoptalk.com": {
+   "status": 200,
+   "final": "https://shoptalk.com/",
+   "robots_block": false
+  },
+  "pymnts.com": {
+   "status": 200,
+   "final": "https://www.pymnts.com/",
+   "robots_block": false
+  },
+  "supermarketnews.com": {
+   "status": 200,
+   "final": "https://www.supermarketnews.com/",
+   "robots_block": false
+  },
+  "premiumbeautynews.com": {
+   "status": 200,
+   "final": "https://www.premiumbeautynews.com/",
+   "robots_block": false
+  },
+  "toyworldmag.co.uk": {
+   "status": 200,
+   "final": "https://toyworldmag.co.uk/",
+   "robots_block": false,
+   "search_feed": "https://toyworldmag.co.uk"
+  },
+  "toybook.com": {
+   "status": 200,
+   "final": "https://toybook.com/",
+   "robots_block": false,
+   "search_feed": "https://toybook.com"
+  },
+  "beveragedigest.com": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "licenseglobal.com": {
+   "status": 403,
+   "final": "https://licenseglobal.com/",
+   "robots_block": false
+  },
+  "licensingmagazine.com": {
+   "status": 200,
+   "final": "https://www.licensingmagazine.com/",
+   "robots_block": false
+  },
+  "cstoredive.com": {
+   "status": 200,
+   "final": "https://www.cstoredive.com/",
+   "robots_block": false
+  },
+  "playthings.com": {
+   "status": 403,
+   "final": "https://www.giftsanddec.com/category/trending-gifts/kids//",
+   "robots_block": false
+  },
+  "just-drinks.com": {
+   "status": 200,
+   "final": "https://www.just-drinks.com/",
+   "robots_block": false,
+   "search_feed": "https://www.just-drinks.com"
+  },
+  "bevnet.com": {
+   "status": 403,
+   "final": "https://www.bevnet.com/",
+   "robots_block": false
+  },
+  "just-food.com": {
+   "status": 200,
+   "final": "https://www.just-food.com/",
+   "robots_block": false,
+   "search_feed": "https://www.just-food.com"
+  },
+  "nosh.com": {
+   "status": 403,
+   "final": "https://www.nosh.com/",
+   "robots_block": false
+  },
+  "bevindustry.com": {
+   "status": 200,
+   "final": "https://www.bevindustry.com/",
+   "robots_block": false
+  },
+  "fooddive.com": {
+   "status": 200,
+   "final": "https://www.fooddive.com/",
+   "robots_block": false
+  },
+  "foodnavigator.com": {
+   "status": 200,
+   "final": "https://www.foodnavigator.com/",
+   "robots_block": false
+  },
+  "foodnavigator-asia.com": {
+   "status": 200,
+   "final": "https://www.foodnavigator.com/",
+   "robots_block": false
+  },
+  "foodnavigator-usa.com": {
+   "status": 200,
+   "final": "https://www.foodnavigator.com/",
+   "robots_block": false
+  },
+  "beveragedaily.com": {
+   "status": 200,
+   "final": "https://www.beveragedaily.com/",
+   "robots_block": false
+  },
+  "licensinginternational.org": {
+   "status": 200,
+   "final": "https://licensinginternational.org/",
+   "robots_block": false,
+   "search_feed": "https://licensinginternational.org"
+  },
+  "bakeryandsnacks.com": {
+   "status": 200,
+   "final": "https://www.bakeryandsnacks.com/",
+   "robots_block": false
+  },
+  "confectionerynews.com": {
+   "status": 200,
+   "final": "https://www.confectionerynews.com/",
+   "robots_block": false
+  },
+  "nrn.com": {
+   "status": 200,
+   "final": "https://www.nrn.com/",
+   "robots_block": false
+  },
+  "dairyreporter.com": {
+   "status": 200,
+   "final": "https://www.dairyreporter.com/",
+   "robots_block": false
+  },
+  "qsrmagazine.com": {
+   "status": 403,
+   "final": "https://qsrmagazine.com/",
+   "robots_block": false
+  },
+  "foodbusinessnews.net": {
+   "status": 403,
+   "final": "https://foodbusinessnews.net/",
+   "robots_block": false
+  },
+  "eater.com": {
+   "status": 200,
+   "final": "https://www.eater.com/",
+   "robots_block": false
+  },
+  "foodandwine.com": {
+   "status": 402,
+   "final": "https://www.foodandwine.com/",
+   "robots_block": false
+  },
+  "restaurantdive.com": {
+   "status": 200,
+   "final": "https://www.restaurantdive.com/",
+   "robots_block": false
+  },
+  "bevalcinsights.com": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "fooddrinkeurope.eu": {
+   "status": 200,
+   "final": "https://www.fooddrinkeurope.eu/",
+   "robots_block": false,
+   "search_feed": "https://www.fooddrinkeurope.eu"
+  },
+  "foodbev.com": {
+   "status": 200,
+   "final": "https://www.foodbev.com/",
+   "robots_block": false
+  },
+  "agfundernews.com": {
+   "status": 200,
+   "final": "https://agfundernews.com/",
+   "robots_block": false,
+   "search_feed": "https://agfundernews.com"
+  },
+  "licensingsource.net": {
+   "status": 200,
+   "final": "https://www.licensingsource.net/",
+   "robots_block": false,
+   "search_feed": "https://www.licensingsource.net"
+  },
+  "thespoon.tech": {
+   "status": 200,
+   "final": "https://thespoon.tech/",
+   "robots_block": false,
+   "search_feed": "https://thespoon.tech"
+  },
+  "fsrmagazine.com": {
+   "status": 200,
+   "final": "https://www.fsrmagazine.com/",
+   "robots_block": false
+  },
+  "restaurantbusinessonline.com": {
+   "status": 200,
+   "final": "https://www.restaurantbusinessonline.com/",
+   "robots_block": false
+  },
+  "drinksint.com": {
+   "status": 200,
+   "final": "https://drinksint.com/",
+   "robots_block": false,
+   "search_feed": "https://drinksint.com"
+  },
+  "thedrinksbusiness.com": {
+   "status": 403,
+   "final": "https://thedrinksbusiness.com/",
+   "robots_block": false
+  },
+  "shankennewsdaily.com": {
+   "status": 200,
+   "final": "https://www.shankennewsdaily.com/",
+   "robots_block": false,
+   "search_feed": "https://www.shankennewsdaily.com"
+  },
+  "thespiritsbusiness.com": {
+   "status": 200,
+   "final": "https://www.thespiritsbusiness.com/",
+   "robots_block": false
+  },
+  "beerbusinessdaily.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "thirtyfiftybusiness.com": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "imbibemagazine.com": {
+   "status": 200,
+   "final": "https://imbibemagazine.com/",
+   "robots_block": false,
+   "search_feed": "https://imbibemagazine.com"
+  },
+  "craftbrewingbusiness.com": {
+   "status": 403,
+   "final": "https://www.craftbrewingbusiness.com/",
+   "robots_block": false
+  },
+  "snackandbakery.com": {
+   "status": 200,
+   "final": "https://www.snackandbakery.com/",
+   "robots_block": false
+  },
+  "winespectator.com": {
+   "status": 200,
+   "final": "https://www.winespectator.com/",
+   "robots_block": false
+  },
+  "drinksretailingnews.co.uk": {
+   "status": 200,
+   "final": "https://drinksretailingnews.co.uk/",
+   "robots_block": false,
+   "search_feed": "https://drinksretailingnews.co.uk"
+  },
+  "harpers.co.uk": {
+   "status": 200,
+   "final": "https://harpers.co.uk/",
+   "robots_block": false
+  },
+  "winesearcher.com": {
+   "status": 403,
+   "final": "https://winesearcher.com/",
+   "robots_block": false
+  },
+  "decanter.com": {
+   "status": 200,
+   "final": "https://www.decanter.com/",
+   "robots_block": false
+  },
+  "brewbound.com": {
+   "status": 403,
+   "final": "https://www.brewbound.com/",
+   "robots_block": false
+  },
+  "specialtyfood.com": {
+   "status": 200,
+   "final": "https://www.specialtyfood.com/",
+   "robots_block": false
+  },
+  "morningadvertiser.co.uk": {
+   "status": 200,
+   "final": "https://www.morningadvertiser.co.uk/",
+   "robots_block": false
+  },
+  "candyindustry.com": {
+   "status": 200,
+   "final": "https://www.snackandbakery.com/candy-industry/",
+   "robots_block": false
+  },
+  "cheersonline.com": {
+   "status": 200,
+   "final": "https://bevinfogroup.com/cheers/",
+   "robots_block": false,
+   "search_feed": "https://bevinfogroup.com"
+  },
+  "distilledspirits.org": {
+   "status": 200,
+   "final": "https://distilledspirits.org/",
+   "robots_block": false,
+   "search_feed": "https://distilledspirits.org"
+  },
+  "beveragedynamics.com": {
+   "status": 200,
+   "final": "https://bevinfogroup.com/beverage-dynamics/",
+   "robots_block": false,
+   "search_feed": "https://bevinfogroup.com"
+  },
+  "liquor.com": {
+   "status": 402,
+   "final": "https://www.liquor.com/",
+   "robots_block": false
+  },
+  "gamesbeat.com": {
+   "status": 403,
+   "final": "https://gamesbeat.com/",
+   "robots_block": false
+  },
+  "venturebeat.com": {
+   "status": 429,
+   "final": "https://venturebeat.com/",
+   "robots_block": false
+  },
+  "gamerant.com": {
+   "status": 200,
+   "final": "https://gamerant.com/",
+   "robots_block": false
+  },
+  "essentialretail.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "mcvuk.com": {
+   "status": 200,
+   "final": "https://mcvuk.com/",
+   "robots_block": false,
+   "search_feed": "https://mcvuk.com"
+  },
+  "nacsonline.com": {
+   "status": 522,
+   "final": "https://nacsonline.com/",
+   "robots_block": false
+  },
+  "gamedeveloper.com": {
+   "status": 200,
+   "final": "https://www.gamedeveloper.com/",
+   "robots_block": false
+  },
+  "develop-online.net": {
+   "status": 0,
+   "error": "ECONNREFUSED"
+  },
+  "kotaku.com": {
+   "status": 200,
+   "final": "https://kotaku.com/",
+   "robots_block": false
+  },
+  "gamesindustry.biz": {
+   "status": 200,
+   "final": "https://www.gamesindustry.biz/",
+   "robots_block": false
+  },
+  "sevenfifty.com": {
+   "status": 200,
+   "final": "https://www.sevenfifty.com/",
+   "robots_block": false
+  },
+  "pocketgamer.biz": {
+   "status": 200,
+   "final": "https://www.pocketgamer.biz/",
+   "robots_block": false
+  },
+  "polygon.com": {
+   "status": 200,
+   "final": "https://www.polygon.com/",
+   "robots_block": false
+  },
+  "theverge.com": {
+   "status": 200,
+   "final": "https://www.theverge.com/",
+   "robots_block": false
+  },
+  "dualshockers.com": {
+   "status": 200,
+   "final": "https://www.dualshockers.com/",
+   "robots_block": false
+  },
+  "mobilegamer.biz": {
+   "status": 200,
+   "final": "https://mobilegamer.biz/",
+   "robots_block": false,
+   "search_feed": "https://mobilegamer.biz"
+  },
+  "gamingintelligence.com": {
+   "status": 200,
+   "final": "https://www.gamingintelligence.com/",
+   "robots_block": false
+  },
+  "ign.com": {
+   "status": 200,
+   "final": "https://www.ign.com/",
+   "robots_block": false
+  },
+  "eurogamer.net": {
+   "status": 200,
+   "final": "https://www.eurogamer.net/",
+   "robots_block": false
+  },
+  "pcgamer.com": {
+   "status": 200,
+   "final": "https://www.pcgamer.com/",
+   "robots_block": false
+  },
+  "gamespot.com": {
+   "status": 403,
+   "final": "https://www.gamespot.com/",
+   "robots_block": false
+  },
+  "esportsnews.uk": {
+   "status": 0,
+   "error": "ERR_TLS_CERT_ALTNAME_INVALID"
+  },
+  "theesportsobserver.com": {
+   "status": 0,
+   "error": "ERR_TLS_CERT_ALTNAME_INVALID"
+  },
+  "wired.com": {
+   "status": 200,
+   "final": "https://www.wired.com/",
+   "robots_block": false
+  },
+  "techcrunch.com": {
+   "status": 200,
+   "final": "https://techcrunch.com/",
+   "robots_block": false,
+   "search_feed": "https://techcrunch.com"
+  },
+  "arstechnica.com": {
+   "status": 200,
+   "final": "https://arstechnica.com/",
+   "robots_block": false
+  },
+  "theinformation.com": {
+   "status": 403,
+   "final": "https://theinformation.com/",
+   "robots_block": false
+  },
+  "sifted.eu": {
+   "status": 403,
+   "final": "https://sifted.eu/",
+   "robots_block": false
+  },
+  "siliconangle.com": {
+   "status": 200,
+   "final": "https://siliconangle.com/",
+   "robots_block": false,
+   "search_feed": "https://siliconangle.com"
+  },
+  "eu-startups.com": {
+   "status": 403,
+   "final": "https://eu-startups.com/",
+   "robots_block": false
+  },
+  "engadget.com": {
+   "status": 200,
+   "final": "https://www.engadget.com/",
+   "robots_block": false
+  },
+  "cnet.com": {
+   "status": 200,
+   "final": "https://www.cnet.com/",
+   "robots_block": false,
+   "search_feed": "https://www.cnet.com"
+  },
+  "geekwire.com": {
+   "status": 403,
+   "final": "https://www.geekwire.com/",
+   "robots_block": false
+  },
+  "restofworld.org": {
+   "status": 200,
+   "final": "https://restofworld.org/",
+   "robots_block": false,
+   "search_feed": "https://restofworld.org"
+  },
+  "techinasia.com": {
+   "status": 403,
+   "final": "https://techinasia.com/",
+   "robots_block": false
+  },
+  "fastcompany.com": {
+   "status": 403,
+   "final": "https://www.fastcompany.com/",
+   "robots_block": false
+  },
+  "inc.com": {
+   "status": 403,
+   "final": "https://www.inc.com/",
+   "robots_block": false
+  },
+  "tech.eu": {
+   "status": 200,
+   "final": "https://tech.eu/",
+   "robots_block": false
+  },
+  "businessinsider.com": {
+   "status": 200,
+   "final": "https://www.businessinsider.com/",
+   "robots_block": false
+  },
+  "zdnet.com": {
+   "status": 200,
+   "final": "https://www.zdnet.com/",
+   "robots_block": false,
+   "search_feed": "https://www.zdnet.com"
+  },
+  "insideevs.com": {
+   "status": 403,
+   "final": "https://insideevs.com/",
+   "robots_block": false
+  },
+  "just-auto.com": {
+   "status": 200,
+   "final": "https://www.just-auto.com/",
+   "robots_block": false,
+   "search_feed": "https://www.just-auto.com"
+  },
+  "autonews.com": {
+   "status": 403,
+   "final": "https://www.autonews.com/",
+   "robots_block": false
+  },
+  "crunchbase.com": {
+   "status": 200,
+   "final": "https://www.crunchbase.com/",
+   "robots_block": false
+  },
+  "electrek.co": {
+   "status": 200,
+   "final": "https://electrek.co/",
+   "robots_block": false,
+   "search_feed": "https://electrek.co"
+  },
+  "automotiveworld.com": {
+   "status": 200,
+   "final": "https://www.automotiveworld.com/",
+   "robots_block": false,
+   "search_feed": "https://www.automotiveworld.com"
+  },
+  "entrepreneur.com": {
+   "status": 200,
+   "final": "https://www.entrepreneur.com/",
+   "robots_block": false
+  },
+  "caranddriver.com": {
+   "status": 200,
+   "final": "https://www.caranddriver.com/",
+   "robots_block": false
+  },
+  "carscoops.com": {
+   "status": 200,
+   "final": "https://www.carscoops.com/",
+   "robots_block": false
+  },
+  "motortrend.com": {
+   "status": 200,
+   "final": "https://www.motortrend.com/",
+   "robots_block": false
+  },
+  "autoblog.com": {
+   "status": 403,
+   "final": "https://autoblog.com/",
+   "robots_block": false
+  },
+  "topgear.com": {
+   "status": 403,
+   "final": "https://www.topgear.com/",
+   "robots_block": false
+  },
+  "motor1.com": {
+   "status": 403,
+   "final": "https://motor1.com/",
+   "robots_block": false
+  },
+  "wardsauto.com": {
+   "status": 200,
+   "final": "https://www.wardsauto.com/",
+   "robots_block": false
+  },
+  "autonews.com.au": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "robbreport.com": {
+   "status": 200,
+   "final": "https://robbreport.com/",
+   "robots_block": false
+  },
+  "autocar.co.uk": {
+   "status": 202,
+   "final": "https://www.autocar.co.uk/",
+   "robots_block": false
+  },
+  "automotive-fleet.com": {
+   "status": 200,
+   "final": "https://www.automotive-fleet.com/",
+   "robots_block": false
+  },
+  "motorionline.com": {
+   "status": 200,
+   "final": "https://www.motorionline.com/",
+   "robots_block": false,
+   "search_feed": "https://www.motorionline.com"
+  },
+  "am-online.com": {
+   "status": 403,
+   "final": "https://am-online.com/",
+   "robots_block": false
+  },
+  "travelweekly.co.uk": {
+   "status": 200,
+   "final": "https://travelweekly.co.uk/",
+   "robots_block": false
+  },
+  "skift.com": {
+   "status": 200,
+   "final": "https://skift.com/",
+   "robots_block": false
+  },
+  "dupontregistry.com": {
+   "status": 403,
+   "final": "https://dupontregistry.com/",
+   "robots_block": false
+  },
+  "hotelmanagement.net": {
+   "status": 403,
+   "final": "https://hotelmanagement.net/",
+   "robots_block": false
+  },
+  "hotelnewsnow.com": {
+   "status": 403,
+   "final": "https://hotelnewsnow.com/",
+   "robots_block": false
+  },
+  "travelweekly.com": {
+   "status": 403,
+   "final": "https://www.travelweekly.com/",
+   "robots_block": false
+  },
+  "autoevolution.com": {
+   "status": 403,
+   "final": "https://www.autoevolution.com/",
+   "robots_block": false
+  },
+  "costar.com": {
+   "status": 403,
+   "final": "https://costar.com/",
+   "robots_block": false
+  },
+  "hospitalitynet.org": {
+   "status": 403,
+   "final": "https://www.hospitalitynet.org/",
+   "robots_block": false
+  },
+  "ttgmedia.com": {
+   "status": 200,
+   "final": "https://www.ttgmedia.com/?",
+   "robots_block": false
+  },
+  "hospitalitydesign.com": {
+   "status": 403,
+   "final": "https://hospitalitydesign.com/",
+   "robots_block": false
+  },
+  "hotelsmag.com": {
+   "status": 200,
+   "final": "https://hotelsmag.com/",
+   "robots_block": false,
+   "search_feed": "https://hotelsmag.com"
+  },
+  "quattroruote.it": {
+   "status": 403,
+   "final": "http://www.quattroruote.it/",
+   "robots_block": false
+  },
+  "departures.com": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "artnet.com": {
+   "status": 403,
+   "final": "https://artnet.com/",
+   "robots_block": false
+  },
+  "phocuswire.com": {
+   "status": 403,
+   "final": "https://www.phocuswire.com/",
+   "robots_block": false
+  },
+  "breakingtravelnews.com": {
+   "status": 403,
+   "final": "https://breakingtravelnews.com/",
+   "robots_block": false
+  },
+  "travelpulse.com": {
+   "status": 403,
+   "final": "https://www.travelpulse.com/",
+   "robots_block": false
+  },
+  "traveldailynews.com": {
+   "status": 403,
+   "final": "https://www.traveldailynews.com/",
+   "robots_block": false
+  },
+  "travelandleisure.com": {
+   "status": 402,
+   "final": "https://www.travelandleisure.com/",
+   "robots_block": false
+  },
+  "fortune.com": {
+   "status": 200,
+   "final": "https://fortune.com/",
+   "robots_block": false
+  },
+  "cntraveler.com": {
+   "status": 200,
+   "final": "https://www.cntraveler.com/",
+   "robots_block": false
+  },
+  "dezeen.com": {
+   "status": 403,
+   "final": "https://dezeen.com/",
+   "robots_block": false
+  },
+  "apnews.com": {
+   "status": 403,
+   "final": "https://apnews.com/",
+   "robots_block": false
+  },
+  "designboom.com": {
+   "status": 200,
+   "final": "https://www.designboom.com/",
+   "robots_block": false
+  },
+  "artnews.com": {
+   "status": 200,
+   "final": "https://www.artnews.com/",
+   "robots_block": false
+  },
+  "wallpaper.com": {
+   "status": 200,
+   "final": "https://www.wallpaper.com/",
+   "robots_block": false
+  },
+  "forbes.com": {
+   "status": 200,
+   "final": "https://www.forbes.com/",
+   "robots_block": false
+  },
+  "architecturaldigest.com": {
+   "status": 200,
+   "final": "https://www.architecturaldigest.com/",
+   "robots_block": false
+  },
+  "wsj.com": {
+   "status": 401,
+   "final": "https://www.wsj.com/",
+   "robots_block": true
+  },
+  "bloomberg.com": {
+   "status": 403,
+   "final": "https://www.bloomberg.com/",
+   "robots_block": false
+  },
+  "ft.com": {
+   "status": 403,
+   "final": "https://www.ft.com/",
+   "robots_block": false
+  },
+  "duemotori.com": {
+   "status": 200,
+   "final": "https://butter-curry.com/",
+   "robots_block": false
+  },
+  "theartnewspaper.com": {
+   "status": 200,
+   "final": "https://www.theartnewspaper.com/",
+   "robots_block": false
+  },
+  "whitewall.art": {
+   "status": 200,
+   "final": "https://whitewall.art/non-classe/homepage/",
+   "robots_block": false
+  },
+  "nytimes.com": {
+   "status": 403,
+   "final": "https://www.nytimes.com/",
+   "robots_block": false
+  },
+  "reuters.com": {
+   "status": 401,
+   "final": "https://www.reuters.com/",
+   "robots_block": true
+  },
+  "bbc.com": {
+   "status": 200,
+   "final": "https://www.bbc.com/",
+   "robots_block": false
+  },
+  "cnn.com": {
+   "status": 200,
+   "final": "https://www.cnn.com/",
+   "robots_block": false
+  },
+  "cnbc.com": {
+   "status": 200,
+   "final": "https://www.cnbc.com/world/?region=world",
+   "robots_block": false
+  },
+  "bizjournals.com": {
+   "status": 403,
+   "final": "https://www.bizjournals.com/",
+   "robots_block": false
+  },
+  "crainsnewyork.com": {
+   "status": 403,
+   "final": "https://www.crainsnewyork.com/",
+   "robots_block": false
+  },
+  "latimes.com": {
+   "status": 200,
+   "final": "https://www.latimes.com/",
+   "robots_block": false
+  },
+  "qz.com": {
+   "status": 403,
+   "final": "https://qz.com/",
+   "robots_block": false
+  },
+  "theguardian.com": {
+   "status": 200,
+   "final": "https://www.theguardian.com/europe",
+   "robots_block": false
+  },
+  "chicagobusiness.com": {
+   "status": 403,
+   "final": "https://www.chicagobusiness.com/",
+   "robots_block": false
+  },
+  "crainsdetroit.com": {
+   "status": 403,
+   "final": "https://www.crainsdetroit.com/",
+   "robots_block": false
+  },
+  "crainscleveland.com": {
+   "status": 403,
+   "final": "https://www.crainscleveland.com/",
+   "robots_block": false
+  },
+  "modernhealthcare.com": {
+   "status": 403,
+   "final": "https://www.modernhealthcare.com/",
+   "robots_block": false
+  },
+  "seekingalpha.com": {
+   "status": 200,
+   "final": "https://seekingalpha.com/",
+   "robots_block": false
+  },
+  "economist.com": {
+   "status": 403,
+   "final": "https://www.economist.com/",
+   "robots_block": false
+  },
+  "thestreet.com": {
+   "status": 403,
+   "final": "https://thestreet.com/",
+   "robots_block": false
+  },
+  "marketwatch.com": {
+   "status": 401,
+   "final": "https://www.marketwatch.com/",
+   "robots_block": true
+  },
+  "businessweek.com": {
+   "status": 403,
+   "final": "https://www.bloomberg.com/businessweek",
+   "robots_block": false
+  },
+  "barrons.com": {
+   "status": 401,
+   "final": "https://www.barrons.com/",
+   "robots_block": true
+  },
+  "investopedia.com": {
+   "status": 402,
+   "final": "https://www.investopedia.com/",
+   "robots_block": false
+  },
+  "morningstar.com": {
+   "status": 403,
+   "final": "https://www.morningstar.com/",
+   "robots_block": false
+  },
+  "fool.com": {
+   "status": 200,
+   "final": "https://www.fool.com/",
+   "robots_block": false
+  },
+  "washingtonpost.com": {
+   "status": 0,
+   "error": "The operation was aborted due to timeout"
+  },
+  "standard.co.uk": {
+   "status": 200,
+   "final": "https://www.standard.co.uk/",
+   "robots_block": false
+  },
+  "asia.nikkei.com": {
+   "status": 200,
+   "final": "https://asia.nikkei.com/",
+   "robots_block": false
+  },
+  "cityam.com": {
+   "status": 200,
+   "final": "https://www.cityam.com/",
+   "robots_block": false
+  },
+  "independent.co.uk": {
+   "status": 200,
+   "final": "https://www.independent.co.uk/",
+   "robots_block": false
+  },
+  "telegraph.co.uk": {
+   "status": 402,
+   "final": "https://www.telegraph.co.uk/",
+   "robots_block": false
+  },
+  "financialpost.com": {
+   "status": 200,
+   "final": "https://financialpost.com/",
+   "robots_block": false
+  },
+  "scmp.com": {
+   "status": 200,
+   "final": "https://www.scmp.com/",
+   "robots_block": false
+  },
+  "economictimes.indiatimes.com": {
+   "status": 200,
+   "final": "https://economictimes.indiatimes.com/",
+   "robots_block": false
+  },
+  "advertisingweek.com": {
+   "status": 200,
+   "final": "https://advertisingweek.com/",
+   "robots_block": false,
+   "search_feed": "https://advertisingweek.com"
+  },
+  "websummit.com": {
+   "status": 200,
+   "final": "https://websummit.com/",
+   "robots_block": false
+  },
+  "digidayevents.com": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "smh.com.au": {
+   "status": 200,
+   "final": "https://www.smh.com.au/",
+   "robots_block": false
+  },
+  "nikkei.com": {
+   "status": 200,
+   "final": "https://www.nikkei.com/",
+   "robots_block": false
+  },
+  "livemint.com": {
+   "status": 200,
+   "final": "https://www.livemint.com/",
+   "robots_block": false
+  },
+  "theglobeandmail.com": {
+   "status": 200,
+   "final": "https://www.theglobeandmail.com/",
+   "robots_block": false
+  },
+  "business-standard.com": {
+   "status": 403,
+   "final": "https://www.business-standard.com/",
+   "robots_block": false
+  },
+  "straitstimes.com": {
+   "status": 200,
+   "final": "https://www.straitstimes.com/global",
+   "robots_block": false
+  },
+  "thetimes.com": {
+   "status": 200,
+   "final": "https://www.thetimes.com/",
+   "robots_block": true
+  },
+  "canneslions.com": {
+   "status": 200,
+   "final": "https://www.canneslions.com/",
+   "robots_block": false
+  },
+  "collisionconf.com": {
+   "status": 200,
+   "final": "https://vancouver.websummit.com/",
+   "robots_block": false
+  },
+  "dmexco.com": {
+   "status": 200,
+   "final": "https://dmexco.com/",
+   "robots_block": false,
+   "search_feed": "https://dmexco.com"
+  },
+  "afr.com": {
+   "status": 200,
+   "final": "https://www.afr.com/",
+   "robots_block": false
+  },
+  "ces.tech": {
+   "status": 200,
+   "final": "https://www.ces.tech/",
+   "robots_block": false
+  },
+  "musicbizconference.com": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "by-larm.no": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "midem.com": {
+   "status": 200,
+   "final": "https://midem.com/",
+   "robots_block": false
+  },
+  "vidcon.com": {
+   "status": 200,
+   "final": "https://www.vidcon.com/",
+   "robots_block": false
+  },
+  "nrfbigshow.nrf.com": {
+   "status": 200,
+   "final": "https://nrfbigshow.nrf.com/",
+   "robots_block": false
+  },
+  "mwcbarcelona.com": {
+   "status": 200,
+   "final": "https://www.mwcbarcelona.com/",
+   "robots_block": false
+  },
+  "sportsprolive.com": {
+   "status": 0,
+   "error": "CERT_HAS_EXPIRED"
+  },
+  "tribecax.com": {
+   "status": 200,
+   "final": "https://tribecax.com/",
+   "robots_block": false
+  },
+  "brandweek.com": {
+   "status": 200,
+   "final": "https://event.adweek.com/brandweek-2027/",
+   "robots_block": false
+  },
+  "eurosonic-noorderslag.nl": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "leadersweek.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "festivalofmarketing.com": {
+   "status": 522,
+   "final": "https://festivalofmarketing.com/",
+   "robots_block": false
+  },
+  "bofvoices.com": {
+   "status": 404,
+   "final": "https://www.bofvoices.com/",
+   "robots_block": false
+  },
+  "wwdsummits.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "groceryshop.com": {
+   "status": 200,
+   "final": "https://groceryshop.com/home",
+   "robots_block": false
+  },
+  "shoptalkeurope.com": {
+   "status": 200,
+   "final": "https://europe.shoptalk.com/home",
+   "robots_block": false
+  },
+  "fastcompany.com/innovationfestival": {
+   "status": 403,
+   "final": "https://www.fastcompany.com/innovationfestival",
+   "robots_block": false
+  },
+  "sportsbusinesssummit.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "possible.events": {
+   "status": 200,
+   "final": "https://www.possible.events/",
+   "robots_block": false
+  },
+  "beautyincawards.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "reeperbahnfestival.com": {
+   "status": 200,
+   "final": "https://www.reeperbahnfestival.com/",
+   "robots_block": false
+  },
+  "sloansportsconference.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "fashioninnovation.nyc": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "gdconf.com": {
+   "status": 200,
+   "final": "https://gdconf.com/",
+   "robots_block": false
+  },
+  "a3c.com": {
+   "status": 200,
+   "final": "https://www.a3c.com/",
+   "robots_block": false,
+   "search_feed": "https://www.a3c.com"
+  },
+  "gamescom.global": {
+   "status": 200,
+   "final": "https://www.gamescom.global/en",
+   "robots_block": false
+  },
+  "tedxtalks.ted.com": {
+   "status": 200,
+   "final": "https://tedxtalks.ted.com/",
+   "robots_block": false
+  },
+  "summergamefest.com": {
+   "status": 200,
+   "final": "https://www.summergamefest.com/",
+   "robots_block": false
+  },
+  "marketingnation.com": {
+   "status": 0,
+   "error": "ERR_SSL_SSL/TLS_ALERT_HANDSHAKE_FAILURE"
+  },
+  "gartner.com": {
+   "status": 403,
+   "final": "https://www.gartner.com/",
+   "robots_block": false
+  },
+  "inbound.com": {
+   "status": 200,
+   "final": "https://unbound.hubspot.com/",
+   "robots_block": false
+  },
+  "nextweb.com": {
+   "status": 200,
+   "final": "https://nextweb.com/",
+   "robots_block": false
+  },
+  "vivatechnology.com": {
+   "status": 403,
+   "final": "https://vivatechnology.com/",
+   "robots_block": false
+  },
+  "slush.org": {
+   "status": 200,
+   "final": "https://slush.org/",
+   "robots_block": false
+  },
+  "milkeninstitute.org": {
+   "status": 200,
+   "final": "https://milkeninstitute.org/",
+   "robots_block": false
+  },
+  "aspenideas.org": {
+   "status": 200,
+   "final": "https://www.aspenideas.org/",
+   "robots_block": false
+  },
+  "ted.com": {
+   "status": 200,
+   "final": "https://www.ted.com/",
+   "robots_block": false
+  },
+  "cmosummit.com": {
+   "status": 200,
+   "final": "https://cmosummit.com/",
+   "robots_block": false
+  },
+  "brandmanagementsummit.com": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "mipcancun.com": {
+   "status": 200,
+   "final": "https://www.mipcancun.com/",
+   "robots_block": false
+  },
+  "filmmart.hk": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "clios.com": {
+   "status": 200,
+   "final": "https://clios.com/",
+   "robots_block": false,
+   "search_feed": "https://clios.com"
+  },
+  "shortyawards.com": {
+   "status": 200,
+   "final": "https://shortyawards.com/",
+   "robots_block": false
+  },
+  "effie.org": {
+   "status": 200,
+   "final": "https://effie.org/",
+   "robots_block": false,
+   "search_feed": "https://effie.org"
+  },
+  "adcolor.org": {
+   "status": 200,
+   "final": "https://adcolor.org/",
+   "robots_block": false,
+   "search_feed": "https://adcolor.org"
+  },
+  "lia.com": {
+   "status": 0,
+   "error": "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+  },
+  "mediaawards.campaignlive.co.uk": {
+   "status": 403,
+   "final": "https://mediaawards.campaignlive.co.uk/",
+   "robots_block": false
+  },
+  "oneclub.org": {
+   "status": 200,
+   "final": "https://www.oneclub.org/",
+   "robots_block": true
+  },
+  "thedrumawards.com": {
+   "status": 200,
+   "final": "https://thedrumawards.com/live/en/page/home",
+   "robots_block": false
+  },
+  "webbyawards.com": {
+   "status": 200,
+   "final": "https://www.webbyawards.com/",
+   "robots_block": false
+  },
+  "dandad.org": {
+   "status": 200,
+   "final": "https://www.dandad.org/",
+   "robots_block": false
+  },
+  "andyawards.com": {
+   "status": 200,
+   "final": "https://www.andyawards.com/",
+   "robots_block": false,
+   "search_feed": "https://www.andyawards.com"
+  },
+  "eurobest.com": {
+   "status": 200,
+   "final": "https://www.eurobest.com/",
+   "robots_block": false
+  },
+  "spikes.asia": {
+   "status": 200,
+   "final": "https://www.spikes.asia/",
+   "robots_block": false
+  },
+  "dubailynx.com": {
+   "status": 200,
+   "final": "https://www.dubailynx.com/",
+   "robots_block": false
+  },
+  "epica-awards.com": {
+   "status": 200,
+   "final": "https://www.epica-awards.com/",
+   "robots_block": false
+  },
+  "newyorkfestivals.com": {
+   "status": 200,
+   "final": "https://www.newyorkfestivals.com/",
+   "robots_block": false
+  },
+  "campaignbigawards.com": {
+   "status": 200,
+   "final": "https://www.campaignbigawards.com/",
+   "robots_block": false
+  },
+  "promaxawards.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "sabreawards.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "adageawards.com": {
+   "status": 200,
+   "final": "https://alist.adageawards.com/a",
+   "robots_block": false
+  },
+  "billboardmusicawards.com": {
+   "status": 200,
+   "final": "https://www.billboardmusicawards.com/",
+   "robots_block": false,
+   "search_feed": "https://www.billboardmusicawards.com"
+  },
+  "emmys.org": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "mtv.com": {
+   "status": 200,
+   "final": "https://www.mtv.co.uk/",
+   "robots_block": false
+  },
+  "iheart.com": {
+   "status": 200,
+   "final": "https://www.iheart.com/",
+   "robots_block": false
+  },
+  "amas.com": {
+   "status": 200,
+   "final": "https://www.ohiogratings.com/",
+   "robots_block": false
+  },
+  "glossyawards.com": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "sportsbusinessawards.com": {
+   "status": 200,
+   "final": "https://sportsbusinessawards.com/",
+   "robots_block": false
+  },
+  "fashionawards.com": {
+   "status": 200,
+   "final": "https://fashionawards.com/",
+   "robots_block": false
+  },
+  "efts.sec.gov": {
+   "status": 403,
+   "final": "https://efts.sec.gov/",
+   "robots_block": false
+  },
+  "find-and-update.company-information.service.gov.uk": {
+   "status": 200,
+   "final": "https://find-and-update.company-information.service.gov.uk/",
+   "robots_block": false
+  },
+  "opencorporates.com": {
+   "status": 200,
+   "final": "https://opencorporates.com/",
+   "robots_block": false
+  },
+  "brits.co.uk": {
+   "status": 403,
+   "final": "https://www.brits.co.uk/",
+   "robots_block": false
+  },
+  "investor.gov": {
+   "status": 403,
+   "final": "https://investor.gov/",
+   "robots_block": false
+  },
+  "fastcompany.com/most-innovative-companies": {
+   "status": 403,
+   "final": "https://www.fastcompany.com/most-innovative-companies",
+   "robots_block": false
+  },
+  "amf-france.org": {
+   "status": 200,
+   "final": "https://www.amf-france.org/fr",
+   "robots_block": false
+  },
+  "sec.gov": {
+   "status": 200,
+   "final": "https://www.sec.gov/",
+   "robots_block": false
+  },
+  "sportindustry.biz": {
+   "status": 200,
+   "final": "https://sportindustry.co.uk/",
+   "robots_block": false,
+   "search_feed": "https://sportindustry.co.uk"
+  },
+  "gleif.org": {
+   "status": 200,
+   "final": "https://www.gleif.org/en",
+   "robots_block": false
+  },
+  "londonstockexchange.com": {
+   "status": 200,
+   "final": "https://www.londonstockexchange.com/",
+   "robots_block": false
+  },
+  "sedarplus.ca": {
+   "status": 200,
+   "final": "http://validate.perfdrive.com/?ssa=c53b02ed-2055-4351-bb3c-94b75c42993e&ssb=82283297526&ssc=https%3A%2F%2Fsedarplus.ca%2F&ssi=0e502abd-brc7-43dd-9c02-ced8c0f81078&ssk=support@shieldsquare.com&ssm=29682070461845982107238290264306&ssn=36c1dcb11b5f4aa8b62139bd191d604c7697c0534442-f7db-4100-8e47e6&sso=7e19d05a-8e659f2f50d0a8677e021edd4ec8c5fa9e81a979ca81fa6f&ssp=52207733371791954357179197632468156&ssq=08736112325201591520823252567760847307601&ssr=MTg1LjUuNDguNzM=&sst=Mozilla/5.0%20(compatible;%20SyzygyBot/0.1;%20+https://syzygybot.vercel.app)&ssu=&ssv=&ssw=&ssx=eyJfX3V6bWYiOiI3ZjkwMDBjMDUzNDQ0Mi1mN2RiLTQxMDAtODA1YS04ZTY1OWYyZjUwZDAxLTE3OTE5MjMyNTIwNDUwLTAwNWQ5ZGViYTA4OTk0YzMxZTAxMCIsInV6bXgiOiI3ZmMwMDA3NGRmZTU2YS02ZTg0LTQzNTgtOWM1MC1lZTU0MGIyODk3MjcxLTE3OTE5MjMyNTIwNDUwLTAwOWMwYjhlZGUzODgyMDk4MTExMCIsInJkIjoic2VkYXJwbHVzLmNhIn0=",
+   "robots_block": false
+  },
+  "annualreports.com": {
+   "status": 200,
+   "final": "https://www.annualreports.com/",
+   "robots_block": false
+  },
+  "wikidata.org": {
+   "status": 200,
+   "final": "https://www.wikidata.org/wiki/Wikidata:Main_Page",
+   "robots_block": false
+  },
+  "borsaitaliana.it": {
+   "status": 200,
+   "final": "https://www.borsaitaliana.it/",
+   "robots_block": false
+  },
+  "wikipedia.org": {
+   "status": 200,
+   "final": "https://www.wikipedia.org/",
+   "robots_block": false
+  },
+  "asx.com.au": {
+   "status": 200,
+   "final": "https://www.asx.com.au/",
+   "robots_block": false
+  },
+  "northdata.com": {
+   "status": 429,
+   "final": "https://www.northdata.com/",
+   "robots_block": false
+  },
+  "handelsregister.de": {
+   "status": 200,
+   "final": "https://www.handelsregister.de/rp_web/welcome.xhtml",
+   "robots_block": false
+  },
+  "roc-nation.com": {
+   "status": 200,
+   "final": "https://roc-nation.com/",
+   "robots_block": true
+  },
+  "infogreffe.fr": {
+   "status": 403,
+   "final": "https://www.infogreffe.fr/",
+   "robots_block": false
+  },
+  "registroimprese.it": {
+   "status": 200,
+   "final": "https://www.registroimprese.it/",
+   "robots_block": false
+  },
+  "caa.com": {
+   "status": 200,
+   "final": "https://www.caa.com/",
+   "robots_block": false
+  },
+  "3arts.com": {
+   "status": 200,
+   "final": "https://3arts.com/",
+   "robots_block": false
+  },
+  "excel-sports.com": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "unitedtalent.com": {
+   "status": 200,
+   "final": "https://www.unitedtalent.com/",
+   "robots_block": false
+  },
+  "octagon.com": {
+   "status": 200,
+   "final": "https://www.octagon.com/",
+   "robots_block": false,
+   "search_feed": "https://www.octagon.com"
+  },
+  "redlightmanagement.com": {
+   "status": 200,
+   "final": "https://redlightmanagement.com/",
+   "robots_block": false,
+   "search_feed": "https://redlightmanagement.com"
+  },
+  "fullstopmgmt.com": {
+   "status": 200,
+   "final": "https://www.fullstopmgmt.com/",
+   "robots_block": false
+  },
+  "rocnation.com": {
+   "status": 200,
+   "final": "https://www.rocnation.com/",
+   "robots_block": false,
+   "search_feed": "https://www.rocnation.com"
+  },
+  "cnmv.es": {
+   "status": 500,
+   "final": "https://www.cnmv.es/portal/Error?aspxerrorpath=/portal/home.aspx",
+   "robots_block": false
+  },
+  "bundesanzeiger.de": {
+   "status": 200,
+   "final": "https://www.bundesanzeiger.de/pub/de/start?0",
+   "robots_block": false
+  },
+  "rangemp.com": {
+   "status": 200,
+   "final": "https://www.rangemp.com/",
+   "robots_block": false
+  },
+  "maverick.com": {
+   "status": 200,
+   "final": "https://www.maverick.com/",
+   "robots_block": false
+  },
+  "wmeagency.com": {
+   "status": 200,
+   "final": "https://www.wmeagency.com/",
+   "robots_block": false
+  },
+  "icmpartners.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "wassermann.com": {
+   "status": 200,
+   "final": "https://www.valantic.com/en/press/wassermann-is-now-valantic/",
+   "robots_block": false,
+   "search_feed": "https://www.valantic.com"
+  },
+  "paradigmagency.com": {
+   "status": 200,
+   "final": "https://www.paradigmagency.com/",
+   "robots_block": false
+  },
+  "nightingalemgmt.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "klutchsports.com": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "img.com": {
+   "status": 200,
+   "final": "https://www.img.com/",
+   "robots_block": false
+  },
+  "anonymouscontent.com": {
+   "status": 200,
+   "final": "https://www.anonymouscontent.com/",
+   "robots_block": false,
+   "search_feed": "https://www.anonymouscontent.com"
+  },
+  "touchpoint.news": {
+   "status": 200,
+   "final": "https://www.touchpoint.news/",
+   "robots_block": false,
+   "search_feed": "https://www.touchpoint.news"
+  },
+  "adcgroup.it": {
+   "status": 200,
+   "final": "https://www.adcgroup.it/",
+   "robots_block": false
+  },
+  "primaonline.it": {
+   "status": 403,
+   "final": "https://www.primaonline.it/",
+   "robots_block": false
+  },
+  "engage.it": {
+   "status": 200,
+   "final": "https://engage.it/",
+   "robots_block": false
+  },
+  "dailyonline.it": {
+   "status": 200,
+   "final": "https://dailyonline.it/",
+   "robots_block": false
+  },
+  "youmark.it": {
+   "status": 200,
+   "final": "https://youmark.it/",
+   "robots_block": false
+  },
+  "brand-news.it": {
+   "status": 200,
+   "final": "https://brand-news.it/",
+   "robots_block": false
+  },
+  "mediakey.it": {
+   "status": 200,
+   "final": "https://mediakey.it/",
+   "robots_block": false
+  },
+  "marketingjournal.it": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "anuncios.com": {
+   "status": 200,
+   "final": "https://www.anuncios.com/",
+   "robots_block": false
+  },
+  "prnoticias.com": {
+   "status": 200,
+   "final": "https://prnoticias.com/",
+   "robots_block": false,
+   "search_feed": "https://prnoticias.com"
+  },
+  "marketingnews.es": {
+   "status": 200,
+   "final": "https://www.marketingnews.es/",
+   "robots_block": false
+  },
+  "ilsole24ore.com": {
+   "status": 200,
+   "final": "https://www.ilsole24ore.com/",
+   "robots_block": false
+  },
+  "controlpublicidad.com": {
+   "status": 200,
+   "final": "https://controlpublicidad.com/",
+   "robots_block": false
+  },
+  "cincodias.elpais.com": {
+   "status": 403,
+   "final": "https://cincodias.elpais.com/",
+   "robots_block": false
+  },
+  "corriere.it": {
+   "status": 200,
+   "final": "https://www.corriere.it/",
+   "robots_block": false
+  },
+  "repubblica.it": {
+   "status": 200,
+   "final": "https://www.repubblica.it/",
+   "robots_block": false
+  },
+  "marketingdirecto.com": {
+   "status": 200,
+   "final": "https://www.marketingdirecto.com/",
+   "robots_block": false,
+   "search_feed": "https://www.marketingdirecto.com"
+  },
+  "calcioefinanza.it": {
+   "status": 200,
+   "final": "https://www.calcioefinanza.it/",
+   "robots_block": false
+  },
+  "expansion.com": {
+   "status": 200,
+   "final": "https://www.expansion.com/",
+   "robots_block": false
+  },
+  "kress.de": {
+   "status": 200,
+   "final": "https://kress.de/",
+   "robots_block": false
+  },
+  "milanofinanza.it": {
+   "status": 200,
+   "final": "https://www.milanofinanza.it/",
+   "robots_block": false
+  },
+  "horizont.net": {
+   "status": 200,
+   "final": "https://www.horizont.net/",
+   "robots_block": false
+  },
+  "meedia.de": {
+   "status": 200,
+   "final": "https://meedia.de/",
+   "robots_block": false
+  },
+  "elpublicista.es": {
+   "status": 200,
+   "final": "https://www.elpublicista.es/",
+   "robots_block": false
+  },
+  "palco23.com": {
+   "status": 200,
+   "final": "https://palco23.mundodeportivo.com/",
+   "robots_block": false
+  },
+  "reasonwhy.es": {
+   "status": 200,
+   "final": "https://www.reasonwhy.es/",
+   "robots_block": false
+  },
+  "fashionnetwork.fr": {
+   "status": 0,
+   "error": "ECONNREFUSED"
+  },
+  "wuv.de": {
+   "status": 200,
+   "final": "https://www.wuv.de/",
+   "robots_block": false
+  },
+  "handelsblatt.com": {
+   "status": 200,
+   "final": "https://www.handelsblatt.com/",
+   "robots_block": false
+  },
+  "textilwirtschaft.de": {
+   "status": 200,
+   "final": "https://www.textilwirtschaft.de/",
+   "robots_block": false
+  },
+  "lebensmittelzeitung.net": {
+   "status": 200,
+   "final": "https://www.lebensmittelzeitung.net/",
+   "robots_block": false
+  },
+  "cbnews.fr": {
+   "status": 200,
+   "final": "https://www.cbnews.fr/",
+   "robots_block": false
+  },
+  "lsa-conso.fr": {
+   "status": 403,
+   "final": "https://www.lsa-conso.fr/",
+   "robots_block": false
+  },
+  "strategies.fr": {
+   "status": 403,
+   "final": "https://strategies.fr/",
+   "robots_block": false
+  },
+  "e-marketing.fr": {
+   "status": 200,
+   "final": "https://www.e-marketing.fr/",
+   "robots_block": false
+  },
+  "lesechos.fr": {
+   "status": 403,
+   "final": "https://www.lesechos.fr/",
+   "robots_block": false
+  },
+  "markedsforing.dk": {
+   "status": 200,
+   "final": "https://markedsforing.dk/",
+   "robots_block": false
+  },
+  "mediapanorama.gr": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "resume.se": {
+   "status": 200,
+   "final": "https://www.resume.se/",
+   "robots_block": false
+  },
+  "absatzwirtschaft.de": {
+   "status": 200,
+   "final": "https://marken-award.de/?abs",
+   "robots_block": false,
+   "search_feed": "https://marken-award.de"
+  },
+  "influencia.net": {
+   "status": 200,
+   "final": "https://www.influencia.net/",
+   "robots_block": false,
+   "search_feed": "https://www.influencia.net"
+  },
+  "dagensmedia.se": {
+   "status": 200,
+   "final": "https://www.dagensmedia.se/",
+   "robots_block": false
+  },
+  "emerce.nl": {
+   "status": 200,
+   "final": "https://www.emerce.nl/",
+   "robots_block": false
+  },
+  "adformatie.nl": {
+   "status": 200,
+   "final": "https://www.adformatie.nl/",
+   "robots_block": false
+  },
+  "m-online.at": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "kampanje.com": {
+   "status": 200,
+   "final": "https://www.kampanje.com/",
+   "robots_block": false
+  },
+  "marketingmag.com.sg": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "senden-kaigi.co.jp": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "persoenlich.com": {
+   "status": 200,
+   "final": "https://persoenlich.com/",
+   "robots_block": false
+  },
+  "marketer.pt": {
+   "status": 200,
+   "final": "https://luissalvador.pt/",
+   "robots_block": false,
+   "search_feed": "https://luissalvador.pt"
+  },
+  "irishtimes.com": {
+   "status": 200,
+   "final": "https://www.irishtimes.com/",
+   "robots_block": false
+  },
+  "adworld.ie": {
+   "status": 200,
+   "final": "https://www.adworld.ie/",
+   "robots_block": false,
+   "search_feed": "https://www.adworld.ie"
+  },
+  "marketingtribune.nl": {
+   "status": 200,
+   "final": "https://www.marketingtribune.nl/",
+   "robots_block": false
+  },
+  "werbewoche.ch": {
+   "status": 403,
+   "final": "https://www.markt-kom.com/",
+   "robots_block": false
+  },
+  "marketing.ie": {
+   "status": 200,
+   "final": "https://marketing.ie/",
+   "robots_block": false,
+   "search_feed": "https://marketing.ie"
+  },
+  "jingdaily.cn": {
+   "status": 0,
+   "error": "ENOTFOUND"
+  },
+  "horizont.at": {
+   "status": 200,
+   "final": "https://www.horizont.at/",
+   "robots_block": false
+  },
+  "briefing.pt": {
+   "status": 200,
+   "final": "https://www.briefing.pt/",
+   "robots_block": false,
+   "search_feed": "https://www.briefing.pt"
+  },
+  "mumbrella.asia": {
+   "status": 200,
+   "final": "https://www.mumbrella.asia/",
+   "robots_block": false
+  },
+  "oricon.co.jp": {
+   "status": 200,
+   "final": "https://www.oricon.co.jp/",
+   "robots_block": false
+  },
+  "bestmediainfo.com": {
+   "status": 403,
+   "final": "https://bestmediainfo.com/",
+   "robots_block": false
+  },
+  "campaignindia.in": {
+   "status": 200,
+   "final": "https://campaignindia.in/",
+   "robots_block": false
+  },
+  "allkpop.com": {
+   "status": 403,
+   "final": "https://allkpop.com/",
+   "robots_block": false
+  },
+  "adasia.com": {
+   "status": 0,
+   "error": "ECONNREFUSED"
+  },
+  "koreajoongangdaily.joins.com": {
+   "status": 200,
+   "final": "https://www.koreajoongangdaily.com/",
+   "robots_block": false
+  },
+  "soompi.com": {
+   "status": 200,
+   "final": "https://www.soompi.com/",
+   "robots_block": false,
+   "search_feed": "https://www.soompi.com"
+  },
+  "medianews4u.com": {
+   "status": 200,
+   "final": "https://www.medianews4u.com/",
+   "robots_block": false,
+   "search_feed": "https://www.medianews4u.com"
+  },
+  "nikkeibp.co.jp": {
+   "status": 200,
+   "final": "https://www.nikkeibp.co.jp/",
+   "robots_block": false
+  },
+  "storyboard18.com": {
+   "status": 200,
+   "final": "https://www.storyboard18.com/",
+   "robots_block": false
+  },
+  "advertimes.com": {
+   "status": 200,
+   "final": "https://www.advertimes.com/",
+   "robots_block": false,
+   "search_feed": "https://www.advertimes.com"
+  },
+  "socialsamosa.com": {
+   "status": 200,
+   "final": "https://www.socialsamosa.com/",
+   "robots_block": false
+  },
+  "thehindubusinessline.com": {
+   "status": 200,
+   "final": "https://www.thehindubusinessline.com/",
+   "robots_block": false
+  },
+  "stoppress.co.nz": {
+   "status": 403,
+   "final": "https://stoppress.co.nz/",
+   "robots_block": false
+  },
+  "koreaherald.com": {
+   "status": 200,
+   "final": "https://www.koreaherald.com/",
+   "robots_block": false
+  },
+  "adnews.com.br": {
+   "status": 200,
+   "final": "https://adnews.com.br/",
+   "robots_block": false
+  },
+  "stuff.co.nz": {
+   "status": 200,
+   "final": "https://www.stuff.co.nz/",
+   "robots_block": false
+  },
+  "exame.com": {
+   "status": 200,
+   "final": "https://exame.com/",
+   "robots_block": false
+  },
+  "propmark.com.br": {
+   "status": 200,
+   "final": "https://propmark.com.br/",
+   "robots_block": false,
+   "search_feed": "https://propmark.com.br"
+  },
+  "yna.co.kr": {
+   "status": 200,
+   "final": "https://www.yna.co.kr/",
+   "robots_block": false
+  },
+  "expansion.mx": {
+   "status": 200,
+   "final": "https://expansion.mx/",
+   "robots_block": false
+  },
+  "campaignme.com": {
+   "status": 200,
+   "final": "https://campaignme.com/",
+   "robots_block": false,
+   "search_feed": "https://campaignme.com"
+  },
+  "adlatina.com": {
+   "status": 200,
+   "final": "https://adlatina.com/",
+   "robots_block": false
+  },
+  "latinspots.com": {
+   "status": 200,
+   "final": "https://www.latinspots.com/",
+   "robots_block": false
+  },
+  "digitalcrew.com.au": {
+   "status": 200,
+   "final": "https://www.digitalcrew.com.au/",
+   "robots_block": false,
+   "search_feed": "https://www.digitalcrew.com.au"
+  },
+  "valor.globo.com": {
+   "status": 200,
+   "final": "https://valor.globo.com/",
+   "robots_block": false
+  },
+  "merca20.com": {
+   "status": 200,
+   "final": "https://www.merca20.com/",
+   "robots_block": false,
+   "search_feed": "https://www.merca20.com"
+  },
+  "gulfnews.com": {
+   "status": 200,
+   "final": "https://gulfnews.com/",
+   "robots_block": false
+  },
+  "arabianbusiness.com": {
+   "status": 403,
+   "final": "https://arabianbusiness.com/",
+   "robots_block": false
+  },
+  "communicateonline.me": {
+   "status": 200,
+   "final": "https://communicateonline.me/",
+   "robots_block": false,
+   "search_feed": "https://communicateonline.me"
+  },
+  "nzherald.co.nz": {
+   "status": 200,
+   "final": "https://www.nzherald.co.nz/",
+   "robots_block": false
+  },
+  "meioemensagem.com.br": {
+   "status": 200,
+   "final": "https://www.meioemensagem.com.br/",
+   "robots_block": false
+  },
+  "lanacion.com.ar": {
+   "status": 200,
+   "final": "https://www.lanacion.com.ar/",
+   "robots_block": false
+  },
+  "latamsports.com": {
+   "status": 200,
+   "final": "http://www.latamsports.com/",
+   "robots_block": false
+  },
+  "businessoffashion.cn": {
+   "status": 0,
+   "error": "UND_ERR_CONNECT_TIMEOUT"
+  },
+  "punchng.com": {
+   "status": 200,
+   "final": "https://punchng.com/",
+   "robots_block": false
+  },
+  "businessday.ng": {
+   "status": 200,
+   "final": "https://businessday.ng/",
+   "robots_block": false
+  },
+  "nairametrics.com": {
+   "status": 200,
+   "final": "https://nairametrics.com/",
+   "robots_block": false
+  },
+  "techcabal.com": {
+   "status": 200,
+   "final": "https://techcabal.com/",
+   "robots_block": false,
+   "search_feed": "https://techcabal.com"
+  },
+  "marketingedge.com.ng": {
+   "status": 200,
+   "final": "https://marketingedge.com.ng/",
+   "robots_block": false,
+   "search_feed": "https://marketingedge.com.ng"
+  },
+  "brandcrunch.com.ng": {
+   "status": 200,
+   "final": "https://brandcrunch.com.ng/",
+   "robots_block": false,
+   "search_feed": "https://brandcrunch.com.ng"
+  },
+  "marklives.com": {
+   "status": 200,
+   "final": "https://www.marklives.com/",
+   "robots_block": false,
+   "search_feed": "https://www.marklives.com"
+  },
+  "thenationalnews.com": {
+   "status": 200,
+   "final": "https://www.thenationalnews.com/",
+   "robots_block": false
+  },
+  "thisdaylive.com": {
+   "status": 200,
+   "final": "https://www.thisdaylive.com/",
+   "robots_block": false
+  },
+  "bizcommunity.com": {
+   "status": 200,
+   "final": "https://www.bizcommunity.com/",
+   "robots_block": false
+  }
+ }
+}

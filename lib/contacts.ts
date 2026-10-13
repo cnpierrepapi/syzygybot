@@ -4,11 +4,14 @@
 // Verifier: re-reads every cited page itself and keeps a person only if the page names them with the
 // company and a matching role. Inbox addresses must appear on a page and their domain must take mail.
 // Personal email addresses are never guessed.
+// Two finders run side by side: a grounded web search, and the Source sweep (lib/sweep.ts) over the
+// curated list of trade press, wires, conference and registry sources we can read.
 
 import { sql } from "./db";
 import { logAction } from "./actions";
 import { askWeb, parseJson, type WebSource } from "./llm";
 import { hasMx, monthsAgo, readAll, readPage, type Page } from "./web";
+import { sweep } from "./sweep";
 
 export type Account = { id: string; entity_id: string; name: string; type: string; official_site: string | null };
 
@@ -95,10 +98,28 @@ export function judgePerson(pages: Page[], name: string, title: string, company:
 const SITE_PATHS = ["", "/contact", "/contact-us", "/press", "/about", "/partnerships"];
 
 export async function findContacts(a: Account) {
-  const web = await askWeb(finderPrompt(a), FINDER_SYSTEM);
+  const [ent] = (await sql()`select raw->'properties'->>'headquartered' hq, coalesce(raw->'tags', '[]'::jsonb) tags from entities where qloo_id = ${a.entity_id}`) as { hq: string | null; tags: { name?: string }[] }[];
+  const [web, swept] = await Promise.all([
+    askWeb(finderPrompt(a), FINDER_SYSTEM),
+    sweep({ name: a.name, type: a.type, tags: (ent?.tags ?? []).map(t => t?.name ?? "").filter(Boolean), hq: ent?.hq ?? null }),
+  ]);
   const found = parseJson<Found>(web.text) ?? {};
   const people = (found.people ?? []).filter(p => p?.name && p?.title).slice(0, 5);
   const inboxes = (found.inboxes ?? []).filter(i => i?.email?.includes("@")).slice(0, 4);
+  // Sweep finds join the list; the date is the article's, so the Verifier's age rule applies to it.
+  for (const sp of swept.people) {
+    if (people.length >= 9) break;
+    if (people.some(p => p.name.toLowerCase() === sp.name.toLowerCase())) continue;
+    people.push({ name: sp.name, title: sp.title, company: a.name, source_url: sp.source_url, source_date: swept.hits.find(h => h.url === sp.source_url)?.date?.slice(0, 10) });
+  }
+  for (const si of swept.inboxes) if (!inboxes.some(i => i.email.toLowerCase() === si.email.toLowerCase())) inboxes.push({ email: si.email, purpose: "published in trade press", source_url: si.source_url });
+  const via = (k: string) => swept.hits.filter(h => h.via === k).length;
+  await logAction({
+    agent: "contact_finder", kind: "contacts.swept",
+    summary: `Swept ${swept.sourcesConsidered} listed sources for ${a.name} (${swept.groups.filter(g => !["wire", "business", "registry"].includes(g)).join(", ")}): ${via("bing_news")} news hits, ${via("search_feed")} from ${swept.feedsSearched} site searches${via("sec_8k") ? `, ${via("sec_8k")} SEC filings` : ""}. Read ${swept.pages.length}, found ${swept.people.length} named people.`,
+    refTable: "accounts", refId: a.id, llmCostUsd: swept.costUsd,
+    detail: { groups: swept.groups, queries: swept.queries, hits: swept.hits.slice(0, 40).map(h => ({ url: h.url, title: h.title, source: h.source, date: h.date, via: h.via })) },
+  });
 
   await logAction({
     agent: "contact_finder", kind: "contacts.searched",
@@ -114,12 +135,12 @@ export async function findContacts(a: Account) {
     ...web.sources.map((s: WebSource) => s.url),
   ]);
   const sitePages = site ? (await Promise.all(SITE_PATHS.map(p => readPage(site + p)))).filter((p): p is Page => p != null && p.status < 400) : [];
-  const allPages = [...pages, ...sitePages];
+  const allPages = [...pages, ...sitePages, ...swept.pages];
 
   // First pass over what the finder read; anyone not confirmed gets a second, independent search.
   const first = people.map(p => judgePerson(allPages, p.name, p.title, p.company || a.name, officialDomain));
   const recheck = await Promise.all(people.map(async (p, i) => {
-    if (first[i].status === "confirmed") return { verdict: first[i], cost: 0 };
+    if (first[i].status === "confirmed" || i >= 6) return { verdict: first[i], cost: 0 }; // second searches cost money; cap them
     try {
       const w = await askWeb(`Find public pages (not LinkedIn) that state "${p.name}" works at ${a.name}, and their current title. List the URLs.`, VERIFIER_SYSTEM, 400);
       const extra = await readAll(w.sources.map(s => s.url), 6);
