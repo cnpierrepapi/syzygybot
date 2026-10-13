@@ -1,5 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { FocusStars } from "../../components/Sky";
 import type { Metadata } from "next";
 import { clip } from "@/lib/seo";
 import { resolve, pathFor } from "@/lib/slug";
@@ -13,7 +14,7 @@ type Partner = { name: string; type: string; pullOut: number; pullBack: number }
 type Row = {
   id: string; reason: string; created_at: string; pair_id: string; entity_id: string;
   name: string; type: string; x_handle: string | null; x_handle_status: string;
-  passed_name: string; passed_type: string; pair_slug: string | null;
+  passed_name: string; passed_type: string; pair_slug: string | null; passed_on: string | null;
   evidence: {
     pair?: { score: number; band: string; thesis: string | null };
     pull?: { partnerFansLikeAccount: number | null; accountFansLikePartner: number | null };
@@ -76,19 +77,10 @@ export default async function Account({ params }: { params: Promise<{ id: string
 
   return (
     <main className="wrap">
+      <FocusStars stars={[a.entity_id, ...(a.passed_on ? [a.passed_on] : [])]} />
       <nav className="nav"><Logo /><span className="crumb">ACCOUNT · qualified {new Date(a.created_at).toISOString().slice(0, 10)}</span></nav>
 
-      <section className="panel fade-up" style={{ padding: 28, marginTop: 8, position: "relative", overflow: "hidden" }}>
-        <svg aria-hidden className="hero-orb" viewBox="0 0 240 240" width="240" height="240" style={{ position: "absolute", right: 36, top: "50%", transform: "translateY(-50%)", opacity: 0.95 }}>
-          <defs>
-            <radialGradient id="hp" cx="35%" cy="32%"><stop offset="0%" stopColor="#fff" /><stop offset="28%" stopColor={c1} /><stop offset="100%" stopColor={c2} /></radialGradient>
-            <filter id="hg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="18" /></filter>
-          </defs>
-          <circle cx="120" cy="120" r="70" fill={c1} opacity="0.45" filter="url(#hg)" />
-          <circle cx="120" cy="120" r="62" fill="url(#hp)" />
-          <ellipse cx="120" cy="120" rx="108" ry="24" fill="none" stroke={c1} strokeOpacity="0.6" strokeWidth="1.5" transform="rotate(-18 120 120)" />
-          <circle cx="222" cy="98" r="5" fill="#ffd23d" />
-        </svg>
+      <section className="fade-up clear-hero" style={{ padding: "28px 4px 34px", marginTop: 8, position: "relative" }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <AgentChip agent="qualifier" label="Picked by Qualifier" />
           <AgentChip agent="numbers" label="Evidence by Numbers" />

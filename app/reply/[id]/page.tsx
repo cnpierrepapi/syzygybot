@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { FocusStars } from "../../components/Sky";
 import { resolve, pathFor } from "@/lib/slug";
 import { showSimulated } from "@/lib/floor";
 import { Logo, AgentChip } from "../../components/visuals";
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 type Row = {
   id: string; class: string; body: string; answer: string | null; simulated: boolean; created_at: string;
   detail: { summary?: string; questions?: string[]; queries?: { tool: string; input: unknown; output: unknown }[]; acted?: string[]; revisit?: string };
-  touch_id: string; contact_name: string | null; contact_role: string; account_id: string; account_name: string; touch_slug: string | null; account_slug: string | null;
+  touch_id: string; contact_name: string | null; contact_role: string; account_id: string; account_name: string; touch_slug: string | null; account_slug: string | null; entity_id: string;
 };
 
 const CLASS: Record<string, { label: string; color: string; meaning: string }> = {
@@ -34,7 +35,7 @@ export default async function Reply({ params }: { params: Promise<{ id: string }
   if (hit.redirect) permanentRedirect(hit.redirect);
   const id = hit.id;
   const [r] = (await sql()`
-    select r.*, t.id touch_id, t.slug touch_slug, c.name contact_name, c.role contact_role, ac.id account_id, ac.slug account_slug, e.name account_name
+    select r.*, ac.entity_id, t.id touch_id, t.slug touch_slug, c.name contact_name, c.role contact_role, ac.id account_id, ac.slug account_slug, e.name account_name
     from replies r join touches t on t.id = r.touch_id join contacts c on c.id = t.contact_id
     join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id where r.id = ${id}`) as Row[];
   if (!r || (r.simulated && !showSimulated())) notFound();
@@ -44,6 +45,7 @@ export default async function Reply({ params }: { params: Promise<{ id: string }
   return (
     <main className="wrap">
       <h1 className="sr-only">Reply from {r.contact_name ?? r.account_name}</h1>
+      <FocusStars stars={[r.entity_id]} />
       <nav className="nav"><Logo /><span className="crumb">REPLY · {r.account_name}</span></nav>
       {r.simulated && (
         <p className="band" style={{ display: "inline-block", background: "#ffb31f22", color: "#ffb31f", border: "1px solid #ffb31f88", marginTop: 8 }}>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FeedItem, Funnel } from "@/lib/floor";
 import { agentColor, AGENT_LABEL } from "@/lib/ui";
+import { pulse } from "@/lib/sky";
 
 const POLL_MS = 5000;
 const CHAR_MS = 14;       // typewriter speed for arriving actions
@@ -87,6 +88,7 @@ export default function LiveFloor({ initialItems, initialFunnel, middle }: { ini
       const item = queue.current.shift()!;
       typing.current = true;
       setRows(r => [{ ...item, typed: 0, fresh: true }, ...r].slice(0, 60));
+      pulse(item.agent, item.stars ?? []); // the same action, as light crossing the sky
       let n = 0;
       const tick = setInterval(() => {
         n = Math.min(item.summary.length, n + 2);

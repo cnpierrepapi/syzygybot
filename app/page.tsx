@@ -6,7 +6,8 @@ import type { Metadata } from "next";
 
 // Only the floor itself claims "/" as its canonical address; every other page sets its own or none.
 export const metadata: Metadata = { alternates: { canonical: "/" } };
-import { Alignment, Logo } from "./components/visuals";
+import { Logo } from "./components/visuals";
+import { typeColors } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -30,44 +31,29 @@ async function load() {
   }
 }
 
+const LEGEND: [string, string][] = [["brand", "Brands"], ["artist", "Artists"], ["tv_show", "TV shows"], ["movie", "Films"]];
+
 function Hero() {
   return (
-    <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(0, 1fr)", gap: 32, alignItems: "center", padding: "28px 0 40px" }} className="hero">
-      <div className="fade-up">
-        <p className="eyebrow"><span className="live-dot" style={{ marginRight: 10 }} />An autonomous SDR floor · built on Qloo taste data</p>
-        <h1 className="headline" style={{ fontSize: "clamp(32px, 4.4vw, 62px)", lineHeight: 1.04, letterSpacing: "-0.02em" }}>
-          <span>No humans.</span><span className="grad-text">Every action here</span><span>was taken by agents.</span>
+    <section className="hero">
+      <div className="fade-up" style={{ maxWidth: 680 }}>
+        <p className="eyebrow"><span className="live-dot" style={{ marginRight: 10 }} />Autonomous SDR floor · built on Qloo taste data</p>
+        <h1 className="headline" style={{ fontSize: "clamp(34px, 5vw, 64px)", lineHeight: 1.02 }}>
+          <span>No humans.</span><span>Every action here was</span><span>taken by <span className="grad-text" style={{ display: "inline" }}>agents</span>.</span>
         </h1>
-        <p style={{ color: "var(--dim)", fontSize: 17, maxWidth: 560, marginTop: 18 }}>
-          Scout finds two audiences that line up in a way nobody has noticed. The Qualifier picks the side that would
-          buy Qloo, the Numbers agent builds its evidence, and the rest of the team works the account.
-          Click any line to see the evidence behind it.
+        <p style={{ color: "var(--dim)", fontSize: 16.5, maxWidth: 560, marginTop: 18 }}>
+          Each star is a brand, artist or show. Each line is a thesis: two audiences that line up in a way nobody has
+          noticed. The nine agents ride the outer ring, and every time one of them acts, you see it cross the sky.
         </p>
-      </div>
-      <div className="fade-up" style={{ animationDelay: "150ms" }}>
-        <svg viewBox="0 0 400 300" width="100%" role="img" aria-label="Three bodies moving into alignment">
-          <defs>
-            <radialGradient id="h1" cx="35%" cy="35%"><stop offset="0%" stopColor="#fff" /><stop offset="30%" stopColor="#ff3d9a" /><stop offset="100%" stopColor="#7a1450" /></radialGradient>
-            <radialGradient id="h2" cx="35%" cy="35%"><stop offset="0%" stopColor="#fff" /><stop offset="30%" stopColor="#ffd23d" /><stop offset="100%" stopColor="#a8560f" /></radialGradient>
-            <radialGradient id="h3" cx="35%" cy="35%"><stop offset="0%" stopColor="#fff" /><stop offset="30%" stopColor="#3de0ff" /><stop offset="100%" stopColor="#3a2a9e" /></radialGradient>
-            <filter id="hb" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="16" /></filter>
-          </defs>
-          <ellipse cx="200" cy="150" rx="180" ry="62" fill="none" stroke="rgba(160,140,255,0.22)" />
-          <ellipse cx="200" cy="150" rx="120" ry="40" fill="none" stroke="rgba(160,140,255,0.18)" />
-          <line x1="40" y1="150" x2="360" y2="150" stroke="#ffd23d" strokeOpacity="0.55" strokeWidth="1.5" className="glow-line" />
-          <circle cx="200" cy="150" r="46" fill="#ffd23d" opacity="0.35" filter="url(#hb)" />
-          <circle cx="200" cy="150" r="30" fill="url(#h2)" />
-          <g>
-            <animateTransform attributeName="transform" type="translate" values="0,-34; 0,0; 0,0; 0,-34" keyTimes="0;0.4;0.75;1" dur="9s" repeatCount="indefinite" />
-            <circle cx="70" cy="150" r="40" fill="#ff3d9a" opacity="0.4" filter="url(#hb)" />
-            <circle cx="70" cy="150" r="24" fill="url(#h1)" />
-          </g>
-          <g>
-            <animateTransform attributeName="transform" type="translate" values="0,34; 0,0; 0,0; 0,34" keyTimes="0;0.4;0.75;1" dur="9s" repeatCount="indefinite" />
-            <circle cx="330" cy="150" r="40" fill="#3de0ff" opacity="0.4" filter="url(#hb)" />
-            <circle cx="330" cy="150" r="24" fill="url(#h3)" />
-          </g>
-        </svg>
+        <div className="legend">
+          {LEGEND.map(([t, label]) => {
+            const [c] = typeColors(t);
+            return <span key={t} className="chip"><i style={{ background: c, boxShadow: `0 0 8px ${c}` }} />{label}</span>;
+          })}
+          <span className="chip"><i style={{ background: "#ffb020" }} />PITCH line</span>
+          <span className="chip"><i style={{ background: "#5b6fd6" }} />WATCH line</span>
+        </div>
+        <p className="hint">Hover a star for its name. Click it to open its account or thesis.</p>
       </div>
     </section>
   );
@@ -76,19 +62,29 @@ function Hero() {
 function Featured({ cards }: { cards: Card[] }) {
   if (!cards.length) return null;
   return (
-    <section style={{ marginTop: 44 }}>
-      <h2 style={{ fontSize: 22, marginBottom: 14 }}>Latest <span className="grad-text">PITCH</span> theses</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 14 }}>
-        {cards.map((c, i) => (
-          <a key={c.id} href={`/thesis/${c.slug ?? c.id}`} className="panel fade-up" style={{ padding: 18, display: "block", animationDelay: `${i * 80}ms`, textDecoration: "none" }}>
-            <Alignment a={c.a_name} b={c.b_name} aType={c.a_type} bType={c.b_type} height={78} />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, gap: 8 }}>
-              <strong style={{ fontSize: 17, lineHeight: 1.2 }}>{c.a_name} <span className="grad-text">×</span> {c.b_name}</strong>
-              <span className={`band band-${c.band}`}>{c.score.toFixed(2)}</span>
-            </div>
-            <p style={{ color: "var(--dim)", fontSize: 13.5, margin: "10px 0 0", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.thesis}</p>
-          </a>
-        ))}
+    <section style={{ marginTop: 40 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+        <h2 style={{ fontSize: 20 }}>Latest PITCH theses</h2>
+        <span className="eyebrow" style={{ margin: 0 }}>scored by Scout</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10 }}>
+        {cards.map((c, i) => {
+          const [ca] = typeColors(c.a_type), [cb] = typeColors(c.b_type);
+          return (
+            <a key={c.id} href={`/thesis/${c.slug ?? c.id}`} className="panel fade-up" style={{ padding: 18, display: "block", animationDelay: `${i * 70}ms` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <i style={{ width: 9, height: 9, borderRadius: "50%", background: ca, boxShadow: `0 0 10px ${ca}`, flex: "none" }} />
+                <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${ca}, #ffb020, ${cb})`, opacity: 0.7 }} />
+                <i style={{ width: 9, height: 9, borderRadius: "50%", background: cb, boxShadow: `0 0 10px ${cb}`, flex: "none" }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 14, gap: 8 }}>
+                <strong style={{ fontSize: 16.5, lineHeight: 1.25 }}>{c.a_name} <span style={{ color: "var(--mute)" }}>×</span> {c.b_name}</strong>
+                <span className={`band band-${c.band}`}>{c.score.toFixed(2)}</span>
+              </div>
+              <p style={{ color: "var(--dim)", fontSize: 13.5, margin: "10px 0 0", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.thesis}</p>
+            </a>
+          );
+        })}
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { FocusStars } from "../../components/Sky";
 import { resolve, pathFor } from "@/lib/slug";
 import { maskEmail, STATUS_LABEL } from "@/lib/ui";
 import { Logo, AgentChip } from "../../components/visuals";
@@ -15,7 +16,7 @@ type Row = {
   id: string; kind: string; name: string | null; role: string; email: string | null; email_status: string;
   role_status: string; sources: string[]; verified_at: string | null; created_at: string;
   verification: { checked?: Check[]; page?: string | null; date?: string | null; claimed?: { url: string | null; date: string | null }; publishedOn?: string | null; mx?: boolean };
-  account_id: string; account_name: string; touch_id: string | null; touch_subject: string | null; account_slug: string | null; touch_slug: string | null;
+  account_id: string; account_name: string; touch_id: string | null; touch_subject: string | null; account_slug: string | null; touch_slug: string | null; entity_id: string;
 };
 
 const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
@@ -28,7 +29,7 @@ export default async function Contact({ params }: { params: Promise<{ id: string
   if (hit.redirect) permanentRedirect(hit.redirect);
   const id = hit.id;
   const [c] = (await sql()`
-    select c.*, ac.id account_id, ac.slug account_slug, e.name account_name, t.id touch_id, t.slug touch_slug, t.subject touch_subject
+    select c.*, ac.id account_id, ac.entity_id, ac.slug account_slug, e.name account_name, t.id touch_id, t.slug touch_slug, t.subject touch_subject
     from contacts c join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
     left join lateral (select id, slug, subject from touches where contact_id = c.id order by created_at desc limit 1) t on true
     where c.id = ${id}`) as Row[];
@@ -39,6 +40,7 @@ export default async function Contact({ params }: { params: Promise<{ id: string
 
   return (
     <main className="wrap">
+      <FocusStars stars={[c.entity_id]} />
       <nav className="nav"><Logo /><span className="crumb">CONTACT · found {new Date(c.created_at).toISOString().slice(0, 10)}</span></nav>
 
       <section className="panel fade-up" style={{ padding: 28, marginTop: 8 }}>

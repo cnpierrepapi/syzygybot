@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { FocusStars } from "../../components/Sky";
 import { resolve, pathFor } from "@/lib/slug";
 import { Logo, AgentChip } from "../../components/visuals";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 type Trigger = { what: string; date?: string; verified?: boolean; page?: string; source_url?: string };
 type Row = {
-  id: string; angle: string; created_at: string; account_id: string; account_name: string; account_slug: string | null;
+  id: string; angle: string; created_at: string; account_id: string; account_name: string; account_slug: string | null; entity_id: string;
   channels: { contact_id: string; channel: string; why: string }[];
   triggers: Trigger[]; detail: { timing?: string };
   contacts: { id: string; slug: string | null; name: string | null; role: string; touch_id: string | null; touch_slug: string | null }[];
@@ -26,7 +27,7 @@ export default async function Plan({ params }: { params: Promise<{ id: string }>
   if (hit.redirect) permanentRedirect(hit.redirect);
   const id = hit.id;
   const [p] = (await sql()`
-    select pl.*, ac.id account_id, ac.slug account_slug, e.name account_name,
+    select pl.*, ac.id account_id, ac.entity_id, ac.slug account_slug, e.name account_name,
       coalesce((select json_agg(json_build_object('id', c.id, 'slug', c.slug, 'name', c.name, 'role', c.role,
         'touch_slug', (select t.slug from touches t where t.contact_id = c.id and t.plan_id = pl.id limit 1),
         'touch_id', (select t.id from touches t where t.contact_id = c.id and t.plan_id = pl.id limit 1)))
@@ -40,6 +41,7 @@ export default async function Plan({ params }: { params: Promise<{ id: string }>
   return (
     <main className="wrap">
       <h1 className="sr-only">Outreach plan for {p.account_name}</h1>
+      <FocusStars stars={[p.entity_id]} />
       <nav className="nav"><Logo /><span className="crumb">PLAN · set {new Date(p.created_at).toISOString().slice(0, 10)}</span></nav>
 
       <section className="panel fade-up" style={{ padding: 28, marginTop: 8 }}>

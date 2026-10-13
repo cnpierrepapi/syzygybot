@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { FocusStars } from "../../components/Sky";
 import { resolve, pathFor } from "@/lib/slug";
 import { maskEmail } from "@/lib/ui";
 import { showSimulated } from "@/lib/floor";
@@ -16,7 +17,7 @@ type Row = {
   created_at: string; scheduled_for: string | null;
   detail: { checks?: Record<string, boolean>; attention?: string | null; tz?: string; footer?: string; cancelled?: string };
   contact_id: string; contact_name: string | null; contact_role: string; plan_id: string | null; account_id: string; account_name: string;
-  slug: string | null; contact_slug: string | null; account_slug: string | null; plan_slug: string | null; optout_token: string | null;
+  slug: string | null; contact_slug: string | null; account_slug: string | null; plan_slug: string | null; optout_token: string | null; entity_id: string;
 };
 
 const CHECK_LABEL: Record<string, string> = {
@@ -40,7 +41,7 @@ export default async function Message({ params }: { params: Promise<{ id: string
   if (hit.redirect) permanentRedirect(hit.redirect);
   const id = hit.id;
   const [t] = (await sql()`
-    select t.*, c.id contact_id, c.slug contact_slug, c.name contact_name, c.role contact_role, ac.id account_id, ac.slug account_slug, e.name account_name,
+    select t.*, ac.entity_id, c.id contact_id, c.slug contact_slug, c.name contact_name, c.role contact_role, ac.id account_id, ac.slug account_slug, e.name account_name,
       (select slug from plans where id = t.plan_id) plan_slug
     from touches t join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
     where t.id = ${id}`) as Row[];
@@ -61,6 +62,7 @@ export default async function Message({ params }: { params: Promise<{ id: string
   return (
     <main className="wrap">
       <h1 className="sr-only">Message to {t.contact_name ?? t.account_name}, step {t.step}</h1>
+      <FocusStars stars={[t.entity_id]} />
       <nav className="nav"><Logo /><span className="crumb">MESSAGE · step {t.step} · {t.channel}</span></nav>
 
       <section className="split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)", gap: 16, marginTop: 8 }}>

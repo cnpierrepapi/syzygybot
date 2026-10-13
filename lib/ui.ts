@@ -34,14 +34,15 @@ export const DIM_LABEL: Record<string, string> = {
   shared: "Shared taste", reach: "Reach", where: "Where", timing: "Timing",
 };
 
+// Entity types: a bright hue and a deeper one, matching the stars in the sky (components/Constellation.tsx).
 export const TYPE_COLOR: Record<string, [string, string]> = {
-  brand: ["#ff3d9a", "#ff8a3d"],
-  artist: ["#3de0ff", "#9b7bff"],
-  tv_show: ["#b6f23d", "#3de0a0"],
-  movie: ["#ffd23d", "#ff8a3d"],
+  brand: ["#ff6b5e", "#b8323f"],
+  artist: ["#22d3ee", "#2563eb"],
+  tv_show: ["#a3e635", "#15803d"],
+  movie: ["#ffb020", "#c2410c"],
 };
 
-export const typeColors = (t: string) => TYPE_COLOR[t] ?? ["#9b7bff", "#3de0ff"];
+export const typeColors = (t: string) => TYPE_COLOR[t] ?? ["#8b7cf6", "#4c1d95"];
 
 
 /** Public pages never show a full address: first letter, then the domain. */

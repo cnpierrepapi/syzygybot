@@ -1,5 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { FocusStars } from "../../components/Sky";
 import type { Metadata } from "next";
 import { clip, jsonLd, ORG } from "@/lib/seo";
 import { SITE } from "@/lib/slug";
@@ -14,7 +15,7 @@ type Row = {
   id: string; score: number; band: string; thesis: string | null; called_at: string; rubric_version: string;
   dims: { dims: Record<Dim, { score: number; raw: unknown; note: string }>; gate: string | null; raw?: { tagsA: string[]; tagsB: string[] } };
   a_name: string; a_type: string; a_handle: string | null; b_name: string; b_type: string; b_handle: string | null;
-  account_id: string | null; account_name: string | null; account_slug: string | null; slug: string | null;
+  account_id: string | null; account_name: string | null; account_slug: string | null; slug: string | null; a_id: string; b_id: string;
 };
 
 const fmt = (v: unknown): string =>
@@ -62,6 +63,7 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
   return (
     <main className="wrap">
       <h1 className="sr-only">{p.a_name} × {p.b_name}: partnership thesis</h1>
+      <FocusStars stars={[p.a_id, p.b_id]} />
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd({
         "@context": "https://schema.org", "@type": "Article",
         headline: `${p.a_name} × ${p.b_name}: ${p.band} partnership thesis`,
