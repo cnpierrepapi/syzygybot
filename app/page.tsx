@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 type Row = { id: string; agent: string; kind: string; summary: string; created_at: string; ref_table: string | null; ref_id: string | null };
 
-const SUBPAGE: Record<string, string> = { pairs: "/thesis/" };
+const SUBPAGE: Record<string, string> = { pairs: "/thesis/", accounts: "/account/" };
 
 async function recent(): Promise<Row[]> {
   if (!process.env.DATABASE_URL) return [];

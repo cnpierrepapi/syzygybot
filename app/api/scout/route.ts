@@ -1,5 +1,6 @@
-// Runs one Scout pass. Called by Vercel Cron (Bearer CRON_SECRET) or by hand with the same header.
+// Runs one Scout pass, then qualifies the best new pairs. Called by Vercel Cron (Bearer CRON_SECRET) or by hand with the same header.
 import { runScout } from "@/lib/scout";
+import { runAccounts } from "@/lib/accounts";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -9,5 +10,6 @@ export async function GET(req: Request) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`)
     return Response.json({ error: "unauthorized" }, { status: 401 });
   const results = await runScout();
-  return Response.json({ results });
+  const accounts = await runAccounts(2);
+  return Response.json({ results, accounts });
 }
