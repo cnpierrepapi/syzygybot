@@ -17,6 +17,7 @@ import { ask, askTools, parseJson } from "./llm";
 import { audienceTags, demographics, pull, search, topFor, type EntityType } from "./qloo";
 import { addBusinessDays, nextSlot, stopSequence } from "./sequencer";
 import { writeTouch, type AccountRow } from "./outreach";
+import { SITE, fillSlugs } from "./slug";
 
 export const CLASSES = ["interested", "not_now", "referral", "opt_out", "ooo", "other"] as const;
 type Class = (typeof CLASSES)[number];
@@ -97,7 +98,7 @@ type Thread = {
 
 async function loadAccount(id: string) {
   const [a] = (await sql()`
-    select ac.id, ac.entity_id, ac.evidence, ac.tz, e.name, e.type, e.official_site, p.name passed_name
+    select ac.id, ac.slug, ac.entity_id, ac.evidence, ac.tz, e.name, e.type, e.official_site, p.name passed_name
     from accounts ac join entities e on e.qloo_id = ac.entity_id left join entities p on p.qloo_id = ac.passed_on
     where ac.id = ${id}`) as (AccountRow & { tz: string | null })[];
   return a;
@@ -178,7 +179,7 @@ export async function handleReply(touchId: string, text: string, simulated = tru
     const queries: { tool: string; input: unknown; output: unknown }[] = [];
     const prompt = JSON.stringify({
       account: a.name, evidence_only_partner: a.passed_name, our_message: t.body, their_reply: text, questions, class: cls,
-      evidence_link: `https://syzygybot.vercel.app/account/${a.id}`,
+      evidence_link: `${SITE}/account/${a.slug ?? a.id}`,
     });
     for (let attempt = 0; attempt < 2 && !answer; attempt++) {
       const r = await askTools(ANSWER_SYSTEM, attempt ? `${prompt}\n\nYour last answer broke a hard rule (AI disclosure, never Qloo, no em dash, no percentages). Fix it.` : prompt, qlooTools(queries) as never);
@@ -204,5 +205,6 @@ export async function handleReply(touchId: string, text: string, simulated = tru
     acted.push(simulated ? "Would hand the thread to a person" : "Handed the thread to a person");
   }
   await sql()`update replies set detail = detail || ${JSON.stringify({ acted })}::jsonb where id = ${reply.id}`;
+  await fillSlugs();
   return { reply: reply.id, class: cls, acted, answered: !!answer };
 }

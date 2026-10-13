@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { resolve, pathFor } from "@/lib/slug";
 import { showSimulated } from "@/lib/floor";
 import { Logo, AgentChip } from "../../components/visuals";
 
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 type Row = {
   id: string; class: string; body: string; answer: string | null; simulated: boolean; created_at: string;
   detail: { summary?: string; questions?: string[]; queries?: { tool: string; input: unknown; output: unknown }[]; acted?: string[]; revisit?: string };
-  touch_id: string; contact_name: string | null; contact_role: string; account_id: string; account_name: string;
+  touch_id: string; contact_name: string | null; contact_role: string; account_id: string; account_name: string; touch_slug: string | null; account_slug: string | null;
 };
 
 const CLASS: Record<string, { label: string; color: string; meaning: string }> = {
@@ -23,10 +24,13 @@ const CLASS: Record<string, { label: string; color: string; meaning: string }> =
 const short = (v: unknown) => { const s = JSON.stringify(v); return s.length > 420 ? s.slice(0, 420) + "…" : s; };
 
 export default async function Reply({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const { id: key } = await params;
+  const hit = await resolve("replies", key);
+  if (!hit) notFound();
+  if (hit.redirect) permanentRedirect(hit.redirect);
+  const id = hit.id;
   const [r] = (await sql()`
-    select r.*, t.id touch_id, c.name contact_name, c.role contact_role, ac.id account_id, e.name account_name
+    select r.*, t.id touch_id, t.slug touch_slug, c.name contact_name, c.role contact_role, ac.id account_id, ac.slug account_slug, e.name account_name
     from replies r join touches t on t.id = r.touch_id join contacts c on c.id = t.contact_id
     join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id where r.id = ${id}`) as Row[];
   if (!r || (r.simulated && !showSimulated())) notFound();
@@ -85,8 +89,8 @@ export default async function Reply({ params }: { params: Promise<{ id: string }
           )}
           <div className="panel fade-up" style={{ padding: 24, animationDelay: "140ms", display: "grid", gap: 8, fontSize: 14 }}>
             <p className="eyebrow" style={{ marginBottom: 4 }}>Trail</p>
-            <a href={`/touch/${r.touch_id}`}>The message they replied to →</a>
-            <a href={`/account/${r.account_id}`}>Account: {r.account_name} →</a>
+            <a href={pathFor("touches", r.touch_slug, r.touch_id)}>The message they replied to →</a>
+            <a href={pathFor("accounts", r.account_slug, r.account_id)}>Account: {r.account_name} →</a>
             <span style={{ color: "var(--dim)", fontSize: 13 }}>Received {new Date(r.created_at).toISOString().slice(0, 16).replace("T", " ")} UTC</span>
           </div>
         </div>

@@ -1,9 +1,10 @@
 import { sql } from "./db";
+import { ROUTE } from "./slug";
 
 export type FeedItem = { id: string; agent: string; kind: string; summary: string; created_at: string; href: string | null };
 export type Funnel = { label: string; value: number; agent: string }[];
 
-const SUBPAGE: Record<string, string> = { pairs: "/thesis/", accounts: "/account/", contacts: "/contact/", plans: "/plan/", touches: "/touch/", replies: "/reply/" };
+const SUBPAGE = ROUTE;
 
 // Test replies stay off the public floor until he says they can be shown (SHOW_SIMULATED=1).
 export const showSimulated = () => process.env.SHOW_SIMULATED === "1";
@@ -15,10 +16,17 @@ export async function feed(limit = 40, after?: string): Promise<FeedItem[]> {
     : await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id from actions
         where (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') order by created_at desc limit ${limit}`
   ) as (FeedItem & { ref_table: string | null; ref_id: string | null })[];
+  // Feed lines link to the readable address of whatever they're about.
+  const slugs = new Map<string, string>();
+  for (const table of new Set(rows.map(r => r.ref_table).filter((t): t is string => !!t && !!SUBPAGE[t]))) {
+    const ids = rows.filter(r => r.ref_table === table && r.ref_id).map(r => r.ref_id!);
+    for (const x of (await sql().query(`select id::text id, slug from ${table} where id::text = any($1) and slug is not null`, [ids])) as { id: string; slug: string }[])
+      slugs.set(`${table}:${x.id}`, x.slug);
+  }
   return rows.map(r => ({
     id: r.id, agent: r.agent, kind: r.kind, summary: r.summary,
     created_at: new Date(r.created_at).toISOString(),
-    href: r.ref_table && r.ref_id && SUBPAGE[r.ref_table] ? SUBPAGE[r.ref_table] + r.ref_id : null,
+    href: r.ref_table && r.ref_id && SUBPAGE[r.ref_table] ? SUBPAGE[r.ref_table] + (slugs.get(`${r.ref_table}:${r.ref_id}`) ?? r.ref_id) : null,
   }));
 }
 

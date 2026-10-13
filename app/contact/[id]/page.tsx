@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { resolve, pathFor } from "@/lib/slug";
 import { maskEmail, STATUS_LABEL } from "@/lib/ui";
 import { Logo, AgentChip } from "../../components/visuals";
 
@@ -10,19 +11,22 @@ type Row = {
   id: string; kind: string; name: string | null; role: string; email: string | null; email_status: string;
   role_status: string; sources: string[]; verified_at: string | null; created_at: string;
   verification: { checked?: Check[]; page?: string | null; date?: string | null; claimed?: { url: string | null; date: string | null }; publishedOn?: string | null; mx?: boolean };
-  account_id: string; account_name: string; touch_id: string | null; touch_subject: string | null;
+  account_id: string; account_name: string; touch_id: string | null; touch_subject: string | null; account_slug: string | null; touch_slug: string | null;
 };
 
 const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
 const Tick = ({ ok }: { ok: boolean }) => <span style={{ color: ok ? "#2fd39a" : "var(--mute)", fontFamily: "var(--mono)" }}>{ok ? "✓" : "·"}</span>;
 
 export default async function Contact({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const { id: key } = await params;
+  const hit = await resolve("contacts", key);
+  if (!hit) notFound();
+  if (hit.redirect) permanentRedirect(hit.redirect);
+  const id = hit.id;
   const [c] = (await sql()`
-    select c.*, ac.id account_id, e.name account_name, t.id touch_id, t.subject touch_subject
+    select c.*, ac.id account_id, ac.slug account_slug, e.name account_name, t.id touch_id, t.slug touch_slug, t.subject touch_subject
     from contacts c join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
-    left join lateral (select id, subject from touches where contact_id = c.id order by created_at desc limit 1) t on true
+    left join lateral (select id, slug, subject from touches where contact_id = c.id order by created_at desc limit 1) t on true
     where c.id = ${id}`) as Row[];
   if (!c) notFound();
   const st = STATUS_LABEL[c.role_status] ?? STATUS_LABEL.unconfirmed;
@@ -44,10 +48,10 @@ export default async function Contact({ params }: { params: Promise<{ id: string
         <p className="eyebrow" style={{ marginTop: 22 }}>{c.kind === "person" ? "Named buyer" : "Published inbox"}</p>
         <h1 style={{ fontSize: "clamp(30px, 5vw, 56px)", lineHeight: 1.05 }}>{c.kind === "person" ? c.name : maskEmail(c.email)}</h1>
         <p style={{ color: "var(--dim)", margin: "10px 0 0" }}>
-          {c.role} · <a href={`/account/${c.account_id}`} style={{ color: "var(--cyan)" }}>{c.account_name} →</a>
+          {c.role} · <a href={pathFor("accounts", c.account_slug, c.account_id)} style={{ color: "var(--cyan)" }}>{c.account_name} →</a>
         </p>
         {c.touch_id && (
-          <a href={`/touch/${c.touch_id}`} className="chip" style={{ marginTop: 18, padding: "8px 14px", fontSize: 13, borderColor: "#ff6fa688" }}>
+          <a href={pathFor("touches", c.touch_slug, c.touch_id!)} className="chip" style={{ marginTop: 18, padding: "8px 14px", fontSize: 13, borderColor: "#ff6fa688" }}>
             Writer drafted: “{c.touch_subject}” →
           </a>
         )}

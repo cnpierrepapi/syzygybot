@@ -4,6 +4,7 @@
 // so the pitch sells Qloo's breadth rather than one deal.
 
 import { sql } from "./db";
+import { fillSlugs } from "./slug";
 import { logAction } from "./actions";
 import { ask } from "./llm";
 import { metros } from "./geo";
@@ -156,5 +157,6 @@ export async function runAccounts(limit = 2) {
       await logAction({ agent: "qualifier", kind: "account.error", summary: `Could not qualify ${p.a.name} × ${p.b.name}.`, detail: { error: (e as Error).message.slice(0, 300) } });
     }
   }
+  if (out.length) await fillSlugs();
   return out;
 }

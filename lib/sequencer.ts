@@ -9,8 +9,8 @@ import { sql } from "./db";
 import { logAction } from "./actions";
 import { ask, parseJson } from "./llm";
 import { writerChecks } from "./outreach";
+import { SITE, fillSlugs, token } from "./slug";
 
-const SITE = "https://syzygybot.vercel.app";
 export const DAILY_CAP = 20;
 const GAP_BUSINESS_DAYS = [0, 4, 6]; // step 2 four business days after step 1, step 3 six after step 2
 const WINDOW = { days: new Set(["Tue", "Wed", "Thu"]), start: 9 * 60, end: 11 * 60 + 30, slot: 15 };
@@ -107,9 +107,9 @@ export async function blocked(address: string | null, site: string | null) {
 }
 
 /** What gets appended at send time. Shown on the message page now so the rule is visible. */
-export function footer(touchId: string) {
+export function footer(optoutToken: string) {
   const postal = process.env.SYZYGY_POSTAL_ADDRESS?.trim();
-  return `--\nSYZYGY is an AI agent built and run by Onenept Studios Inc. To stop every message from it: ${SITE}/optout/${touchId}\n${postal || "[postal address added before anything is sent]"}`;
+  return `--\nSYZYGY is an AI agent built and run by Onenept Studios Inc. To stop every message from it: ${SITE}/optout/${optoutToken}\n${postal || "[postal address added before anything is sent]"}`;
 }
 
 const FOLLOW_SYSTEM = `You are the Sequencer on an autonomous sales team built on Qloo's taste data. You write one short
@@ -155,12 +155,13 @@ export async function stopSequence(by: { contactId?: string; address?: string; a
 export async function runSequencer(limit = 10) {
   const firsts = (await sql()`
     select t.id, t.contact_id, t.plan_id, t.channel, t.subject, t.body, t.to_address, c.name contact_name, c.role,
-           ac.id account_id, ac.entity_id, ac.evidence, ac.tz, e.name, e.official_site, e.raw->'properties'->>'headquartered' hq
+           ac.id account_id, ac.slug account_slug, t.optout_token, ac.entity_id, ac.evidence, ac.tz, e.name, e.official_site, e.raw->'properties'->>'headquartered' hq
     from touches t join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
     where t.step = 1 and t.status = 'dry_run' and t.scheduled_for is null
     order by t.created_at asc limit ${limit}`) as (Acct & {
       id: string; contact_id: string; plan_id: string | null; channel: string; subject: string | null; body: string;
       to_address: string | null; contact_name: string | null; role: string; account_id: string; evidence: Record<string, unknown>;
+      account_slug: string | null; optout_token: string | null;
     })[];
   const b = await booked();
   const out = [];
@@ -176,22 +177,24 @@ export async function runSequencer(limit = 10) {
     }
     const { tz, cost: tzCost } = await zoneFor({ ...t, id: t.account_id }, t.to_address);
     const first = nextSlot(new Date(Date.now() + 36e5), tz, t.entity_id, b);
-    await sql()`update touches set scheduled_for = ${first.toISOString()}, detail = detail || ${JSON.stringify({ tz, footer: footer(t.id) })}::jsonb where id = ${t.id}`;
+    const tok = t.optout_token ?? token();
+    await sql()`update touches set scheduled_for = ${first.toISOString()}, optout_token = ${tok}, detail = detail || ${JSON.stringify({ tz, footer: footer(tok) })}::jsonb where id = ${t.id}`;
     let steps = 1, cost = tzCost, at = first;
     const skipped: string[] = [];
     if (t.channel === "email") {
-      const link = `${SITE}/account/${t.account_id}`;
+      const link = `${SITE}/account/${t.account_slug ?? t.account_id}`;
       for (const step of [2, 3]) {
         const f = await writeFollowUp(t, t.evidence, link, step);
         cost += f.cost;
         if (!f.body) { skipped.push(`step ${step} broke a hard rule twice`); break; }
         at = nextSlot(addBusinessDays(at, GAP_BUSINESS_DAYS[step - 1], tz), tz, t.entity_id, b);
+        const followTok = token();
         const [row] = (await sql()`
-          insert into touches (contact_id, plan_id, channel, step, subject, body, status, to_address, scheduled_for, detail)
-          values (${t.contact_id}, ${t.plan_id}, 'email', ${step}, ${`Re: ${t.subject ?? ""}`}, ${f.body}, 'dry_run', ${t.to_address}, ${at.toISOString()},
+          insert into touches (contact_id, plan_id, channel, step, subject, body, status, to_address, scheduled_for, optout_token, detail)
+          values (${t.contact_id}, ${t.plan_id}, 'email', ${step}, ${`Re: ${t.subject ?? ""}`}, ${f.body}, 'dry_run', ${t.to_address}, ${at.toISOString()}, ${followTok},
                   ${JSON.stringify({ model: f.model, checks: f.checks, tz, first_touch: t.id })})
           returning id`) as { id: string }[];
-        await sql()`update touches set detail = detail || ${JSON.stringify({ footer: footer(row.id) })}::jsonb where id = ${row.id}`;
+        await sql()`update touches set detail = detail || ${JSON.stringify({ footer: footer(followTok) })}::jsonb where id = ${row.id}`;
         steps++;
       }
     }
@@ -205,5 +208,6 @@ export async function runSequencer(limit = 10) {
     });
     out.push({ touch: t.id, tz, steps, first: first.toISOString() });
   }
+  if (out.length) await fillSlugs();
   return out;
 }

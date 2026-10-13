@@ -116,3 +116,19 @@ alter table accounts add column if not exists tz text;
 alter table replies add column if not exists simulated boolean not null default false;
 alter table replies add column if not exists detail jsonb not null default '{}';
 create index if not exists touches_contact_idx on touches (contact_id, step);
+
+-- Readable addresses (14 Oct): every public page gets a slug; opt-out links get a short random token.
+alter table pairs add column if not exists slug text;
+alter table accounts add column if not exists slug text;
+alter table contacts add column if not exists slug text;
+alter table plans add column if not exists slug text;
+alter table touches add column if not exists slug text;
+alter table replies add column if not exists slug text;
+alter table touches add column if not exists optout_token text;
+create unique index if not exists pairs_slug_idx on pairs (slug);
+create unique index if not exists accounts_slug_idx on accounts (slug);
+create unique index if not exists contacts_slug_idx on contacts (slug);
+create unique index if not exists plans_slug_idx on plans (slug);
+create unique index if not exists touches_slug_idx on touches (slug);
+create unique index if not exists replies_slug_idx on replies (slug);
+create unique index if not exists touches_optout_idx on touches (optout_token);

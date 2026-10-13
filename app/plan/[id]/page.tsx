@@ -1,25 +1,30 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { resolve, pathFor } from "@/lib/slug";
 import { Logo, AgentChip } from "../../components/visuals";
 
 export const dynamic = "force-dynamic";
 
 type Trigger = { what: string; date?: string; verified?: boolean; page?: string; source_url?: string };
 type Row = {
-  id: string; angle: string; created_at: string; account_id: string; account_name: string;
+  id: string; angle: string; created_at: string; account_id: string; account_name: string; account_slug: string | null;
   channels: { contact_id: string; channel: string; why: string }[];
   triggers: Trigger[]; detail: { timing?: string };
-  contacts: { id: string; name: string | null; role: string; touch_id: string | null }[];
+  contacts: { id: string; slug: string | null; name: string | null; role: string; touch_id: string | null; touch_slug: string | null }[];
 };
 
 const host = (u?: string) => { try { return u ? new URL(u).hostname.replace(/^www\./, "") : ""; } catch { return ""; } };
 
 export default async function Plan({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const { id: key } = await params;
+  const hit = await resolve("plans", key);
+  if (!hit) notFound();
+  if (hit.redirect) permanentRedirect(hit.redirect);
+  const id = hit.id;
   const [p] = (await sql()`
-    select pl.*, ac.id account_id, e.name account_name,
-      coalesce((select json_agg(json_build_object('id', c.id, 'name', c.name, 'role', c.role,
+    select pl.*, ac.id account_id, ac.slug account_slug, e.name account_name,
+      coalesce((select json_agg(json_build_object('id', c.id, 'slug', c.slug, 'name', c.name, 'role', c.role,
+        'touch_slug', (select t.slug from touches t where t.contact_id = c.id and t.plan_id = pl.id limit 1),
         'touch_id', (select t.id from touches t where t.contact_id = c.id and t.plan_id = pl.id limit 1)))
         from contacts c where c.account_id = ac.id and c.role_status = 'confirmed'), '[]') contacts
     from plans pl join accounts ac on ac.id = pl.account_id join entities e on e.qloo_id = ac.entity_id
@@ -34,7 +39,7 @@ export default async function Plan({ params }: { params: Promise<{ id: string }>
 
       <section className="panel fade-up" style={{ padding: 28, marginTop: 8 }}>
         <AgentChip agent="strategist" label="Set by Strategist" />
-        <p className="eyebrow" style={{ marginTop: 22 }}>The angle for <a href={`/account/${p.account_id}`} style={{ color: "var(--cyan)" }}>{p.account_name}</a></p>
+        <p className="eyebrow" style={{ marginTop: 22 }}>The angle for <a href={pathFor("accounts", p.account_slug, p.account_id)} style={{ color: "var(--cyan)" }}>{p.account_name}</a></p>
         <p style={{ fontSize: "clamp(20px, 2.4vw, 28px)", lineHeight: 1.35, margin: 0 }}>{p.angle}</p>
         {p.detail.timing && <p style={{ color: "var(--dim)", marginTop: 16 }}><strong style={{ color: "#ffb31f" }}>When:</strong> {p.detail.timing}</p>}
       </section>
@@ -49,8 +54,8 @@ export default async function Plan({ params }: { params: Promise<{ id: string }>
                 <div key={ch.contact_id} style={{ borderLeft: "3px solid #ff6fa6", paddingLeft: 12 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                     <span className="chip">{ch.channel}</span>
-                    {c ? <a href={`/contact/${c.id}`}><strong>{c.name ?? c.role}</strong></a> : <strong>contact</strong>}
-                    {c?.touch_id && <a href={`/touch/${c.touch_id}`} style={{ color: "var(--cyan)", fontSize: 13 }}>message →</a>}
+                    {c ? <a href={pathFor("contacts", c.slug, c.id)}><strong>{c.name ?? c.role}</strong></a> : <strong>contact</strong>}
+                    {c?.touch_id && <a href={pathFor("touches", c.touch_slug, c.touch_id)} style={{ color: "var(--cyan)", fontSize: 13 }}>message →</a>}
                   </div>
                   <p style={{ color: "var(--dim)", fontSize: 13.5, margin: "6px 0 0" }}>{ch.why}</p>
                 </div>

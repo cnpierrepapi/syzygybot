@@ -5,7 +5,7 @@ import { Alignment, Logo } from "./components/visuals";
 
 export const dynamic = "force-dynamic";
 
-type Card = { id: string; score: number; band: string; thesis: string | null; a_name: string; a_type: string; b_name: string; b_type: string };
+type Card = { id: string; slug: string | null; score: number; band: string; thesis: string | null; a_name: string; a_type: string; b_name: string; b_type: string };
 
 async function load() {
   if (!process.env.DATABASE_URL) return { items: [] as FeedItem[], counts: [] as Funnel, cards: [] as Card[] };
@@ -14,7 +14,7 @@ async function load() {
       feed(40),
       funnel(),
       sql()`
-        select p.id, p.score, p.band, p.thesis, a.name a_name, a.type a_type, b.name b_name, b.type b_type
+        select p.id, p.slug, p.score, p.band, p.thesis, a.name a_name, a.type a_type, b.name b_name, b.type b_type
         from pairs p join entities a on a.qloo_id = p.a_id join entities b on b.qloo_id = p.b_id
         where p.band = 'PITCH' and p.thesis is not null
         order by p.called_at desc, p.score desc limit 4`.then(r => r as Card[]),
@@ -75,7 +75,7 @@ function Featured({ cards }: { cards: Card[] }) {
       <h2 style={{ fontSize: 22, marginBottom: 14 }}>Latest <span className="grad-text">PITCH</span> theses</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 14 }}>
         {cards.map((c, i) => (
-          <a key={c.id} href={`/thesis/${c.id}`} className="panel fade-up" style={{ padding: 18, display: "block", animationDelay: `${i * 80}ms`, textDecoration: "none" }}>
+          <a key={c.id} href={`/thesis/${c.slug ?? c.id}`} className="panel fade-up" style={{ padding: 18, display: "block", animationDelay: `${i * 80}ms`, textDecoration: "none" }}>
             <Alignment a={c.a_name} b={c.b_name} aType={c.a_type} bType={c.b_type} height={78} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, gap: 8 }}>
               <strong style={{ fontSize: 17, lineHeight: 1.2 }}>{c.a_name} <span className="grad-text">×</span> {c.b_name}</strong>

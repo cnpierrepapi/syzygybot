@@ -10,8 +10,8 @@ import { logAction } from "./actions";
 import { ask, askWeb, parseJson } from "./llm";
 import { pageBacking, readAll } from "./web";
 import { findContacts, type Account } from "./contacts";
+import { SITE, fillSlugs } from "./slug";
 
-const SITE = "https://syzygybot.vercel.app";
 
 type Evidence = {
   pair?: { score: number; band: string; thesis: string | null };
@@ -20,7 +20,7 @@ type Evidence = {
   cities?: { shared: string[]; account: string[] };
   morePartners?: { name: string; type: string; pullOut: number; pullBack: number }[];
 };
-export type AccountRow = Account & { passed_name: string; evidence: Evidence };
+export type AccountRow = Account & { passed_name: string; evidence: Evidence; slug?: string | null };
 export type Contact = { id: string; kind: string; name: string | null; role: string; email: string | null; role_status: string };
 type Trigger = { what: string; date?: string; source_url?: string; verified?: boolean; page?: string };
 
@@ -93,7 +93,7 @@ function evidenceFacts(a: AccountRow) {
     affinity_account_fans_to_partner: n2(e.pull?.accountFansLikePartner),
     shared_taste: e.sharedTaste?.slice(0, 6), shared_cities: e.cities?.shared,
     more_partners: e.morePartners?.map(p => ({ name: p.name, type: p.type, affinity_out: n2(p.pullOut), affinity_back: n2(p.pullBack) })),
-    evidence_link: `${SITE}/account/${a.id}`,
+    evidence_link: `${SITE}/account/${a.slug ?? a.id}`,
   };
 }
 
@@ -175,8 +175,9 @@ export async function writeTouch(a: AccountRow, plan: { id: string; angle: strin
 
 /** Accounts with no contacts yet get the full pass. One or two per cron run keeps it inside the time limit. */
 export async function runOutreach(limit = 1, accountId?: string) {
+  await fillSlugs(); // evidence links in the messages use the account's readable address
   const rows = (await sql()`
-    select ac.id, ac.entity_id, ac.evidence, e.name, e.type, e.official_site, p.name passed_name
+    select ac.id, ac.slug, ac.entity_id, ac.evidence, e.name, e.type, e.official_site, p.name passed_name
     from accounts ac join entities e on e.qloo_id = ac.entity_id left join entities p on p.qloo_id = ac.passed_on
     where (${accountId ?? null}::uuid is null or ac.id = ${accountId ?? null}::uuid)
       -- Skip a company once it has a verified contact; one with none is searched again after 7 days.
@@ -208,5 +209,6 @@ export async function runOutreach(limit = 1, accountId?: string) {
       out.push({ account: a.name, error: (e as Error).message });
     }
   }
+  await fillSlugs();
   return out;
 }

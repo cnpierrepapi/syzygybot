@@ -1,16 +1,17 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { resolve, pathFor } from "@/lib/slug";
 import { maskEmail, STATUS_LABEL, typeColors } from "@/lib/ui";
 import { Alignment, Logo, AgentChip } from "../../components/visuals";
 
 export const dynamic = "force-dynamic";
 
-type OutContact = { id: string; kind: string; name: string | null; role: string; email: string | null; role_status: string; touch_id: string | null; touch_subject: string | null };
+type OutContact = { id: string; slug: string | null; touch_slug: string | null; kind: string; name: string | null; role: string; email: string | null; role_status: string; touch_id: string | null; touch_subject: string | null };
 type Partner = { name: string; type: string; pullOut: number; pullBack: number };
 type Row = {
   id: string; reason: string; created_at: string; pair_id: string; entity_id: string;
   name: string; type: string; x_handle: string | null; x_handle_status: string;
-  passed_name: string; passed_type: string;
+  passed_name: string; passed_type: string; pair_slug: string | null;
   evidence: {
     pair?: { score: number; band: string; thesis: string | null };
     pull?: { partnerFansLikeAccount: number | null; accountFansLikePartner: number | null };
@@ -30,24 +31,27 @@ const n = (x: number | null | undefined) => (x == null ? "—" : x.toFixed(2));
 const TYPE_LABEL: Record<string, string> = { brand: "brand", artist: "artist", tv_show: "TV show", movie: "film" };
 
 export default async function Account({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const { id: key } = await params;
+  const hit = await resolve("accounts", key);
+  if (!hit) notFound();
+  if (hit.redirect) permanentRedirect(hit.redirect);
+  const id = hit.id;
   const [a] = (await sql()`
-    select ac.*, e.name, e.type, e.x_handle, e.x_handle_status, p.name passed_name, p.type passed_type
+    select ac.*, e.name, e.type, e.x_handle, e.x_handle_status, p.name passed_name, p.type passed_type, (select slug from pairs where id = ac.pair_id) pair_slug
     from accounts ac join entities e on e.qloo_id = ac.entity_id left join entities p on p.qloo_id = ac.passed_on
     where ac.id = ${id}`) as Row[];
   if (!a) notFound();
   const ev = a.evidence;
   // Outreach is per company: a second thesis for the same buyer shares the first one's contacts.
   const contacts = (await sql()`
-    select c.id, c.kind, c.name, c.role, c.email, c.role_status, t.id touch_id, t.subject touch_subject
+    select c.id, c.slug, c.kind, c.name, c.role, c.email, c.role_status, t.id touch_id, t.slug touch_slug, t.subject touch_subject
     from contacts c join accounts x on x.id = c.account_id
-    left join lateral (select id, subject from touches where contact_id = c.id order by created_at desc limit 1) t on true
+    left join lateral (select id, slug, subject from touches where contact_id = c.id order by created_at desc limit 1) t on true
     where x.entity_id = ${a.entity_id}
     order by (c.role_status = 'confirmed') desc, c.kind desc, c.created_at`) as OutContact[];
   const [plan] = (await sql()`
-    select pl.id, pl.angle from plans pl join accounts x on x.id = pl.account_id
-    where x.entity_id = ${a.entity_id} order by pl.created_at desc limit 1`) as { id: string; angle: string }[];
+    select pl.id, pl.slug, pl.angle from plans pl join accounts x on x.id = pl.account_id
+    where x.entity_id = ${a.entity_id} order by pl.created_at desc limit 1`) as { id: string; slug: string | null; angle: string }[];
   const [c1, c2] = typeColors(a.type);
 
   return (
@@ -73,7 +77,7 @@ export default async function Account({ params }: { params: Promise<{ id: string
         <h1 style={{ fontSize: "clamp(36px, 6vw, 68px)", lineHeight: 1, position: "relative" }}>{a.name}</h1>
         <p style={{ color: "var(--dim)", margin: "10px 0 0", position: "relative" }}>
           {TYPE_LABEL[a.type] ?? a.type}{a.x_handle ? ` · X @${a.x_handle} (${a.x_handle_status})` : ""}
-          {" · "}<a href={`/thesis/${a.pair_id}`} style={{ color: "var(--cyan)" }}>from the {a.name} × {a.passed_name} thesis →</a>
+          {" · "}<a href={pathFor("pairs", a.pair_slug, a.pair_id)} style={{ color: "var(--cyan)" }}>from the {a.name} × {a.passed_name} thesis →</a>
         </p>
       </section>
 
@@ -171,7 +175,7 @@ export default async function Account({ params }: { params: Promise<{ id: string
           <>
             <p style={{ color: "var(--dim)", margin: "0 0 14px", fontSize: 14 }}>
               {contacts.length} found, {contacts.filter(c => c.role_status === "confirmed").length} verified. Only verified contacts get a message.
-              {plan && <> <a href={`/plan/${plan.id}`} style={{ color: "var(--cyan)" }}>See the plan →</a></>}
+              {plan && <> <a href={pathFor("plans", plan.slug, plan.id)} style={{ color: "var(--cyan)" }}>See the plan →</a></>}
             </p>
             <div className="panel" style={{ overflow: "hidden" }}>
               {contacts.map(c => {
@@ -179,10 +183,10 @@ export default async function Account({ params }: { params: Promise<{ id: string
                 return (
                   <div key={c.id} className="feed-row" style={{ gridTemplateColumns: "118px minmax(0, 1fr) auto", boxShadow: `inset 3px 0 0 ${st.color}88` }}>
                     <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: st.color }}>{st.label}</span>
-                    <a href={`/contact/${c.id}`} style={{ minWidth: 0 }}>
+                    <a href={pathFor("contacts", c.slug, c.id)} style={{ minWidth: 0 }}>
                       <strong>{c.kind === "person" ? c.name : maskEmail(c.email)}</strong> <span style={{ color: "var(--dim)" }}>· {c.role}</span>
                     </a>
-                    {c.touch_id ? <a href={`/touch/${c.touch_id}`} style={{ color: "var(--cyan)", fontSize: 13 }}>message →</a> : <span />}
+                    {c.touch_id ? <a href={pathFor("touches", c.touch_slug, c.touch_id)} style={{ color: "var(--cyan)", fontSize: 13 }}>message →</a> : <span />}
                   </div>
                 );
               })}

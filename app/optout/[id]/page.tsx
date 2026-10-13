@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
+import { isUuid } from "@/lib/slug";
 import { maskEmail } from "@/lib/ui";
 import { logAction } from "@/lib/actions";
 import { stopSequence } from "@/lib/sequencer";
@@ -10,11 +11,13 @@ export const dynamic = "force-dynamic";
 type Row = { id: string; to_address: string | null; contact_id: string; company: string; site: string | null };
 
 async function load(id: string) {
-  if (!/^[0-9a-f-]{36}$/.test(id)) return null;
+  // Opt-out links carry a short random token; old links carried the message's UUID. Both work.
+  const uuid = isUuid(id);
+  if (!uuid && !/^[A-Za-z0-9]{6,16}$/.test(id)) return null;
   const [t] = (await sql()`
     select t.id, t.to_address, t.contact_id, e.name company, e.official_site site
     from touches t join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
-    where t.id = ${id}`) as Row[];
+    where ${uuid ? id : null}::uuid = t.id or t.optout_token = ${uuid ? null : id}`) as Row[];
   return t ?? null;
 }
 

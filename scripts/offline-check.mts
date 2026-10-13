@@ -66,3 +66,9 @@ ok("groups: skincare is beauty, not auto", groupsFor("brand", ["Skincare", "Beau
 ok("groups: one red-carpet tag doesn't add film", !groupsFor("brand", ["Fashion", "Luxury brands", "Footwear", "Red Carpet Events"]).includes("film_tv"));
 ok("groups: Italian brand gets EU trade press", groupsFor("brand", ["Clothing brands of Italy", "Fashion"]).includes("regional_eu"));
 ok("sweep: club suffix dropped", searchName("Real Madrid CF") === "Real Madrid" && searchName("Nike, Inc.") === "Nike" && searchName("A24") === "A24");
+
+// Readable addresses (14 Oct).
+import { slugify, token, isUuid } from "../lib/slug";
+ok("slug: accents, ampersand, apostrophes", slugify("Dolce & Gabbana") === "dolce-and-gabbana" && slugify("Begoña Sanz") === "begona-sanz" && slugify("Levi's") === "levis");
+ok("slug: Ray-Ban x Bad Bunny", slugify("Bad Bunny x Ray-ban") === "bad-bunny-x-ray-ban");
+ok("slug: opt-out token is short, random, not a uuid", token().length === 8 && token() !== token() && !isUuid(token()));

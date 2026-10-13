@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { resolve, pathFor } from "@/lib/slug";
 import { WEIGHTS, type Dim } from "@/lib/rubric";
 import { DIM_COLOR, DIM_LABEL } from "@/lib/ui";
 import { Alignment, Logo, ScoreRing, AgentChip } from "../../components/visuals";
@@ -10,7 +11,7 @@ type Row = {
   id: string; score: number; band: string; thesis: string | null; called_at: string; rubric_version: string;
   dims: { dims: Record<Dim, { score: number; raw: unknown; note: string }>; gate: string | null; raw?: { tagsA: string[]; tagsB: string[] } };
   a_name: string; a_type: string; a_handle: string | null; b_name: string; b_type: string; b_handle: string | null;
-  account_id: string | null; account_name: string | null;
+  account_id: string | null; account_name: string | null; account_slug: string | null;
 };
 
 const fmt = (v: unknown): string =>
@@ -21,11 +22,14 @@ const fmt = (v: unknown): string =>
 const TYPE_LABEL: Record<string, string> = { brand: "brand", artist: "artist", tv_show: "TV show", movie: "film" };
 
 export default async function Thesis({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const { id: key } = await params;
+  const hit = await resolve("pairs", key);
+  if (!hit) notFound();
+  if (hit.redirect) permanentRedirect(hit.redirect);
+  const id = hit.id;
   const [p] = (await sql()`
     select p.*, a.name a_name, a.type a_type, a.x_handle a_handle, b.name b_name, b.type b_type, b.x_handle b_handle,
-      ac.id account_id, ae.name account_name
+      ac.id account_id, ac.slug account_slug, ae.name account_name
     from pairs p join entities a on a.qloo_id = p.a_id join entities b on b.qloo_id = p.b_id
     left join accounts ac on ac.pair_id = p.id left join entities ae on ae.qloo_id = ac.entity_id
     where p.id = ${id} limit 1`) as Row[];
@@ -68,7 +72,7 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
             </div>
           )}
           {p.account_id && (
-            <a href={`/account/${p.account_id}`} className="chip" style={{ marginTop: 20, padding: "8px 14px", fontSize: 13, borderColor: "#ff8a3d88" }}>
+            <a href={pathFor("accounts", p.account_slug, p.account_id!)} className="chip" style={{ marginTop: 20, padding: "8px 14px", fontSize: 13, borderColor: "#ff8a3d88" }}>
               Qualifier picked {p.account_name} as the buyer →
             </a>
           )}
