@@ -15,6 +15,7 @@ const CHECK_LABEL: Record<string, string> = {
   discloses_ai: "Says it is an AI agent in the opening lines",
   credits_qloo_data: "Credits Qloo's taste data",
   not_posing_as_qloo: "Never claims to be Qloo",
+  no_percentages: "Affinity scores quoted as scores, not percentages",
   no_em_dash: "No em dashes",
   under_150_words: "Short enough to read in a minute",
 };
