@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
+import { typeColors } from "@/lib/ui";
+import { Alignment, Logo, AgentChip } from "../../components/visuals";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +22,11 @@ type Row = {
 };
 
 const AGE_ORDER = ["24_and_younger", "25_to_29", "30_to_34", "35_to_44", "45_to_54", "55_and_older"];
+const AGE_LABEL: Record<string, string> = { "24_and_younger": "Under 25", "25_to_29": "25–29", "30_to_34": "30–34", "35_to_44": "35–44", "45_to_54": "45–54", "55_and_older": "55+" };
+// Diverging: over-index warm, under-index cool, from the validated palette's orange and blue.
+const OVER = "#d95926", UNDER = "#3987e5";
 const n = (x: number | null | undefined) => (x == null ? "—" : x.toFixed(2));
-const H2 = ({ children }: { children: React.ReactNode }) =>
-  <h2 style={{ marginTop: 36, fontSize: 14, letterSpacing: "0.2em", color: "var(--dim)" }}>{children}</h2>;
+const TYPE_LABEL: Record<string, string> = { brand: "brand", artist: "artist", tv_show: "TV show", movie: "film" };
 
 export default async function Account({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,69 +37,133 @@ export default async function Account({ params }: { params: Promise<{ id: string
     where ac.id = ${id}`) as Row[];
   if (!a) notFound();
   const ev = a.evidence;
+  const [c1, c2] = typeColors(a.type);
 
   return (
-    <main style={{ padding: "48px 6vw", maxWidth: 1000 }}>
-      <p style={{ margin: 0, letterSpacing: "0.2em" }}><a href="/" style={{ color: "var(--hot)" }}>SYZYGY</a> / ACCOUNT</p>
-      <h1 style={{ fontSize: "clamp(28px, 5vw, 56px)", margin: "12px 0 4px", lineHeight: 1.05 }}>{a.name}</h1>
-      <p style={{ color: "var(--dim)", margin: 0 }}>
-        {a.type}{a.x_handle ? ` · X @${a.x_handle} (${a.x_handle_status})` : ""} · qualified {new Date(a.created_at).toISOString().slice(0, 10)}
-        {" · "}<a href={`/thesis/${a.pair_id}`}>from the {a.name} × {a.passed_name} thesis</a>
-      </p>
+    <main className="wrap">
+      <nav className="nav"><Logo /><span className="crumb">ACCOUNT · qualified {new Date(a.created_at).toISOString().slice(0, 10)}</span></nav>
 
-      <H2>WHY THIS SIDE</H2>
-      <p style={{ fontSize: 17, lineHeight: 1.5, maxWidth: 760 }}>{a.reason}</p>
-      <p style={{ color: "var(--dim)" }}>{a.passed_name} ({a.passed_type}) is evidence only and is never contacted.</p>
-
-      <H2>NUMBERS</H2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-        <Stat label={`${a.passed_name} fans → ${a.name}`} value={n(ev.pull?.partnerFansLikeAccount)} />
-        <Stat label={`${a.name} fans → ${a.passed_name}`} value={n(ev.pull?.accountFansLikePartner)} />
-        <Stat label="pair score" value={`${n(ev.pair?.score)} ${ev.pair?.band ?? ""}`} />
-      </div>
-      {!!ev.sharedTaste?.length && <p><span style={{ color: "var(--dim)" }}>Shared audience taste:</span> {ev.sharedTaste.join(", ")}</p>}
-      {ev.cities && (
-        <p>
-          <span style={{ color: "var(--dim)" }}>Cities where both audiences are strong:</span> {ev.cities.shared.join(", ") || "none in the top cells"}<br />
-          <span style={{ color: "var(--dim)" }}>{a.name}&apos;s strongest US cities:</span> {ev.cities.account.join(", ") || "—"}
-        </p>
-      )}
-      {ev.audienceAge && (
-        <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 60px", gap: "4px 12px", maxWidth: 560, marginTop: 12 }}>
-          {AGE_ORDER.filter(k => k in ev.audienceAge!).map(k => {
-            const v = ev.audienceAge![k];
-            return [
-              <span key={k + "l"} style={{ color: "var(--dim)" }}>{k.replaceAll("_", " ")}</span>,
-              <span key={k + "b"} style={{ position: "relative", height: 12, alignSelf: "center", borderLeft: "1px solid var(--line)" }}>
-                <span style={{ position: "absolute", left: v < 0 ? `${50 + v * 50}%` : "50%", width: `${Math.abs(v) * 50}%`, top: 0, bottom: 0, background: v < 0 ? "var(--dim)" : "var(--hot)" }} />
-              </span>,
-              <span key={k + "v"}>{v > 0 ? "+" : ""}{v.toFixed(2)}</span>,
-            ];
-          })}
+      <section className="panel fade-up" style={{ padding: 28, marginTop: 8, position: "relative", overflow: "hidden" }}>
+        <svg aria-hidden className="hero-orb" viewBox="0 0 240 240" width="240" height="240" style={{ position: "absolute", right: 36, top: "50%", transform: "translateY(-50%)", opacity: 0.95 }}>
+          <defs>
+            <radialGradient id="hp" cx="35%" cy="32%"><stop offset="0%" stopColor="#fff" /><stop offset="28%" stopColor={c1} /><stop offset="100%" stopColor={c2} /></radialGradient>
+            <filter id="hg" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="18" /></filter>
+          </defs>
+          <circle cx="120" cy="120" r="70" fill={c1} opacity="0.45" filter="url(#hg)" />
+          <circle cx="120" cy="120" r="62" fill="url(#hp)" />
+          <ellipse cx="120" cy="120" rx="108" ry="24" fill="none" stroke={c1} strokeOpacity="0.6" strokeWidth="1.5" transform="rotate(-18 120 120)" />
+          <circle cx="222" cy="98" r="5" fill="#ffd23d" />
+        </svg>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <AgentChip agent="qualifier" label="Picked by Qualifier" />
+          <AgentChip agent="numbers" label="Evidence by Numbers" />
         </div>
-      )}
+        <p className="eyebrow" style={{ marginTop: 22 }}>The buyer</p>
+        <h1 style={{ fontSize: "clamp(36px, 6vw, 68px)", lineHeight: 1, position: "relative" }}>{a.name}</h1>
+        <p style={{ color: "var(--dim)", margin: "10px 0 0", position: "relative" }}>
+          {TYPE_LABEL[a.type] ?? a.type}{a.x_handle ? ` · X @${a.x_handle} (${a.x_handle_status})` : ""}
+          {" · "}<a href={`/thesis/${a.pair_id}`} style={{ color: "var(--cyan)" }}>from the {a.name} × {a.passed_name} thesis →</a>
+        </p>
+      </section>
 
-      <H2>THREE MORE PARTNERS QLOO FOUND FOR {a.name.toUpperCase()}</H2>
-      <div style={{ borderTop: "1px solid var(--line)" }}>
-        {(ev.morePartners ?? []).map(p => (
-          <div key={p.name} style={{ display: "grid", gridTemplateColumns: "1fr 90px 200px", gap: 16, padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
-            <span>{p.name}</span><span style={{ color: "var(--dim)" }}>{p.type}</span>
-            <span>{n(p.pullOut)} out · {n(p.pullBack)} back</span>
+      <section className="split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)", gap: 16, marginTop: 16 }}>
+        <div className="panel fade-up" style={{ padding: 26, animationDelay: "80ms" }}>
+          <p className="eyebrow">Why this side</p>
+          <p style={{ fontSize: 18, lineHeight: 1.55, margin: 0 }}>{a.reason}</p>
+          <p style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, color: "var(--dim)", fontSize: 13.5 }}>
+            <span className="chip" style={{ borderColor: "#e6676788" }}>never contacted</span>
+            {a.passed_name} ({TYPE_LABEL[a.passed_type] ?? a.passed_type}) is evidence only.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Stat label={`${a.passed_name} fans → ${a.name}`} value={n(ev.pull?.partnerFansLikeAccount)} glow="#ff3d9a" />
+          <Stat label={`${a.name} fans → ${a.passed_name}`} value={n(ev.pull?.accountFansLikePartner)} glow="#3de0ff" />
+          <div className="panel" style={{ gridColumn: "1 / -1", padding: 18, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ color: "var(--dim)", fontSize: 13 }}>Pair score</span>
+            <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <strong style={{ fontSize: 26 }}>{n(ev.pair?.score)}</strong>
+              {ev.pair?.band && <span className={`band band-${ev.pair.band}`}>{ev.pair.band}</span>}
+            </span>
           </div>
-        ))}
-      </div>
-      <p style={{ color: "var(--dim)", marginTop: 32, maxWidth: 760, lineHeight: 1.5 }}>
+        </div>
+      </section>
+
+      <section className="split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 16, marginTop: 16 }}>
+        <div className="panel fade-up" style={{ padding: 26, animationDelay: "140ms" }}>
+          <p className="eyebrow">Who the audience is</p>
+          <h3 style={{ fontSize: 17, marginBottom: 4 }}>{a.name} audience by age</h3>
+          <p style={{ color: "var(--dim)", fontSize: 12.5, margin: "0 0 16px" }}>
+            <span style={{ color: OVER }}>■</span> over-indexes (right) · <span style={{ color: UNDER }}>■</span> under-indexes (left), relative to Qloo&apos;s baseline
+          </p>
+          {ev.audienceAge ? (
+            <div style={{ display: "grid", gap: 9 }}>
+              {AGE_ORDER.filter(k => k in ev.audienceAge!).map(k => {
+                const v = ev.audienceAge![k];
+                return (
+                  <div key={k} title={`${AGE_LABEL[k]}: ${v > 0 ? "+" : ""}${v.toFixed(2)}`} style={{ display: "grid", gridTemplateColumns: "70px 1fr 52px", gap: 10, alignItems: "center" }}>
+                    <span style={{ color: "var(--dim)", fontSize: 13 }}>{AGE_LABEL[k]}</span>
+                    <span style={{ position: "relative", height: 14 }}>
+                      <span style={{ position: "absolute", left: "50%", top: -3, bottom: -3, width: 1, background: "var(--mute)" }} />
+                      <span style={{ position: "absolute", top: 0, bottom: 0, borderRadius: 4, left: v < 0 ? `${50 + v * 50}%` : "50%", width: `${Math.abs(v) * 50}%`, background: v < 0 ? UNDER : OVER }} />
+                    </span>
+                    <span style={{ fontFamily: "var(--mono)", fontSize: 13, textAlign: "right" }}>{v > 0 ? "+" : ""}{v.toFixed(2)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : <p style={{ color: "var(--dim)" }}>No demographic data from Qloo for this entity.</p>}
+        </div>
+        <div className="panel fade-up" style={{ padding: 26, animationDelay: "180ms" }}>
+          <p className="eyebrow">Where</p>
+          <h3 style={{ fontSize: 17, marginBottom: 12 }}>Cities where both audiences are strong</h3>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {(ev.cities?.shared.length ? ev.cities.shared : ["none in the top cells"]).map(c => (
+              <span key={c} className="chip" style={{ fontSize: 13, padding: "6px 12px", borderColor: "#ffd23d88", boxShadow: "0 0 14px rgba(255,210,61,0.18)" }}>◎ {c}</span>
+            ))}
+          </div>
+          <h3 style={{ fontSize: 15, margin: "22px 0 10px", color: "var(--dim)" }}>{a.name}&apos;s strongest US cities</h3>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {(ev.cities?.account ?? []).map(c => <span key={c} className="chip">{c}</span>)}
+          </div>
+          {!!ev.sharedTaste?.length && (
+            <>
+              <h3 style={{ fontSize: 15, margin: "22px 0 10px", color: "var(--dim)" }}>Taste the two audiences share</h3>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{ev.sharedTaste.map(t => <span key={t} className="chip">{t}</span>)}</div>
+            </>
+          )}
+        </div>
+      </section>
+
+      <section style={{ marginTop: 28 }}>
+        <h2 style={{ fontSize: 22, marginBottom: 6 }}>Three more partners Qloo found for <span className="grad-text">{a.name}</span></h2>
+        <p style={{ color: "var(--dim)", margin: "0 0 14px", fontSize: 14 }}>The pitch sells Qloo&apos;s breadth, not one deal. Affinity out = {a.name} fans → partner; back = partner fans → {a.name}.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+          {(ev.morePartners ?? []).map((p, i) => (
+            <div key={p.name} className="panel fade-up" style={{ padding: 18, animationDelay: `${220 + i * 80}ms` }}>
+              <Alignment a={a.name} b={p.name} aType={a.type} bType={p.type} height={64} />
+              <strong style={{ display: "block", fontSize: 17, marginTop: 8 }}>{p.name}</strong>
+              <span style={{ color: "var(--dim)", fontSize: 12.5 }}>{TYPE_LABEL[p.type] ?? p.type}</span>
+              <div style={{ display: "flex", gap: 16, marginTop: 10, fontFamily: "var(--mono)", fontSize: 13 }}>
+                <span>out <strong style={{ fontSize: 18 }}>{n(p.pullOut)}</strong></span>
+                <span>back <strong style={{ fontSize: 18 }}>{n(p.pullBack)}</strong></span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 24, maxWidth: 760 }}>
         {ev.source ?? "Source: Qloo taste data."} Picked by the Qualifier and assembled by the Numbers agent with no human review.
       </p>
     </main>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, glow }: { label: string; value: string; glow: string }) {
   return (
-    <div style={{ border: "1px solid var(--line)", padding: 16 }}>
-      <div style={{ color: "var(--dim)", fontSize: 12 }}>{label}</div>
-      <div style={{ fontSize: 28, marginTop: 6 }}>{value}</div>
+    <div className="panel" style={{ padding: 18, borderColor: `${glow}44` }}>
+      <div style={{ fontSize: 34, fontWeight: 700, textShadow: `0 0 20px ${glow}88` }}>{value}</div>
+      <div style={{ color: "var(--dim)", fontSize: 12, lineHeight: 1.35, marginTop: 4 }}>{label}</div>
     </div>
   );
 }
