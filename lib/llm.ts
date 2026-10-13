@@ -37,6 +37,12 @@ function provider() {
 /** One model call; returns the text plus what it cost, so actions can log spend. */
 export async function ask(tier: keyof typeof MODELS, system: string, prompt: string, maxOutputTokens = 400) {
   const model = MODELS[tier];
-  const r = await generateText({ model: provider()(model), system, prompt, maxOutputTokens });
+  // Gemini 3.x counts hidden reasoning against maxOutputTokens, so the cap gets headroom on top
+  // (only tokens actually used are billed), and the writer reasons at "low".
+  const r = await generateText({
+    model: provider()(model), system, prompt,
+    maxOutputTokens: maxOutputTokens + 1024,
+    providerOptions: tier === "write" ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
+  });
   return { text: r.text.trim(), model, costUsd: costUsd(model, r.usage.inputTokens, r.usage.outputTokens) };
 }

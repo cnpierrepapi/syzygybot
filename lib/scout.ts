@@ -184,11 +184,11 @@ export async function writeThesis(a: QlooEntity, b: QlooEntity, raw: Raw, scored
   const shared = sharedTags(raw.tagsA, raw.tagsB).slice(0, 8);
   const facts = {
     a: a.name, b: b.name, pull_a_to_b: raw.pullAB, pull_b_to_a: raw.pullBA,
-    shared_taste_tags: shared, rank_of_b_in_a_list: raw.rankBinA, rank_of_a_in_b_list: raw.rankAinB,
+    shared_taste_tags: shared,
     score: Number(scored.score.toFixed(3)), band: scored.band,
   };
   try {
-    return await ask("fast", THESIS_SYSTEM, JSON.stringify(facts), 250);
+    return await ask("write", THESIS_SYSTEM, JSON.stringify(facts), 250);
   } catch (e) {
     // Gateway unavailable: publish the plain-numbers version rather than nothing.
     const text = `On Qloo taste data, ${a.name}'s audience scores ${b.name} at ${raw.pullAB?.toFixed(2) ?? "n/a"} affinity, and ${b.name}'s audience scores ${a.name} at ${raw.pullBA?.toFixed(2) ?? "n/a"}.` +
