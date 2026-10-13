@@ -5,8 +5,9 @@
 //   referral   → stops the sequence, adds the person they pointed to, and the Writer drafts to them.
 //   opt_out    → do-not-contact, every unsent message to that address cancelled. No reply.
 //   ooo        → pushes the remaining steps past the return date. No reply.
-// Replies are stored with a `simulated` flag until the mailbox exists; simulated ones stay off the
-// public floor unless SHOW_SIMULATED=1.
+// Replies are stored with a `simulated` flag until the mailbox exists. A simulated reply is sorted and
+// answered for real, but runs in shadow: it never cancels a real sequence, never adds to do-not-contact
+// and never creates a contact; the page lists what it WOULD have done. Shown only if SHOW_SIMULATED=1.
 
 import { tool } from "ai";
 import { z } from "zod";
@@ -125,7 +126,15 @@ export async function handleReply(touchId: string, text: string, simulated = tru
   await logAction({ agent: "inbox", kind: `reply.${cls}`, summary: `Read a reply from ${who}${tag}: ${cls.replace("_", " ")}. ${parsed?.summary ?? ""}`.trim(), refTable: "replies", refId: reply.id, detail, llmCostUsd: c.costUsd });
 
   const acted: string[] = [];
-  if (cls === "opt_out") {
+  if (simulated) {
+    const would: Record<string, string> = {
+      opt_out: "Would add the address to do-not-contact and cancel every unsent message",
+      ooo: "Would move the remaining follow-ups past the return date",
+      referral: `Would add ${parsed?.referral?.name ?? "the person they named"} as a contact and have the Writer draft to them`,
+      interested: "Would stop the follow-ups", not_now: "Would stop the follow-ups", other: "Would stop the follow-ups",
+    };
+    acted.push(`${would[cls]} (shadow run: a simulated reply changes nothing)`);
+  } else if (cls === "opt_out") {
     const value = (t.to_address ?? a.official_site?.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? a.name).toLowerCase();
     await sql()`insert into do_not_contact (value, reason) values (${value}, ${"asked to stop in a reply"}) on conflict (value) do nothing`;
     const n = t.to_address ? await stopSequence({ address: t.to_address }, "opted out in a reply") : await stopSequence({ contactId: t.contact_id }, "opted out in a reply");
@@ -146,7 +155,7 @@ export async function handleReply(touchId: string, text: string, simulated = tru
     if (n) acted.push(`${n} follow-ups cancelled`);
   }
 
-  if (cls === "referral" && parsed?.referral?.name) {
+  if (!simulated && cls === "referral" && parsed?.referral?.name) {
     const r = parsed.referral;
     const email = r.email && text.toLowerCase().includes(r.email.toLowerCase()) ? r.email : null; // never guessed
     const [nc] = (await sql()`
@@ -191,8 +200,8 @@ export async function handleReply(touchId: string, text: string, simulated = tru
     acted.push(`look again on ${revisit}`);
   }
   if (cls === "interested") {
-    await logAction({ agent: "inbox", kind: "handoff.flagged", summary: `${who} at ${a.name} is interested${tag}. Handed to a person to take the conversation; the agents don't book meetings.`, refTable: "replies", refId: reply.id, detail });
-    acted.push("handed to a person");
+    await logAction({ agent: "inbox", kind: "handoff.flagged", summary: `${who} at ${a.name} is interested${tag}. ${simulated ? "In a real run it would go to a person" : "Handed to a person to take the conversation"}; the agents don't book meetings.`, refTable: "replies", refId: reply.id, detail });
+    acted.push(simulated ? "Would hand the thread to a person" : "Handed the thread to a person");
   }
   await sql()`update replies set detail = detail || ${JSON.stringify({ acted })}::jsonb where id = ${reply.id}`;
   return { reply: reply.id, class: cls, acted, answered: !!answer };

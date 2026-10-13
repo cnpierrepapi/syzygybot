@@ -109,7 +109,7 @@ export async function blocked(address: string | null, site: string | null) {
 /** What gets appended at send time. Shown on the message page now so the rule is visible. */
 export function footer(touchId: string) {
   const postal = process.env.SYZYGY_POSTAL_ADDRESS?.trim();
-  return `--\nSYZYGY is an AI agent. To stop every message from it: ${SITE}/optout/${touchId}\n${postal ? `SYZYGY, ${postal}` : "SYZYGY, [postal address added before anything is sent]"}`;
+  return `--\nSYZYGY is an AI agent built and run by Onenept Studios Inc. To stop every message from it: ${SITE}/optout/${touchId}\n${postal || "[postal address added before anything is sent]"}`;
 }
 
 const FOLLOW_SYSTEM = `You are the Sequencer on an autonomous sales team built on Qloo's taste data. You write one short
