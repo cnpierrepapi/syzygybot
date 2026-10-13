@@ -177,8 +177,12 @@ export async function runOutreach(limit = 1, accountId?: string) {
     select ac.id, ac.entity_id, ac.evidence, e.name, e.type, e.official_site, p.name passed_name
     from accounts ac join entities e on e.qloo_id = ac.entity_id left join entities p on p.qloo_id = ac.passed_on
     where (${accountId ?? null}::uuid is null or ac.id = ${accountId ?? null}::uuid)
-      and not exists (select 1 from contacts c join accounts x on x.id = c.account_id where x.entity_id = ac.entity_id)
-    order by ac.created_at asc limit ${limit}`) as AccountRow[];
+      -- Skip a company once it has a verified contact; one with none is searched again after 7 days.
+      and not exists (select 1 from contacts c join accounts x on x.id = c.account_id where x.entity_id = ac.entity_id
+                      and (c.role_status = 'confirmed' or c.created_at > now() - interval '7 days'))
+      and not exists (select 1 from plans pl join accounts x on x.id = pl.account_id where x.entity_id = ac.entity_id)
+    order by (select max(c.created_at) from contacts c where c.account_id = ac.id) asc nulls first, ac.created_at asc
+    limit ${limit}`) as AccountRow[];
   const out = [];
   for (const a of rows) {
     try {
@@ -186,7 +190,7 @@ export async function runOutreach(limit = 1, accountId?: string) {
       const contacts = (await sql()`select id, kind, name, role, email, role_status from contacts where account_id = ${a.id}`) as Contact[];
       const usable = contacts.filter(c => c.role_status === "confirmed");
       if (!usable.length) {
-        await logAction({ agent: "strategist", kind: "plan.blocked", summary: `No verified contact at ${a.name} yet, so no outreach plan. It stays on the list.`, refTable: "accounts", refId: a.id });
+        await logAction({ agent: "strategist", kind: "plan.blocked", summary: `No verified contact at ${a.name} yet, so no outreach plan. It gets searched again in 7 days.`, refTable: "accounts", refId: a.id });
         out.push({ account: a.name, contacts: contacts.length, verified: 0, touches: 0 });
         continue;
       }

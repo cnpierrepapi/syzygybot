@@ -174,9 +174,19 @@ const mask = (e: string) => e.replace(/^(.)[^@]*/, "$1***");
 
 async function saveContact(a: Account, c: NewContact) {
   const [dup] = (await sql()`
-    select id from contacts where account_id = ${a.id}
-      and ((${c.kind} = 'person' and lower(name) = lower(${c.name ?? ""})) or (${c.kind} = 'inbox' and lower(email) = lower(${c.email ?? ""})))`) as { id: string }[];
-  if (dup) return { id: dup.id, kind: c.kind, status: "duplicate" };
+    select id, role_status from contacts where account_id = ${a.id}
+      and ((${c.kind} = 'person' and lower(name) = lower(${c.name ?? ""})) or (${c.kind} = 'inbox' and lower(email) = lower(${c.email ?? ""})))`) as { id: string; role_status: string }[];
+  if (dup) {
+    // A later pass can confirm someone an earlier pass held back; keep the record, upgrade it.
+    if (c.role_status === "confirmed" && dup.role_status !== "confirmed") {
+      await sql()`update contacts set role_status = 'confirmed', role = ${c.role}, email = coalesce(${c.email}, email),
+        email_status = ${c.email_status}, sources = ${JSON.stringify(c.sources)}, verified_at = now(), verification = ${JSON.stringify(c.verification)}
+        where id = ${dup.id}`;
+      await logAction({ agent: "verifier", kind: "contact.confirmed", summary: `Confirmed ${c.name ?? mask(c.email ?? "")} on a later pass: a newer page names them as ${c.role}.`, refTable: "contacts", refId: dup.id });
+      return { id: dup.id, kind: c.kind, status: "confirmed" };
+    }
+    return { id: dup.id, kind: c.kind, status: "duplicate" };
+  }
   const [row] = (await sql()`
     insert into contacts (account_id, kind, name, role, email, email_status, sources, role_status, verified_at, verification)
     values (${a.id}, ${c.kind}, ${c.name}, ${c.role}, ${c.email}, ${c.email_status}, ${JSON.stringify(c.sources)},
