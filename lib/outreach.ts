@@ -32,6 +32,7 @@ const PLAN_SYSTEM = `You are the Strategist on an autonomous sales team built on
 approaches ONE company about using Qloo's audience data; the other entity in the thesis is evidence only and is
 never contacted. Given the evidence, verified contacts and verified triggers, decide:
 - angle: one sentence on what will make this company care, grounded in the numbers given
+Affinity values are Qloo scores from 0 to 1, NOT percentages or shares of an audience: write "an affinity score of 0.91", never "91%" or "91% of fans".
 - channels: for each contact id given, "email" if it has a route, else "letter"; a short reason each
 - timing: one sentence on when to send and why, citing a trigger if there is one
 Use only the facts given. No hype words, no em dashes. Reply with JSON only:
@@ -44,6 +45,7 @@ Hard rules:
 - Quote at least two specific numbers from the evidence, as given. Do not invent any number, client, budget or result.
 - Mention the extra partners by name as proof the data finds more than one opportunity.
 - Affinity scores are aggregate audience overlap, not proof a partnership would work; never promise outcomes.
+- Affinity values are Qloo scores from 0 to 1, NOT percentages or shares of an audience: write "an affinity score of 0.91", never "91%" or "91% of fans".
 - Under 150 words in the body. Plain, specific, no hype words, no em dashes, no exclamation marks.
 - End with one low-effort ask (a 20-minute call, or a reply) and the evidence link given.
 - Sign off as "Syzygy (an AI agent)".
@@ -59,6 +61,8 @@ export function writerChecks(body: string, subject: string) {
     credits_qloo_data: /qloo['’]s taste data|built on qloo/.test(all),
     not_posing_as_qloo: !/(we at qloo|i work (at|for) qloo|from qloo['’]s team|qloo team here|on behalf of qloo|our qloo|i('m| am) (from|with) qloo)/.test(all),
     no_em_dash: !/—/.test(all),
+    // The evidence holds no percentages, so a "%" means a 0-1 affinity score was misread as a share of fans.
+    no_percentages: !/%|per ?cent/.test(all),
     under_150_words: body.split(/\s+/).filter(Boolean).length <= 170, // signature + link included
   };
 }
@@ -97,9 +101,19 @@ export async function planAccount(a: AccountRow, contacts: Contact[], hasInbox: 
   const t = await triggers(a);
   const facts = evidenceFacts(a);
   const routes = contacts.map(c => ({ contact_id: c.id, who: c.name ? `${c.name}, ${c.role}` : c.role, has_email_route: c.kind === "inbox" || hasInbox }));
-  const r = await ask("write", PLAN_SYSTEM, JSON.stringify({ ...facts, contacts: routes, triggers: t.list.filter(x => x.verified) }), 600);
-  const plan = parseJson<{ angle: string; channels: { contact_id: string; channel: string; why: string }[]; timing: string }>(r.text);
-  if (!plan?.angle) throw new Error("strategist returned no plan");
+  const input = JSON.stringify({ ...facts, contacts: routes, triggers: t.list.filter(x => x.verified) });
+  let r = await ask("write", PLAN_SYSTEM, input, 600);
+  type Plan = { angle: string; channels: { contact_id: string; channel: string; why: string }[]; timing: string };
+  let plan = parseJson<Plan>(r.text);
+  if (plan?.angle && /%|per ?cent/i.test(plan.angle)) {
+    const cost = r.costUsd ?? 0;
+    r = await ask("write", PLAN_SYSTEM, `${input}
+
+Your last angle turned an affinity score into a percentage. Affinity is a 0 to 1 score. Rewrite without any percentages.`, 600);
+    r = { ...r, costUsd: (r.costUsd ?? 0) + cost };
+    plan = parseJson<Plan>(r.text);
+  }
+  if (!plan?.angle || /%|per ?cent/i.test(plan.angle)) throw new Error("strategist returned no usable plan");
   const [row] = (await sql()`
     insert into plans (account_id, angle, channels, triggers, detail)
     values (${a.id}, ${plan.angle}, ${JSON.stringify(plan.channels ?? [])}, ${JSON.stringify(t.list)},

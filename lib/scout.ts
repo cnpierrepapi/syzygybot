@@ -178,7 +178,8 @@ export async function measure(a: QlooEntity, b: QlooEntity): Promise<Raw> {
 const THESIS_SYSTEM = `You write one-paragraph partnership theses from Qloo audience data.
 Rules: describe aggregate audience affinity only, never individuals. Never claim a partnership
 will cause sales or growth. Name the source as "Qloo taste data". Two to three sentences, plain
-English, no hype words, no em dashes. Lead with the non-obvious overlap.`;
+English, no hype words, no em dashes. Lead with the non-obvious overlap.
+Affinity values are scores from 0 to 1, never percentages or shares of an audience.`;
 
 export async function writeThesis(a: QlooEntity, b: QlooEntity, raw: Raw, scored: ReturnType<typeof score>) {
   const shared = sharedTags(raw.tagsA, raw.tagsB).slice(0, 8);

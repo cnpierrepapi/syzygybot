@@ -29,6 +29,7 @@ ok("writer: good draft passes", Object.values(writerChecks(good, "Subject")).eve
 ok("writer: posing as Qloo fails", !writerChecks(good + " We at Qloo would love to help.", "x").not_posing_as_qloo);
 ok("writer: no AI disclosure fails", !writerChecks("Hello there. ".repeat(30) + "I am an AI agent.", "x").discloses_ai);
 ok("writer: em dash fails", !writerChecks(good + " — really", "x").no_em_dash);
+ok("writer: affinity as a percentage fails", !writerChecks(good + " 91% of fans like you.", "x").no_percentages);
 const page = (text: string, date: string | null, url = "https://trade.example/a") => ({ url, status: 200, text, date, emails: [] });
 const recent = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
 ok("verifier: confirmed", judgePerson([page("A24 named Graham Retzik its head of marketing.", recent)], "Graham Retzik", "Head of Marketing", "A24", "a24films.com").status === "confirmed");
