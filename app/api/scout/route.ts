@@ -1,20 +1,31 @@
-// Runs one Scout pass, then qualifies the best new pairs. Called by Vercel Cron (Bearer CRON_SECRET) or by hand with the same header.
+// One full loop, every 3 hours: Scout → Qualifier → Numbers, then the account it just qualified goes
+// straight on to Contact finder → Verifier → Strategist → Writer → Sequencer, so the floor shows the
+// whole chain in one cascade. If the pass qualified nobody new, the oldest waiting account goes instead.
+// The :30 cron (/api/outreach) keeps working the backlog in between.
+// Called by Vercel Cron (Bearer CRON_SECRET) or by hand with the same header.
 import { runScout } from "@/lib/scout";
 import { fillSlugs } from "@/lib/slug";
 import { withLock } from "@/lib/lock";
 import { runAccounts } from "@/lib/accounts";
+import { runOutreach } from "@/lib/outreach";
+import { runSequencer } from "@/lib/sequencer";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 800;
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`)
     return Response.json({ error: "unauthorized" }, { status: 401 });
-  return Response.json(await withLock("scout", 290, async () => {
+  return Response.json(await withLock("scout", 790, async () => {
     const results = await runScout();
     const accounts = await runAccounts(2);
     await fillSlugs();
-    return { results, accounts };
+    const fresh = accounts.find(a => a.isNew);
+    const chain = await withLock("outreach", 500, async () => {
+      const outreach = await runOutreach(1, fresh?.accountId);
+      return { outreach, sequencer: await runSequencer(6) };
+    });
+    return { results, accounts, chain };
   }));
 }

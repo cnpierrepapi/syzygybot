@@ -15,7 +15,8 @@
     "outreach": "tsx --env-file-if-exists=.env.local scripts/outreach.mts",
     "sequence": "tsx --env-file-if-exists=.env.local scripts/sequence.mts",
     "inbox": "tsx --env-file-if-exists=.env.local scripts/inbox.mts",
-    "sources:test": "tsx scripts/sources-test.mts"
+    "sources:test": "tsx scripts/sources-test.mts",
+    "loop": "tsx --env-file-if-exists=.env.local scripts/loop.mts"
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "^5.0.110",

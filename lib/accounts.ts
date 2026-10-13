@@ -112,7 +112,7 @@ export async function buildAccount(p: PairRow) {
       summary: `${q.chosen.name} is already an account; the ${q.chosen.name} × ${q.passed.name} thesis joins it as more evidence.`,
       refTable: "accounts", refId: existing.id, llmCostUsd: reason.costUsd,
     });
-    return { accountId: existing.id, chosen: q.chosen.name, passed: q.passed.name, partners: [] as string[] };
+    return { accountId: existing.id, isNew: false, chosen: q.chosen.name, passed: q.passed.name, partners: [] as string[] };
   }
 
   const rows = (await sql()`
@@ -151,7 +151,7 @@ export async function buildAccount(p: PairRow) {
     summary: `Evidence pack for ${q.chosen.name}: ${evidence.cities.shared.length} shared cities, ${partners.length} more partners (${partners.map(x => x.name).join(", ") || "none"}).`,
     refTable: "accounts", refId: accountId,
   });
-  return { accountId, chosen: q.chosen.name, passed: q.passed.name, partners: partners.map(x => x.name) };
+  return { accountId, isNew: true, chosen: q.chosen.name, passed: q.passed.name, partners: partners.map(x => x.name) };
 }
 
 /** Qualify the best unqualified pairs, PITCH before WATCH. */
