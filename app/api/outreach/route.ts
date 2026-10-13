@@ -4,6 +4,7 @@
 import { runOutreach } from "@/lib/outreach";
 import { runSequencer } from "@/lib/sequencer";
 import { withLock } from "@/lib/lock";
+import { syncAll } from "@/lib/crm";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -14,6 +15,8 @@ export async function GET(req: Request) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   return Response.json(await withLock("outreach", 290, async () => {
     const outreach = await runOutreach(1);
-    return { outreach, sequencer: await runSequencer(6) };
+    const sequencer = await runSequencer(6);
+    // Brands that connected a CRM get whatever is new about the companies that need them.
+    return { outreach, sequencer, crm: await syncAll() };
   }));
 }

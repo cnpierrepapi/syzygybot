@@ -140,3 +140,35 @@ create table if not exists run_locks (
   name   text primary key,
   until  timestamptz not null
 );
+
+-- CRM connectors (14 Oct). A workspace is a claimed brand; its CRM receives the brands that need it.
+create table if not exists workspaces (
+  id            uuid primary key default gen_random_uuid(),
+  entity_id     text not null references entities(qloo_id),
+  name          text not null,
+  connect_token text not null unique,          -- private link the brand uses to connect a CRM
+  created_at    timestamptz not null default now()
+);
+create table if not exists crm_connections (
+  id            uuid primary key default gen_random_uuid(),
+  workspace_id  uuid not null references workspaces(id) on delete cascade,
+  provider      text not null check (provider in ('hubspot','salesforce')),
+  access_enc    text not null,                 -- AES-256-GCM, key CRM_TOKEN_KEY
+  refresh_enc   text,
+  instance_url  text,                          -- Salesforce org URL
+  external_id   text,                          -- HubSpot portal id / Salesforce org id
+  expires_at    timestamptz not null,
+  last_sync_at  timestamptz,
+  last_error    text,
+  created_at    timestamptz not null default now(),
+  unique (workspace_id, provider)
+);
+-- Which SYZYGY record became which CRM record, so a re-sync updates nothing twice.
+create table if not exists crm_records (
+  connection_id uuid not null references crm_connections(id) on delete cascade,
+  local_type    text not null,                 -- company | contact | note
+  local_id      text not null,
+  remote_id     text not null,
+  synced_at     timestamptz not null default now(),
+  primary key (connection_id, local_type, local_id)
+);

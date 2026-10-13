@@ -78,3 +78,19 @@ import { fetchable, htmlToText } from "../lib/web";
 ok("ssrf: internal addresses blocked", !fetchable("http://169.254.169.254/latest") && !fetchable("http://localhost:3000") && !fetchable("https://[::1]/") && !fetchable("file:///etc/passwd") && !fetchable("https://intranet"));
 ok("ssrf: public pages allowed, LinkedIn never", fetchable("https://www.adweek.com/x") && !fetchable("https://www.linkedin.com/in/x"));
 ok("text: hex entities decoded", htmlToText("Glossier&#x2019;s CMO") === "Glossier’s CMO");
+
+// CRM connectors (14 Oct).
+import { createHash } from "node:crypto";
+process.env.CRM_TOKEN_KEY ??= Buffer.alloc(32, 7).toString("base64");
+const { seal, open, pkce } = await import("../lib/crypto");
+const { splitName, domainOf } = await import("../lib/crm/types");
+const { soql } = await import("../lib/crm/salesforce");
+const { noteBody } = await import("../lib/crm/index");
+ok("crm: tokens round-trip encrypted, never stored plain", open(seal("tok-123")) === "tok-123" && !seal("tok-123").includes("tok-123"));
+const pk = pkce();
+ok("crm: PKCE challenge is S256 of the verifier", pk.challenge === createHash("sha256").update(pk.verifier).digest("base64url") && pk.verifier.length >= 43);
+ok("crm: names split for CRMs that need a last name", splitName("Begoña Sanz").last === "Sanz" && splitName("Cher").last === "Cher" && splitName("Piera Valentina Toniolo").first === "Piera Valentina");
+ok("crm: SOQL quotes and backslashes escaped", soql("O'Brien") === String.raw`'O\'Brien'` && soql(String.raw`a\b`) === String.raw`'a\\b'`);
+ok("crm: domain from site", domainOf("https://www.Ray-Ban.com/usa") === "ray-ban.com");
+const nb = noteBody("Bad Bunny", { account_id: "x", account_slug: "ray-ban", name: "Ray-ban", official_site: null, evidence: { pull: { partnerFansLikeAccount: 0.93, accountFansLikePartner: 0.84 }, sharedTaste: ["friendship"] }, thesis: "t", score: 0.75, band: "PITCH", angle: "a", timing: null }, ["Ana B, CMO"], "Hello");
+ok("crm: note carries numbers as scores and the evidence link", nb.includes("0.93") && !nb.includes("%") && nb.includes("/account/ray-ban") && nb.includes("Drafted first message"));
