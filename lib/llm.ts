@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateText, type ToolSet } from "ai";
 import { createVertex } from "@ai-sdk/google-vertex";
 
 // Gemini on Vertex AI, billed to his Google Cloud credit. Claude on Vertex has zero quota on
@@ -45,4 +45,34 @@ export async function ask(tier: keyof typeof MODELS, system: string, prompt: str
     providerOptions: tier === "write" ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
   });
   return { text: r.text.trim(), model, costUsd: costUsd(model, r.usage.inputTokens, r.usage.outputTokens) };
+}
+
+// Google Search grounding, billed per search on top of tokens. ESTIMATE per call, not checked.
+const SEARCH_USD = 0.014;
+
+export type WebSource = { url: string; title: string };
+
+/** A model call that can search Google. Returns the text plus the search results it read. */
+export async function askWeb(prompt: string, system: string, maxOutputTokens = 1500) {
+  const model = MODELS.write;
+  const v = provider();
+  const r = await generateText({
+    model: v(model), system, prompt,
+    // Cast: the Vertex package and ai resolve different provider-utils versions; fine at runtime.
+    tools: { google_search: v.tools.googleSearch({}) } as unknown as ToolSet,
+    maxOutputTokens: maxOutputTokens + 1024,
+    providerOptions: { google: { thinkingConfig: { thinkingLevel: "low" } } },
+  });
+  const sources: WebSource[] = (r.sources ?? [])
+    .filter((s): s is typeof s & { url: string } => s.sourceType === "url")
+    .map(s => ({ url: s.url, title: s.title ?? "" }));
+  const tokens = costUsd(model, r.usage.inputTokens, r.usage.outputTokens) ?? 0;
+  return { text: r.text.trim(), sources, model, costUsd: tokens + SEARCH_USD };
+}
+
+/** Pulls the first JSON object out of a model reply (fenced or bare). */
+export function parseJson<T>(text: string): T | null {
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(text)?.[1];
+  const raw = fenced ?? text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
+  try { return JSON.parse(raw) as T; } catch { return null; }
 }

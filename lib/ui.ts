@@ -43,3 +43,12 @@ export const TYPE_COLOR: Record<string, [string, string]> = {
 
 export const typeColors = (t: string) => TYPE_COLOR[t] ?? ["#9b7bff", "#3de0ff"];
 
+
+/** Public pages never show a full address: first letter, then the domain. */
+export const maskEmail = (e: string | null) => (e ? e.replace(/^(.)[^@]*/, "$1***") : null);
+
+export const STATUS_LABEL: Record<string, { label: string; color: string }> = {
+  confirmed: { label: "VERIFIED", color: "#2fd39a" },
+  stale: { label: "STALE", color: "#ffb31f" },
+  unconfirmed: { label: "NOT CONFIRMED", color: "#ff8080" },
+};

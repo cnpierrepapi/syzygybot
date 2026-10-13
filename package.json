@@ -11,7 +11,8 @@
     "qloo:smoke": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/qloo-smoke.mjs",
     "scout": "tsx --env-file-if-exists=.env.local scripts/scout.mts",
     "check": "tsx scripts/offline-check.mts",
-    "accounts": "tsx --env-file-if-exists=.env.local scripts/accounts.mts"
+    "accounts": "tsx --env-file-if-exists=.env.local scripts/accounts.mts",
+    "outreach": "tsx --env-file-if-exists=.env.local scripts/outreach.mts"
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "^5.0.110",

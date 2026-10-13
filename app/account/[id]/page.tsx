@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
-import { typeColors } from "@/lib/ui";
+import { maskEmail, STATUS_LABEL, typeColors } from "@/lib/ui";
 import { Alignment, Logo, AgentChip } from "../../components/visuals";
 
 export const dynamic = "force-dynamic";
 
+type OutContact = { id: string; kind: string; name: string | null; role: string; email: string | null; role_status: string; touch_id: string | null; touch_subject: string | null };
 type Partner = { name: string; type: string; pullOut: number; pullBack: number };
 type Row = {
-  id: string; reason: string; created_at: string; pair_id: string;
+  id: string; reason: string; created_at: string; pair_id: string; entity_id: string;
   name: string; type: string; x_handle: string | null; x_handle_status: string;
   passed_name: string; passed_type: string;
   evidence: {
@@ -37,6 +38,16 @@ export default async function Account({ params }: { params: Promise<{ id: string
     where ac.id = ${id}`) as Row[];
   if (!a) notFound();
   const ev = a.evidence;
+  // Outreach is per company: a second thesis for the same buyer shares the first one's contacts.
+  const contacts = (await sql()`
+    select c.id, c.kind, c.name, c.role, c.email, c.role_status, t.id touch_id, t.subject touch_subject
+    from contacts c join accounts x on x.id = c.account_id
+    left join lateral (select id, subject from touches where contact_id = c.id order by created_at desc limit 1) t on true
+    where x.entity_id = ${a.entity_id}
+    order by (c.role_status = 'confirmed') desc, c.kind desc, c.created_at`) as OutContact[];
+  const [plan] = (await sql()`
+    select pl.id, pl.angle from plans pl join accounts x on x.id = pl.account_id
+    where x.entity_id = ${a.entity_id} order by pl.created_at desc limit 1`) as { id: string; angle: string }[];
   const [c1, c2] = typeColors(a.type);
 
   return (
@@ -150,6 +161,34 @@ export default async function Account({ params }: { params: Promise<{ id: string
             </div>
           ))}
         </div>
+      </section>
+
+      <section style={{ marginTop: 28 }}>
+        <h2 style={{ fontSize: 22, marginBottom: 6 }}>Outreach</h2>
+        {contacts.length === 0 ? (
+          <p style={{ color: "var(--dim)", fontSize: 14 }}>The Contact finder has not reached this account yet. It works one account per run, every three hours.</p>
+        ) : (
+          <>
+            <p style={{ color: "var(--dim)", margin: "0 0 14px", fontSize: 14 }}>
+              {contacts.length} found, {contacts.filter(c => c.role_status === "confirmed").length} verified. Only verified contacts get a message.
+              {plan && <> <a href={`/plan/${plan.id}`} style={{ color: "var(--cyan)" }}>See the plan →</a></>}
+            </p>
+            <div className="panel" style={{ overflow: "hidden" }}>
+              {contacts.map(c => {
+                const st = STATUS_LABEL[c.role_status] ?? STATUS_LABEL.unconfirmed;
+                return (
+                  <div key={c.id} className="feed-row" style={{ gridTemplateColumns: "118px minmax(0, 1fr) auto", boxShadow: `inset 3px 0 0 ${st.color}88` }}>
+                    <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: st.color }}>{st.label}</span>
+                    <a href={`/contact/${c.id}`} style={{ minWidth: 0 }}>
+                      <strong>{c.kind === "person" ? c.name : maskEmail(c.email)}</strong> <span style={{ color: "var(--dim)" }}>· {c.role}</span>
+                    </a>
+                    {c.touch_id ? <a href={`/touch/${c.touch_id}`} style={{ color: "var(--cyan)", fontSize: 13 }}>message →</a> : <span />}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </section>
 
       <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 24, maxWidth: 760 }}>

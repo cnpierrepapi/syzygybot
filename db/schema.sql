@@ -99,3 +99,12 @@ create table if not exists actions (
   created_at  timestamptz not null default now()
 );
 create index if not exists actions_created_idx on actions (created_at desc);
+
+-- Contact finder + Verifier (13 Oct). A contact is a named person or a published role inbox.
+alter table contacts add column if not exists kind text not null default 'person';
+alter table contacts add column if not exists role_status text not null default 'unconfirmed';
+alter table contacts add column if not exists verified_at timestamptz;
+alter table contacts add column if not exists verification jsonb not null default '{}';
+alter table plans add column if not exists detail jsonb not null default '{}';
+alter table touches add column if not exists to_address text;
+alter table touches add column if not exists detail jsonb not null default '{}';
