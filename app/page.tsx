@@ -1,6 +1,11 @@
 import { sql } from "@/lib/db";
 import { feed, funnel, type FeedItem, type Funnel } from "@/lib/floor";
 import LiveFloor from "./components/LiveFloor";
+import { jsonLd, siteJsonLd } from "@/lib/seo";
+import type { Metadata } from "next";
+
+// Only the floor itself claims "/" as its canonical address; every other page sets its own or none.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 import { Alignment, Logo } from "./components/visuals";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +98,7 @@ export default async function Floor() {
   const { items, counts, cards } = await load();
   return (
     <main className="wrap">
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(siteJsonLd())} />
       <nav className="nav">
         <Logo />
         <span className="crumb">SDR FLOOR · syzygybot.vercel.app</span>

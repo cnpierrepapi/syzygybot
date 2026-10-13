@@ -1,8 +1,12 @@
+import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
 import { resolve, pathFor } from "@/lib/slug";
 import { showSimulated } from "@/lib/floor";
 import { Logo, AgentChip } from "../../components/visuals";
+
+// About a person, or a working document: visible on the floor, kept out of search results.
+export const metadata: Metadata = { title: "Reply", robots: { index: false, follow: false } };
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +43,7 @@ export default async function Reply({ params }: { params: Promise<{ id: string }
 
   return (
     <main className="wrap">
+      <h1 className="sr-only">Reply from {r.contact_name ?? r.account_name}</h1>
       <nav className="nav"><Logo /><span className="crumb">REPLY · {r.account_name}</span></nav>
       {r.simulated && (
         <p className="band" style={{ display: "inline-block", background: "#ffb31f22", color: "#ffb31f", border: "1px solid #ffb31f88", marginTop: 8 }}>

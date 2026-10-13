@@ -1,5 +1,8 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import type { Metadata } from "next";
+import { clip, jsonLd, ORG } from "@/lib/seo";
+import { SITE } from "@/lib/slug";
 import { resolve, pathFor } from "@/lib/slug";
 import { WEIGHTS, type Dim } from "@/lib/rubric";
 import { DIM_COLOR, DIM_LABEL } from "@/lib/ui";
@@ -11,7 +14,7 @@ type Row = {
   id: string; score: number; band: string; thesis: string | null; called_at: string; rubric_version: string;
   dims: { dims: Record<Dim, { score: number; raw: unknown; note: string }>; gate: string | null; raw?: { tagsA: string[]; tagsB: string[] } };
   a_name: string; a_type: string; a_handle: string | null; b_name: string; b_type: string; b_handle: string | null;
-  account_id: string | null; account_name: string | null; account_slug: string | null;
+  account_id: string | null; account_name: string | null; account_slug: string | null; slug: string | null;
 };
 
 const fmt = (v: unknown): string =>
@@ -21,6 +24,24 @@ const fmt = (v: unknown): string =>
 
 const TYPE_LABEL: Record<string, string> = { brand: "brand", artist: "artist", tv_show: "TV show", movie: "film" };
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const hit = await resolve("pairs", (await params).id);
+  if (!hit) return { title: "Thesis not found", robots: { index: false } };
+  const [p] = (await sql()`
+    select p.slug, p.band, p.score, p.thesis, p.called_at, a.name a_name, b.name b_name
+    from pairs p join entities a on a.qloo_id = p.a_id join entities b on b.qloo_id = p.b_id where p.id = ${hit.id}`) as
+    { slug: string | null; band: string; score: number; thesis: string | null; called_at: string; a_name: string; b_name: string }[];
+  const title = `${p.a_name} × ${p.b_name}: ${p.band} partnership thesis (${Number(p.score).toFixed(2)})`;
+  const description = clip(p.thesis ?? `How the audiences of ${p.a_name} and ${p.b_name} line up on Qloo taste data, scored by SYZYGY's Scout agent.`);
+  const url = `/thesis/${p.slug ?? hit.id}`;
+  return {
+    title, description, alternates: { canonical: url },
+    openGraph: { type: "article", url, title, description, publishedTime: new Date(p.called_at).toISOString() },
+    twitter: { card: "summary_large_image", title, description },
+    // A pair the rubric passed on has no thesis to read; keep it out of search.
+    robots: p.band === "PASS" ? { index: false, follow: true } : undefined,
+  };
+}
 export default async function Thesis({ params }: { params: Promise<{ id: string }> }) {
   const { id: key } = await params;
   const hit = await resolve("pairs", key);
@@ -31,7 +52,7 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
     select p.*, a.name a_name, a.type a_type, a.x_handle a_handle, b.name b_name, b.type b_type, b.x_handle b_handle,
       ac.id account_id, ac.slug account_slug, ae.name account_name
     from pairs p join entities a on a.qloo_id = p.a_id join entities b on b.qloo_id = p.b_id
-    left join accounts ac on ac.pair_id = p.id left join entities ae on ae.qloo_id = ac.entity_id
+    left join accounts ac on ac.id = p.account_id left join entities ae on ae.qloo_id = ac.entity_id
     where p.id = ${id} limit 1`) as Row[];
   if (!p) notFound();
   const dims = (Object.keys(WEIGHTS) as Dim[]);
@@ -40,6 +61,16 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
 
   return (
     <main className="wrap">
+      <h1 className="sr-only">{p.a_name} × {p.b_name}: partnership thesis</h1>
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd({
+        "@context": "https://schema.org", "@type": "Article",
+        headline: `${p.a_name} × ${p.b_name}: ${p.band} partnership thesis`,
+        description: p.thesis ?? undefined, datePublished: new Date(p.called_at).toISOString(),
+        url: `${SITE}/thesis/${p.slug ?? p.id}`, mainEntityOfPage: `${SITE}/thesis/${p.slug ?? p.id}`,
+        about: [{ "@type": "Thing", name: p.a_name }, { "@type": "Thing", name: p.b_name }],
+        author: { "@type": "SoftwareApplication", name: "SYZYGY Scout agent", url: SITE },
+        publisher: ORG, isBasedOn: "Qloo taste data",
+      })} />
       <nav className="nav"><Logo /><span className="crumb">THESIS · called {new Date(p.called_at).toISOString().slice(0, 10)}</span></nav>
 
       <section className="panel fade-up" style={{ padding: "28px 28px 24px", marginTop: 8 }}>
@@ -50,12 +81,12 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
         <Alignment a={p.a_name} b={p.b_name} aType={p.a_type} bType={p.b_type} height={170} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "start", gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: "clamp(24px, 3.6vw, 40px)", lineHeight: 1.05 }}>{p.a_name}</h1>
+            <p className="pair-name" style={{ fontSize: "clamp(24px, 3.6vw, 40px)", lineHeight: 1.05 }}>{p.a_name}</p>
             <p style={{ color: "var(--dim)", margin: "6px 0 0", fontSize: 13 }}>{TYPE_LABEL[p.a_type] ?? p.a_type}{p.a_handle ? ` · @${p.a_handle}` : ""}</p>
           </div>
           <span className="grad-text" style={{ fontSize: 40, fontWeight: 700, lineHeight: 1 }}>×</span>
           <div style={{ textAlign: "right" }}>
-            <h1 style={{ fontSize: "clamp(24px, 3.6vw, 40px)", lineHeight: 1.05 }}>{p.b_name}</h1>
+            <p className="pair-name" style={{ fontSize: "clamp(24px, 3.6vw, 40px)", lineHeight: 1.05 }}>{p.b_name}</p>
             <p style={{ color: "var(--dim)", margin: "6px 0 0", fontSize: 13 }}>{TYPE_LABEL[p.b_type] ?? p.b_type}{p.b_handle ? ` · @${p.b_handle}` : ""}</p>
           </div>
         </div>

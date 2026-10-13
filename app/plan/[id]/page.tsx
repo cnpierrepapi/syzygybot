@@ -1,7 +1,11 @@
+import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
 import { resolve, pathFor } from "@/lib/slug";
 import { Logo, AgentChip } from "../../components/visuals";
+
+// About a person, or a working document: visible on the floor, kept out of search results.
+export const metadata: Metadata = { title: "Outreach plan", robots: { index: false, follow: false } };
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +39,7 @@ export default async function Plan({ params }: { params: Promise<{ id: string }>
 
   return (
     <main className="wrap">
+      <h1 className="sr-only">Outreach plan for {p.account_name}</h1>
       <nav className="nav"><Logo /><span className="crumb">PLAN · set {new Date(p.created_at).toISOString().slice(0, 10)}</span></nav>
 
       <section className="panel fade-up" style={{ padding: 28, marginTop: 8 }}>

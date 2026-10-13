@@ -1,5 +1,7 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import type { Metadata } from "next";
+import { clip } from "@/lib/seo";
 import { resolve, pathFor } from "@/lib/slug";
 import { maskEmail, STATUS_LABEL, typeColors } from "@/lib/ui";
 import { Alignment, Logo, AgentChip } from "../../components/visuals";
@@ -30,6 +32,17 @@ const OVER = "#d95926", UNDER = "#3987e5";
 const n = (x: number | null | undefined) => (x == null ? "—" : x.toFixed(2));
 const TYPE_LABEL: Record<string, string> = { brand: "brand", artist: "artist", tv_show: "TV show", movie: "film" };
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const hit = await resolve("accounts", (await params).id);
+  if (!hit) return { title: "Account not found", robots: { index: false } };
+  const [a] = (await sql()`
+    select ac.slug, ac.reason, e.name, p.name passed_name from accounts ac join entities e on e.qloo_id = ac.entity_id
+    left join entities p on p.qloo_id = ac.passed_on where ac.id = ${hit.id}`) as { slug: string | null; reason: string; name: string; passed_name: string | null }[];
+  const title = `${a.name}: audience evidence and outreach`;
+  const description = clip(`Why SYZYGY's agents picked ${a.name} as the buyer${a.passed_name ? ` in the ${a.name} × ${a.passed_name} thesis` : ""}. ${a.reason}`);
+  const url = `/account/${a.slug ?? hit.id}`;
+  return { title, description, alternates: { canonical: url }, openGraph: { url, title, description }, twitter: { card: "summary_large_image", title, description } };
+}
 export default async function Account({ params }: { params: Promise<{ id: string }> }) {
   const { id: key } = await params;
   const hit = await resolve("accounts", key);

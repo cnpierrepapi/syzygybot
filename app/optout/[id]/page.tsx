@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
 import { maskEmail } from "@/lib/ui";
 import { logAction } from "@/lib/actions";
 import { stopSequence } from "@/lib/sequencer";
 import { Logo } from "../../components/visuals";
+
+// About a person, or a working document: visible on the floor, kept out of search results.
+export const metadata: Metadata = { title: "Opt out", robots: { index: false, follow: false } };
 
 export const dynamic = "force-dynamic";
 

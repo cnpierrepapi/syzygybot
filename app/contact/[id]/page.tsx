@@ -1,8 +1,12 @@
+import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
 import { resolve, pathFor } from "@/lib/slug";
 import { maskEmail, STATUS_LABEL } from "@/lib/ui";
 import { Logo, AgentChip } from "../../components/visuals";
+
+// About a person, or a working document: visible on the floor, kept out of search results.
+export const metadata: Metadata = { title: "Contact", robots: { index: false, follow: false } };
 
 export const dynamic = "force-dynamic";
 

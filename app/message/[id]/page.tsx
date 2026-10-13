@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { sql } from "@/lib/db";
 import { resolve, pathFor } from "@/lib/slug";
 import { maskEmail } from "@/lib/ui";
 import { showSimulated } from "@/lib/floor";
 import { Logo, AgentChip } from "../../components/visuals";
+
+// About a person, or a working document: visible on the floor, kept out of search results.
+export const metadata: Metadata = { title: "Message", robots: { index: false, follow: false } };
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +60,7 @@ export default async function Message({ params }: { params: Promise<{ id: string
 
   return (
     <main className="wrap">
+      <h1 className="sr-only">Message to {t.contact_name ?? t.account_name}, step {t.step}</h1>
       <nav className="nav"><Logo /><span className="crumb">MESSAGE · step {t.step} · {t.channel}</span></nav>
 
       <section className="split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)", gap: 16, marginTop: 8 }}>
