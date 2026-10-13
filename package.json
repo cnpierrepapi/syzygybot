@@ -12,7 +12,9 @@
     "scout": "tsx --env-file-if-exists=.env.local scripts/scout.mts",
     "check": "tsx scripts/offline-check.mts",
     "accounts": "tsx --env-file-if-exists=.env.local scripts/accounts.mts",
-    "outreach": "tsx --env-file-if-exists=.env.local scripts/outreach.mts"
+    "outreach": "tsx --env-file-if-exists=.env.local scripts/outreach.mts",
+    "sequence": "tsx --env-file-if-exists=.env.local scripts/sequence.mts",
+    "inbox": "tsx --env-file-if-exists=.env.local scripts/inbox.mts"
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "^5.0.110",

@@ -38,3 +38,21 @@ ok("verifier: own site counts undated", judgePerson([page("Graham Retzik, Head o
 ok("verifier: name without company fails", judgePerson([page("Graham Retzik spoke about marketing.", recent)], "Graham Retzik", "Head of Marketing", "A24", null).status === "unconfirmed");
 ok("strategist: trigger backed", !!pageBacking([page("Duolingo and Taco Bell launch a global partnership for Taco Day with Duo sauce", recent)], "Duolingo", "Duolingo and Taco Bell launch a global marketing partnership for Taco Day"));
 ok("strategist: unrelated page rejected", !pageBacking([page("Duolingo reports quarterly earnings", recent)], "Duolingo", "Duolingo and Taco Bell launch a global marketing partnership for Taco Day"));
+
+// Sequencer windows and caps, Inbox answer rules (13 Oct).
+import { nextSlot, addBusinessDays, inWindow, local, DAILY_CAP } from "../lib/sequencer";
+import { answerChecks } from "../lib/inbox";
+const fresh = () => ({ perDay: new Map<string, number>(), perCompanyDay: new Set<string>() });
+const fri = new Date("2026-10-16T20:00:00Z"); // Friday evening UTC
+const rome = nextSlot(fri, "Europe/Rome", "x", fresh());
+ok("sequencer: Friday rolls to Tuesday 09:00 Rome", local(rome, "Europe/Rome").weekday === "Tue" && local(rome, "Europe/Rome").minutes === 540);
+const la = nextSlot(fri, "America/Los_Angeles", "x", fresh());
+ok("sequencer: LA slot is inside LA hours", inWindow(la, "America/Los_Angeles") && !inWindow(la, "Europe/Rome"));
+const b = fresh(); const q1 = nextSlot(fri, "Europe/Rome", "acme", b), q2 = nextSlot(fri, "Europe/Rome", "acme", b);
+ok("sequencer: one per company per day", local(q1, "Europe/Rome").date !== local(q2, "Europe/Rome").date);
+const c = fresh(); let last = fri;
+for (let i = 0; i <= DAILY_CAP; i++) last = nextSlot(fri, "Europe/Rome", `co${i}`, c);
+ok("sequencer: daily cap pushes the 21st to another day", last.toISOString().slice(0, 10) !== q1.toISOString().slice(0, 10));
+ok("sequencer: 4 business days from Thu is Wed", local(addBusinessDays(new Date("2026-10-22T08:00:00Z"), 4, "Europe/Rome"), "Europe/Rome").weekday === "Wed");
+ok("inbox: good answer passes", Object.values(answerChecks("Thanks. Built on Qloo's taste data, A24 fans score Glossier at 0.81. Syzygy (an AI agent)")).every(Boolean));
+ok("inbox: percentage fails", !answerChecks("Syzygy (an AI agent): 81% of fans").no_percentages);

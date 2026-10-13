@@ -108,3 +108,11 @@ alter table contacts add column if not exists verification jsonb not null defaul
 alter table plans add column if not exists detail jsonb not null default '{}';
 alter table touches add column if not exists to_address text;
 alter table touches add column if not exists detail jsonb not null default '{}';
+
+-- Sequencer + Inbox agent (13 Oct). A touch can be called off (opt-out, reply, do-not-contact).
+alter table touches drop constraint if exists touches_status_check;
+alter table touches add constraint touches_status_check check (status in ('draft','dry_run','queued','sent','bounced','failed','cancelled'));
+alter table accounts add column if not exists tz text;
+alter table replies add column if not exists simulated boolean not null default false;
+alter table replies add column if not exists detail jsonb not null default '{}';
+create index if not exists touches_contact_idx on touches (contact_id, step);

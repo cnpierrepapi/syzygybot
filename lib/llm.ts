@@ -1,4 +1,4 @@
-import { generateText, type ToolSet } from "ai";
+import { generateText, stepCountIs, type ToolSet } from "ai";
 import { createVertex } from "@ai-sdk/google-vertex";
 
 // Gemini on Vertex AI, billed to his Google Cloud credit. Claude on Vertex has zero quota on
@@ -45,6 +45,17 @@ export async function ask(tier: keyof typeof MODELS, system: string, prompt: str
     providerOptions: tier === "write" ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
   });
   return { text: r.text.trim(), model, costUsd: costUsd(model, r.usage.inputTokens, r.usage.outputTokens) };
+}
+
+/** A model call that may call our own tools (e.g. live Qloo queries) for up to `steps` rounds. */
+export async function askTools(system: string, prompt: string, tools: ToolSet, steps = 6, maxOutputTokens = 600) {
+  const model = MODELS.write;
+  const r = await generateText({
+    model: provider()(model), system, prompt, tools, stopWhen: stepCountIs(steps),
+    maxOutputTokens: maxOutputTokens + 1024,
+    providerOptions: { google: { thinkingConfig: { thinkingLevel: "low" } } },
+  });
+  return { text: r.text.trim(), model, costUsd: costUsd(model, r.totalUsage.inputTokens, r.totalUsage.outputTokens) };
 }
 
 // Google Search grounding, billed per search on top of tokens. ESTIMATE per call, not checked.

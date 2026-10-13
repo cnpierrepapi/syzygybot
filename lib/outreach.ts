@@ -20,8 +20,8 @@ type Evidence = {
   cities?: { shared: string[]; account: string[] };
   morePartners?: { name: string; type: string; pullOut: number; pullBack: number }[];
 };
-type AccountRow = Account & { passed_name: string; evidence: Evidence };
-type Contact = { id: string; kind: string; name: string | null; role: string; email: string | null; role_status: string };
+export type AccountRow = Account & { passed_name: string; evidence: Evidence };
+export type Contact = { id: string; kind: string; name: string | null; role: string; email: string | null; role_status: string };
 type Trigger = { what: string; date?: string; source_url?: string; verified?: boolean; page?: string };
 
 const TRIGGER_SYSTEM = `You are the Strategist on an autonomous sales team. Find timing triggers for an outreach:
@@ -135,13 +135,15 @@ function bestInbox(contacts: Contact[]) {
   return inboxes[0] ?? null;
 }
 
-export async function writeTouch(a: AccountRow, plan: { id: string; angle: string; timing: string }, c: Contact, route: Contact | null) {
+export async function writeTouch(a: AccountRow, plan: { id: string; angle: string; timing: string }, c: Contact, route: Contact | null, context?: Record<string, unknown>) {
   const facts = evidenceFacts(a);
-  const to = c.kind === "inbox" ? c.email : route?.email ?? null;
+  // A person's own address only exists if it was published or they gave it in a reply; it is never guessed.
+  const viaInbox = c.kind === "person" && !c.email && !!route?.email;
+  const to = c.email ?? (viaInbox ? route!.email : null);
   const prompt = JSON.stringify({
     recipient: c.name ? { name: c.name, role: c.role, company: a.name } : { role: c.role, company: a.name, note: "a shared company inbox; address the team" },
-    delivered_via: c.kind === "person" && to ? `the company's published inbox, marked for ${c.name}'s attention` : undefined,
-    angle: plan.angle, timing: plan.timing, ...facts,
+    delivered_via: viaInbox ? `the company's published inbox, marked for ${c.name}'s attention` : undefined,
+    angle: plan.angle, timing: plan.timing, ...facts, ...context,
   });
   let draft: { subject: string; body: string } | null = null, checks = writerChecks("", ""), model = "", cost = 0;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -161,7 +163,7 @@ export async function writeTouch(a: AccountRow, plan: { id: string; angle: strin
   const [row] = (await sql()`
     insert into touches (contact_id, plan_id, channel, step, subject, body, status, to_address, detail)
     values (${c.id}, ${plan.id}, ${channel}, 1, ${draft!.subject}, ${draft!.body}, 'dry_run', ${to},
-            ${JSON.stringify({ model, checks, attention: c.kind === "person" ? c.name : null })})
+            ${JSON.stringify({ model, checks, attention: viaInbox || !to ? c.name : null })})
     returning id`) as { id: string }[];
   await logAction({
     agent: "writer", kind: "touch.drafted",

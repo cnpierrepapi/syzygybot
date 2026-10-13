@@ -6,13 +6,13 @@ export const PALETTE = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "
 
 export const AGENTS = [
   "scout", "qualifier", "numbers", "contact_finder", "verifier",
-  "strategist", "writer", "sequencer", "inbox", "booker",
+  "strategist", "writer", "sequencer", "inbox",
 ] as const;
 
 export const AGENT_LABEL: Record<string, string> = {
   scout: "Scout", qualifier: "Qualifier", numbers: "Numbers", contact_finder: "Contact finder",
   verifier: "Verifier", strategist: "Strategist", writer: "Writer", sequencer: "Sequencer",
-  inbox: "Inbox", booker: "Booker",
+  inbox: "Inbox",
 };
 
 // Brighter steps of the same hues for chips and glows on the dark panels (text stays in ink colours).

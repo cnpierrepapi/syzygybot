@@ -3,12 +3,17 @@ import { sql } from "./db";
 export type FeedItem = { id: string; agent: string; kind: string; summary: string; created_at: string; href: string | null };
 export type Funnel = { label: string; value: number; agent: string }[];
 
-const SUBPAGE: Record<string, string> = { pairs: "/thesis/", accounts: "/account/", contacts: "/contact/", plans: "/plan/", touches: "/touch/" };
+const SUBPAGE: Record<string, string> = { pairs: "/thesis/", accounts: "/account/", contacts: "/contact/", plans: "/plan/", touches: "/touch/", replies: "/reply/" };
+
+// Test replies stay off the public floor until he says they can be shown (SHOW_SIMULATED=1).
+export const showSimulated = () => process.env.SHOW_SIMULATED === "1";
 
 export async function feed(limit = 40, after?: string): Promise<FeedItem[]> {
   const rows = (after
-    ? await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id from actions where created_at > ${after} order by created_at desc limit ${limit}`
-    : await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id from actions order by created_at desc limit ${limit}`
+    ? await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id from actions where created_at > ${after}
+        and (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') order by created_at desc limit ${limit}`
+    : await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id from actions
+        where (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') order by created_at desc limit ${limit}`
   ) as (FeedItem & { ref_table: string | null; ref_id: string | null })[];
   return rows.map(r => ({
     id: r.id, agent: r.agent, kind: r.kind, summary: r.summary,
@@ -26,8 +31,10 @@ export async function funnel(): Promise<Funnel> {
       (select count(*) from accounts)::int accounts,
       (select count(*) from contacts)::int contacts,
       (select count(*) from contacts where role_status = 'confirmed')::int verified,
-      (select count(*) from touches)::int touches,
-      (select count(*) from replies)::int replies`) as Record<string, number>[];
+      (select count(*) from touches where step = 1)::int touches,
+      (select count(*) from touches where scheduled_for is not null and status <> 'cancelled')::int scheduled,
+      (select count(*) from replies where ${showSimulated()} or not simulated)::int replies,
+      (select count(*) from do_not_contact)::int optouts`) as Record<string, number>[];
   return [
     { label: "Pairs researched", value: c.pairs, agent: "scout" },
     { label: "Theses published", value: c.theses, agent: "scout" },
@@ -36,6 +43,8 @@ export async function funnel(): Promise<Funnel> {
     { label: "Contacts found", value: c.contacts, agent: "contact_finder" },
     { label: "Verified", value: c.verified, agent: "verifier" },
     { label: "Messages drafted", value: c.touches, agent: "writer" },
+    { label: "Steps scheduled", value: c.scheduled, agent: "sequencer" },
     { label: "Replies", value: c.replies, agent: "inbox" },
+    { label: "Opt-outs honoured", value: c.optouts, agent: "inbox" },
   ];
 }
