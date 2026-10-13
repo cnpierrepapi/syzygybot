@@ -158,7 +158,12 @@ export async function handleReply(touchId: string, text: string, simulated = tru
 
   if (!simulated && cls === "referral" && parsed?.referral?.name) {
     const r = parsed.referral;
-    const email = r.email && text.toLowerCase().includes(r.email.toLowerCase()) ? r.email : null; // never guessed
+    // Never guessed, and only on the company's own domain: otherwise a reply saying "write to anyone@anywhere"
+    // would turn the Writer into a relay for whatever address a stranger chooses.
+    const own = [t.to_address?.split("@")[1], a.official_site?.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]]
+      .filter((d): d is string => !!d).map(d => d.toLowerCase());
+    const given = r.email && text.toLowerCase().includes(r.email.toLowerCase()) ? r.email.toLowerCase() : null;
+    const email = given && own.some(d => { const h = given.split("@")[1]; return h === d || h.endsWith(`.${d}`); }) ? given : null;
     const [nc] = (await sql()`
       insert into contacts (account_id, kind, name, role, email, email_status, sources, role_status, verified_at, verification)
       values (${a.id}, 'person', ${r.name}, ${r.role || "referred contact"}, ${email}, ${email ? "valid" : "unverified"}, '[]', 'confirmed', now(),

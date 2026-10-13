@@ -218,7 +218,8 @@ export async function scorePair(a0: QlooEntity, b0: QlooEntity) {
             ${scored.score}, ${scored.band}, ${thesis?.text ?? null}, ${RUBRIC_VERSION})
     on conflict (a_id, b_id, rubric_version) do update set
       dims = excluded.dims, score = excluded.score, band = excluded.band,
-      thesis = coalesce(excluded.thesis, pairs.thesis)
+      -- A pair rescored to PASS loses its thesis: the old text would argue for numbers that no longer hold.
+      thesis = case when excluded.band = 'PASS' then null else coalesce(excluded.thesis, pairs.thesis) end
     returning id`) as { id: string }[];
   const pairId = rows[0].id;
 

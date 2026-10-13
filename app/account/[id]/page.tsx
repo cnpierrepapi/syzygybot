@@ -52,6 +52,13 @@ export default async function Account({ params }: { params: Promise<{ id: string
   const [plan] = (await sql()`
     select pl.id, pl.slug, pl.angle from plans pl join accounts x on x.id = pl.account_id
     where x.entity_id = ${a.entity_id} order by pl.created_at desc limit 1`) as { id: string; slug: string | null; angle: string }[];
+  // Later theses that picked this same company as the buyer (one account per company).
+  const othersAll = (await sql()`
+    select p.id, p.slug, p.score, p.band, case when p.a_id = ${a.entity_id} then eb.name else ea.name end partner
+    from pairs p join entities ea on ea.qloo_id = p.a_id join entities eb on eb.qloo_id = p.b_id
+    where p.account_id = ${a.id} and p.id <> ${a.pair_id} order by p.score desc`) as { id: string; slug: string | null; score: number; band: string; partner: string }[];
+  // The same pair scored under two rubric versions shows once, at its best score.
+  const others = othersAll.filter((o, i, all) => all.findIndex(x => x.partner === o.partner) === i);
   const [c1, c2] = typeColors(a.type);
 
   return (
@@ -79,6 +86,14 @@ export default async function Account({ params }: { params: Promise<{ id: string
           {TYPE_LABEL[a.type] ?? a.type}{a.x_handle ? ` · X @${a.x_handle} (${a.x_handle_status})` : ""}
           {" · "}<a href={pathFor("pairs", a.pair_slug, a.pair_id)} style={{ color: "var(--cyan)" }}>from the {a.name} × {a.passed_name} thesis →</a>
         </p>
+        {others.length > 0 && (
+          <p style={{ color: "var(--dim)", margin: "8px 0 0", position: "relative", fontSize: 14 }}>
+            Also pointed here by{" "}
+            {others.map((o, i) => (
+              <span key={o.id}>{i ? ", " : ""}<a href={pathFor("pairs", o.slug, o.id)} style={{ color: "var(--cyan)" }}>{o.partner}</a> ({o.band} {o.score.toFixed(2)})</span>
+            ))}
+          </p>
+        )}
       </section>
 
       <section className="split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)", gap: 16, marginTop: 16 }}>

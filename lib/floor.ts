@@ -11,7 +11,7 @@ export const showSimulated = () => process.env.SHOW_SIMULATED === "1";
 
 export async function feed(limit = 40, after?: string): Promise<FeedItem[]> {
   const rows = (after
-    ? await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id from actions where created_at > ${after}
+    ? await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id from actions where date_trunc('milliseconds', created_at) > ${after}::timestamptz
         and (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') order by created_at desc limit ${limit}`
     : await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id from actions
         where (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') order by created_at desc limit ${limit}`

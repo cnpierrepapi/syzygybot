@@ -72,3 +72,9 @@ import { slugify, token, isUuid } from "../lib/slug";
 ok("slug: accents, ampersand, apostrophes", slugify("Dolce & Gabbana") === "dolce-and-gabbana" && slugify("Begoña Sanz") === "begona-sanz" && slugify("Levi's") === "levis");
 ok("slug: Ray-Ban x Bad Bunny", slugify("Bad Bunny x Ray-ban") === "bad-bunny-x-ray-ban");
 ok("slug: opt-out token is short, random, not a uuid", token().length === 8 && token() !== token() && !isUuid(token()));
+
+// Audit fixes (14 Oct).
+import { fetchable, htmlToText } from "../lib/web";
+ok("ssrf: internal addresses blocked", !fetchable("http://169.254.169.254/latest") && !fetchable("http://localhost:3000") && !fetchable("https://[::1]/") && !fetchable("file:///etc/passwd") && !fetchable("https://intranet"));
+ok("ssrf: public pages allowed, LinkedIn never", fetchable("https://www.adweek.com/x") && !fetchable("https://www.linkedin.com/in/x"));
+ok("text: hex entities decoded", htmlToText("Glossier&#x2019;s CMO") === "Glossier’s CMO");

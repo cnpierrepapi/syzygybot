@@ -49,7 +49,11 @@ export default async function Reply({ params }: { params: Promise<{ id: string }
         <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
           <article className="panel fade-up" style={{ padding: 24 }}>
             <p className="eyebrow">From {r.contact_name ?? r.contact_role}, {r.account_name}</p>
-            <div style={{ whiteSpace: "pre-wrap", fontSize: 15.5, lineHeight: 1.65 }}>{r.body}</div>
+            {/* A real person's reply is private correspondence: the public page shows the Inbox agent's one-line
+                summary, never their words. Only test replies, which nobody sent, are shown in full. */}
+            {r.simulated
+              ? <div style={{ whiteSpace: "pre-wrap", fontSize: 15.5, lineHeight: 1.65 }}>{r.body}</div>
+              : <div style={{ fontSize: 15.5, lineHeight: 1.65 }}>{r.detail.summary ?? "A reply arrived."} <span style={{ color: "var(--mute)", fontSize: 13 }}>(The reply itself stays private.)</span></div>}
           </article>
           {r.answer && (
             <article className="panel fade-up" style={{ padding: 24, animationDelay: "80ms" }}>

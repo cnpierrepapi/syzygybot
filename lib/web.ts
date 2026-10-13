@@ -10,7 +10,12 @@ export function htmlToText(html: string) {
   return html
     .replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]+>/g, " ")
-    .replace(/&([a-z]+|#\d+);/gi, (m, k) => ENTITIES[k.toLowerCase()] ?? (k.startsWith("#") ? String.fromCharCode(Number(k.slice(1))) : m))
+    .replace(/&([a-z]+|#\d+|#x[0-9a-f]+);/gi, (m, k: string) => {
+      if (ENTITIES[k.toLowerCase()]) return ENTITIES[k.toLowerCase()];
+      if (!k.startsWith("#")) return m;
+      const n = k[1].toLowerCase() === "x" ? parseInt(k.slice(2), 16) : Number(k.slice(1));
+      return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m;
+    })
     .replace(/\s+/g, " ");
 }
 
@@ -37,15 +42,49 @@ export async function resolveRedirect(url: string): Promise<string> {
   } catch { return url; }
 }
 
+/**
+ * URLs come from model output and search results, so only public web addresses get fetched: http(s),
+ * a real hostname, never localhost, a bare IP, or an internal name. Stops the bot being pointed at
+ * private infrastructure (SSRF).
+ */
+export function fetchable(url: string) {
+  let u: URL;
+  try { u = new URL(url); } catch { return false; }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+  const h = u.hostname.toLowerCase();
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal") || !h.includes(".")) return false;
+  if (/^[\d.]+$/.test(h) || h.includes(":") || h.startsWith("[")) return false; // IPv4 / IPv6 literals
+  if (u.username || u.password) return false;
+  return !/linkedin\.com$/.test(h); // never read LinkedIn
+}
+
+const MAX_BYTES = 3_000_000;
+
 export async function readPage(url: string): Promise<Page | null> {
-  if (/linkedin\.com/i.test(url)) return null; // never read LinkedIn
+  if (!fetchable(url)) return null;
   try {
-    const r = await fetch(url, { headers: { "user-agent": UA, accept: "text/html" }, redirect: "follow", signal: AbortSignal.timeout(10000) });
+    // Follow redirects by hand so every hop is checked before it's requested.
+    let r: Response | null = null, at = url;
+    const deadline = AbortSignal.timeout(10000);
+    for (let hop = 0; hop < 5; hop++) {
+      r = await fetch(at, { headers: { "user-agent": UA, accept: "text/html" }, redirect: "manual", signal: deadline });
+      const next = r.status >= 300 && r.status < 400 ? r.headers.get("location") : null;
+      if (!next) break;
+      await r.body?.cancel();
+      at = new URL(next, at).toString();
+      if (!fetchable(at)) return null;
+      r = null;
+    }
+    if (!r) return null;
+    // Only pages and plain text; skip PDFs, images, video, and anything huge.
+    const type = r.headers.get("content-type") ?? "";
+    if (type && !/text\/html|text\/plain|application\/xhtml/i.test(type)) { await r.body?.cancel(); return null; }
+    if (Number(r.headers.get("content-length") ?? 0) > MAX_BYTES) { await r.body?.cancel(); return null; }
     const html = (await r.text()).slice(0, 1_500_000);
     const mailto = [...html.matchAll(/mailto:([^"'?>\s]+)/gi)].map(m => decodeURIComponent(m[1]));
     const text = htmlToText(html);
     const emails = [...new Set([...mailto, ...(text.match(EMAIL) ?? [])].map(e => e.toLowerCase()))];
-    return { url: r.url || url, status: r.status, text, date: pageDate(html), emails };
+    return { url: at, status: r.status, text, date: pageDate(html), emails };
   } catch { return null; }
 }
 

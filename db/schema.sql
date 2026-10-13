@@ -132,3 +132,11 @@ create unique index if not exists plans_slug_idx on plans (slug);
 create unique index if not exists touches_slug_idx on touches (slug);
 create unique index if not exists replies_slug_idx on replies (slug);
 create unique index if not exists touches_optout_idx on touches (optout_token);
+
+-- One account per company (14 Oct): a later thesis about the same company joins its account as extra evidence.
+alter table pairs add column if not exists account_id uuid references accounts(id);
+-- Run locks with an expiry, so two cron runs (or a cron and a manual run) never work the same queue at once.
+create table if not exists run_locks (
+  name   text primary key,
+  until  timestamptz not null
+);

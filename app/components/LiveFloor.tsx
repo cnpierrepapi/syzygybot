@@ -73,6 +73,8 @@ export default function LiveFloor({ initialItems, initialFunnel, middle }: { ini
   const [rows, setRows] = useState<Shown[]>(() => initialItems.slice(INTRO).map(i => ({ ...i, typed: i.summary.length, fresh: false })));
   const queue = useRef<FeedItem[]>(initialItems.slice(0, INTRO).reverse());
   const latest = useRef<string | undefined>(initialItems[0]?.created_at);
+  // Every id ever shown or queued, so a line can never appear twice.
+  const seen = useRef(new Set(initialItems.map(i => i.id)));
   const typing = useRef(false);
   const [counts, setCounts] = useState<Funnel>(initialFunnel);
   const [status, setStatus] = useState<"live" | "offline">("live");
@@ -105,13 +107,14 @@ export default function LiveFloor({ initialItems, initialFunnel, middle }: { ini
         const j = (await res.json()) as { items: FeedItem[]; funnel: Funnel };
         setCounts(j.funnel);
         setStatus("live");
-        if (j.items.length) {
-          latest.current = j.items[0].created_at;
-          queue.current.push(...[...j.items].reverse());
-        }
+        const fresh = j.items.filter(i => !seen.current.has(i.id));
+        fresh.forEach(i => seen.current.add(i.id));
+        if (j.items.length) latest.current = j.items[0].created_at;
+        if (fresh.length) queue.current.push(...[...fresh].reverse());
       } catch { setStatus("offline"); }
     };
-    const t = setInterval(poll, POLL_MS);
+    // No polling while the tab is in the background.
+    const t = setInterval(() => { if (!document.hidden) poll(); }, POLL_MS);
     return () => clearInterval(t);
   }, []);
 

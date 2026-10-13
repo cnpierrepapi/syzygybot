@@ -101,11 +101,26 @@ export async function buildAccount(p: PairRow) {
     };
   }
 
+  // One account per company. A later thesis about a company we already work joins that account as extra evidence.
+  const [existing] = (await sql()`select id from accounts where entity_id = ${q.chosen.qloo_id} order by created_at limit 1`) as { id: string }[];
+  if (existing) {
+    const extra = { pair_id: p.id, partner: q.passed.name, score: p.score, band: p.band, thesis: p.thesis };
+    await sql()`update accounts set evidence = jsonb_set(evidence, '{otherTheses}', coalesce(evidence->'otherTheses', '[]'::jsonb) || ${JSON.stringify([extra])}::jsonb) where id = ${existing.id}`;
+    await sql()`update pairs set account_id = ${existing.id} where id = ${p.id}`;
+    await logAction({
+      agent: "qualifier", kind: "account.extended",
+      summary: `${q.chosen.name} is already an account; the ${q.chosen.name} × ${q.passed.name} thesis joins it as more evidence.`,
+      refTable: "accounts", refId: existing.id, llmCostUsd: reason.costUsd,
+    });
+    return { accountId: existing.id, chosen: q.chosen.name, passed: q.passed.name, partners: [] as string[] };
+  }
+
   const rows = (await sql()`
     insert into accounts (pair_id, entity_id, reason, passed_on, evidence)
     values (${p.id}, ${q.chosen.qloo_id}, ${reason.text}, ${q.passed.qloo_id}, ${JSON.stringify({ qualifier: q.scores })})
     returning id`) as { id: string }[];
   const accountId = rows[0].id;
+  await sql()`update pairs set account_id = ${accountId} where id = ${p.id}`;
   await logAction({
     agent: "qualifier", kind: "account.qualified",
     summary: `Chose ${q.chosen.name} as the buyer; ${q.passed.name} is evidence only.`,
@@ -147,7 +162,7 @@ export async function runAccounts(limit = 2) {
     from pairs p
     join (select qloo_id, name, type, popularity, x_handle, x_handle_status, official_site from entities) a on a.qloo_id = p.a_id
     join (select qloo_id, name, type, popularity, x_handle, x_handle_status, official_site from entities) b on b.qloo_id = p.b_id
-    where p.band in ('PITCH','WATCH') and not exists (select 1 from accounts ac where ac.pair_id = p.id)
+    where p.band in ('PITCH','WATCH') and p.account_id is null and not exists (select 1 from accounts ac where ac.pair_id = p.id)
     order by (p.band = 'PITCH') desc, p.score desc
     limit ${limit}`) as PairRow[];
   const out = [];

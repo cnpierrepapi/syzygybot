@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
-import { isUuid } from "@/lib/slug";
 import { maskEmail } from "@/lib/ui";
 import { logAction } from "@/lib/actions";
 import { stopSequence } from "@/lib/sequencer";
@@ -10,14 +9,14 @@ export const dynamic = "force-dynamic";
 
 type Row = { id: string; to_address: string | null; contact_id: string; company: string; site: string | null };
 
-async function load(id: string) {
-  // Opt-out links carry a short random token; old links carried the message's UUID. Both work.
-  const uuid = isUuid(id);
-  if (!uuid && !/^[A-Za-z0-9]{6,16}$/.test(id)) return null;
+// Only the recipient has the token (it's in their copy of the message, and masked on every public page),
+// so only they can opt out. Message UUIDs are not accepted: they aren't secret.
+async function load(tok: string) {
+  if (!/^[A-Za-z0-9]{6,16}$/.test(tok)) return null;
   const [t] = (await sql()`
     select t.id, t.to_address, t.contact_id, e.name company, e.official_site site
     from touches t join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
-    where ${uuid ? id : null}::uuid = t.id or t.optout_token = ${uuid ? null : id}`) as Row[];
+    where t.optout_token = ${tok}`) as Row[];
   return t ?? null;
 }
 
@@ -54,7 +53,7 @@ export default async function OptOut({ params, searchParams }: { params: Promise
               SYZYGY is an AI agent that writes to companies about Qloo taste data. One click stops every message to{" "}
               {t.to_address ? maskEmail(t.to_address) : t.company}, for good.
             </p>
-            <input type="hidden" name="id" value={t.id} />
+            <input type="hidden" name="id" value={id} />
             <button type="submit" className="band" style={{ cursor: "pointer", padding: "10px 18px", fontSize: 14, background: "#ff808022", color: "#ff8080", border: "1px solid #ff808088" }}>
               Stop all messages
             </button>

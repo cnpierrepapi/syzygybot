@@ -75,7 +75,8 @@ export default async function Message({ params }: { params: Promise<{ id: string
           {t.detail.footer && (
             <div style={{ padding: "14px 24px 20px", borderTop: "1px dashed var(--line)", whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 12.5, color: "var(--mute)", fontFamily: "var(--mono)" }}>
               <span className="eyebrow" style={{ display: "block", marginBottom: 6 }}>Added by the Sequencer at send time</span>
-              <Body text={t.detail.footer} />
+              {/* The opt-out token is the recipient's alone; on this public page it's masked. */}
+              <Body text={t.detail.footer.replace(/\/optout\/[A-Za-z0-9]+/, "/optout/••••••••")} />
             </div>
           )}
         </article>
