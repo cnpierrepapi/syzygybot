@@ -19,6 +19,6 @@ export async function GET() {
     catch { out.db = "error"; }
   }
 
-  out.gateway = process.env.VERCEL_OIDC_TOKEN || process.env.AI_GATEWAY_API_KEY ? "configured" : "unconfigured";
+  out.llm = process.env.GOOGLE_VERTEX_CREDENTIALS_B64 ? "configured (vertex gemini)" : "unconfigured: theses use the plain-numbers fallback";
   return Response.json(out);
 }
