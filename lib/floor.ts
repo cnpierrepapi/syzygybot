@@ -56,7 +56,9 @@ export async function funnel(): Promise<Funnel> {
       (select count(*) from touches where step = 1)::int touches,
       (select count(*) from touches where scheduled_for is not null and status <> 'cancelled')::int scheduled,
       (select count(*) from replies where ${showSimulated()} or not simulated)::int replies,
-      (select count(*) from do_not_contact)::int optouts`) as Record<string, number>[];
+      (select count(*) from do_not_contact)::int optouts,
+      (select count(*) from handoffs where ${showSimulated()} or not simulated)::int handoffs,
+      (select count(*) from workspaces where claimed_at is not null and not demo)::int claimed`) as Record<string, number>[];
   return [
     { label: "Pairs researched", value: c.pairs, agent: "scout" },
     { label: "Theses published", value: c.theses, agent: "scout" },
@@ -68,5 +70,7 @@ export async function funnel(): Promise<Funnel> {
     { label: "Steps scheduled", value: c.scheduled, agent: "sequencer" },
     { label: "Replies", value: c.replies, agent: "inbox" },
     { label: "Opt-outs honoured", value: c.optouts, agent: "inbox" },
+    { label: "Handed to a person", value: c.handoffs, agent: "inbox" },
+    { label: "Brands claimed", value: c.claimed, agent: "verifier" },
   ];
 }

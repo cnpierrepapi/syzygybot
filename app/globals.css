@@ -124,8 +124,8 @@ h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -0.015em; }
 .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
 .hint { font-family: var(--mono); font-size: 11px; color: var(--mute); letter-spacing: 0.08em; margin-top: 12px; }
 
-.funnel { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-@media (max-width: 760px) { .funnel { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.funnel { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 980px) { .funnel { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .funnel { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 @media (max-width: 720px) {
@@ -181,3 +181,24 @@ h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -0.015em; }
   .sky-ctl { top: 70px; right: 12px; }
   .sky-ctl span { display: none; }
 }
+
+/* Forms on the claim and workspace pages. */
+.field { display: grid; gap: 6px; font-size: 13px; color: var(--dim); }
+.field input, .field textarea {
+  font: inherit; font-size: 15px; color: var(--fg); background: rgba(5, 6, 11, 0.7);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%;
+}
+.field input:focus, .field textarea:focus { outline: none; border-color: #22d3ee88; box-shadow: 0 0 0 3px #22d3ee22; }
+.btn {
+  font: inherit; font-size: 14px; cursor: pointer; color: var(--fg); background: rgba(34, 211, 238, 0.12);
+  border: 1px solid #22d3ee88; border-radius: 999px; padding: 9px 18px; display: inline-block;
+}
+.btn:hover { background: rgba(34, 211, 238, 0.22); }
+.btn.quiet { background: transparent; border-color: var(--line); color: var(--dim); }
+.btn.warn { background: rgba(255, 128, 128, 0.1); border-color: #ff808088; }
+.post-text { font-family: var(--mono); font-size: 13.5px; background: rgba(5, 6, 11, 0.7); border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; overflow-wrap: anywhere; }
+.steps { counter-reset: step; display: grid; gap: 14px; }
+.steps > div { counter-increment: step; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; }
+.steps > div::before { content: counter(step); width: 26px; height: 26px; border-radius: 50%; border: 1px solid #22d3ee88; color: var(--cyan); display: grid; place-items: center; font-family: var(--mono); font-size: 13px; }
+details.play summary { cursor: pointer; list-style: none; }
+details.play summary::-webkit-details-marker { display: none; }

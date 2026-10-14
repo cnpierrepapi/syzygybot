@@ -108,3 +108,19 @@ ok("crm: domain from site", domainOf("https://www.Ray-Ban.com/usa") === "ray-ban
 const nb = noteBody("Bad Bunny", { account_id: "x", account_slug: "ray-ban", name: "Ray-ban", official_site: null, evidence: { pull: { partnerFansLikeAccount: 0.93, accountFansLikePartner: 0.84 }, sharedTaste: ["friendship"] }, thesis: "t", score: 0.75, band: "PITCH", angle: "a", timing: null }, ["Ana B, CMO"], "Hello");
 ok("crm: note carries numbers as scores and the evidence link", nb.includes("0.93") && !nb.includes("%") && nb.includes("/account/ray-ban") && nb.includes("Drafted first message"));
 ok("writer: 'per cent' in words fails too", !writerChecks(good + " 91 per cent of fans.", "x").no_percentages && !writerChecks(good + " ninety percent.", "x").no_percentages);
+
+// Claim flow, inward mode (15 Oct).
+const { judgeClaim, postId, postText } = await import("../lib/claim");
+const { inwardChecks } = await import("../lib/inward");
+ok("claim: post ids from x.com, twitter.com and /i/ links", postId("https://x.com/A24/status/1846219467131658585") === "1846219467131658585"
+  && postId("https://twitter.com/A24/status/123456?s=20") === "123456" && postId("https://mobile.twitter.com/a/status/123456") === "123456" && postId("https://x.com/i/web/status/123456") === "123456");
+ok("claim: non-post links refused", postId("https://x.com/A24") === null && postId("https://evil.com/x.com/A24/status/123456") === null && postId("javascript:alert(1)") === null);
+ok("claim: right account + code passes, case-insensitive", judgeClaim("A24", "SYZ-ABC123", { handle: "a24", text: "Claiming A24's page. Code syz-abc123" }).ok);
+ok("claim: wrong author fails", !judgeClaim("A24", "SYZ-ABC123", { handle: "a24_fan", text: "Code SYZ-ABC123" }).ok);
+ok("claim: missing code fails", !judgeClaim("A24", "SYZ-ABC123", { handle: "A24", text: "Claiming our page" }).ok);
+ok("claim: no handle on file or no post fails", !judgeClaim(null, "SYZ-ABC123", { handle: "A24", text: "SYZ-ABC123" }).ok && !judgeClaim("A24", "SYZ-ABC123", null).ok);
+ok("claim: post text carries the code and the page", postText("Bad Bunny", "SYZ-X1").includes("SYZ-X1") && postText("Bad Bunny", "SYZ-X1").includes("/claim/bad-bunny"));
+const inward = "This is Syzygy, an AI agent writing for Bad Bunny. Ray-Ban fans score Bad Bunny 0.84 on Qloo's taste data.";
+ok("inward: good draft passes", Object.values(inwardChecks(inward, "s", "Bad Bunny")).every(Boolean));
+ok("inward: must name the brand up front", !inwardChecks("This is Syzygy, an AI agent. Qloo's taste data says 0.84.", "s", "Bad Bunny").names_brand);
+ok("inward: posing as Qloo or percentages fail", !inwardChecks(inward + " We at Qloo agree.", "s", "Bad Bunny").not_posing_as_qloo && !inwardChecks(inward + " 84%", "s", "Bad Bunny").no_percentages);

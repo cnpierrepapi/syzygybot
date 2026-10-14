@@ -31,7 +31,7 @@ export default async function Contact({ params }: { params: Promise<{ id: string
   const [c] = (await sql()`
     select c.*, ac.id account_id, ac.entity_id, ac.slug account_slug, e.name account_name, t.id touch_id, t.slug touch_slug, t.subject touch_subject
     from contacts c join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
-    left join lateral (select id, slug, subject from touches where contact_id = c.id order by created_at desc limit 1) t on true
+    left join lateral (select id, slug, case when workspace_id is null then subject else 'a message for a brand that claimed its page' end subject from touches where contact_id = c.id order by created_at desc limit 1) t on true
     where c.id = ${id}`) as Row[];
   if (!c) notFound();
   const st = STATUS_LABEL[c.role_status] ?? STATUS_LABEL.unconfirmed;

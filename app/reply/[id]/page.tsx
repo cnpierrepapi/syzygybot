@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 type Row = {
   id: string; class: string; body: string; answer: string | null; simulated: boolean; created_at: string;
   detail: { summary?: string; questions?: string[]; queries?: { tool: string; input: unknown; output: unknown }[]; acted?: string[]; revisit?: string };
+  handoff_status: string | null; handoff_brand: boolean | null;
   touch_id: string; contact_name: string | null; contact_role: string; account_id: string; account_name: string; touch_slug: string | null; account_slug: string | null; entity_id: string;
 };
 
@@ -35,7 +36,7 @@ export default async function Reply({ params }: { params: Promise<{ id: string }
   if (hit.redirect) permanentRedirect(hit.redirect);
   const id = hit.id;
   const [r] = (await sql()`
-    select r.*, ac.entity_id, t.id touch_id, t.slug touch_slug, c.name contact_name, c.role contact_role, ac.id account_id, ac.slug account_slug, e.name account_name
+    select r.*, ac.entity_id, (select status from handoffs h where h.reply_id = r.id) handoff_status, (select workspace_id is not null from handoffs h where h.reply_id = r.id) handoff_brand, t.id touch_id, t.slug touch_slug, c.name contact_name, c.role contact_role, ac.id account_id, ac.slug account_slug, e.name account_name
     from replies r join touches t on t.id = r.touch_id join contacts c on c.id = t.contact_id
     join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id where r.id = ${id}`) as Row[];
   if (!r || (r.simulated && !showSimulated())) notFound();
@@ -91,6 +92,12 @@ export default async function Reply({ params }: { params: Promise<{ id: string }
             <span className="band" style={{ background: `${k.color}22`, color: k.color, border: `1px solid ${k.color}88` }}>{k.label}</span>
             <p style={{ fontSize: 14, margin: "12px 0 0" }}>{r.detail.summary}</p>
             <p style={{ color: "var(--mute)", fontSize: 13, margin: "10px 0 0" }}>{k.meaning}</p>
+            {r.handoff_status && (
+              <p style={{ fontSize: 14, margin: "12px 0 0" }}>
+                <span className="eyebrow">Handoff</span><br />
+                {r.handoff_brand ? "With the brand it was written for" : "With a person"}: {r.handoff_status === "open" ? "waiting to be picked up" : r.handoff_status === "referred" ? (r.handoff_brand ? "picked up" : "referred to Qloo") : "closed"}.
+              </p>
+            )}
           </div>
           {(r.detail.acted?.length ?? 0) > 0 && (
             <div className="panel fade-up" style={{ padding: 24, animationDelay: "100ms", display: "grid", gap: 6, fontSize: 14 }}>

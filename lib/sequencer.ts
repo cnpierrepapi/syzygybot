@@ -10,6 +10,7 @@ import { logAction } from "./actions";
 import { ask, parseJson } from "./llm";
 import { writerChecks } from "./outreach";
 import { SITE, fillSlugs, token } from "./slug";
+import { followUpAs } from "./inward";
 
 export const DAILY_CAP = 20;
 const GAP_BUSINESS_DAYS = [0, 4, 6]; // step 2 four business days after step 1, step 3 six after step 2
@@ -155,14 +156,16 @@ export async function stopSequence(by: { contactId?: string; address?: string; a
 export async function runSequencer(limit = 10) {
   const firsts = (await sql()`
     select t.id, t.contact_id, t.plan_id, t.channel, t.subject, t.body, t.to_address, c.name contact_name, c.role,
-           ac.id account_id, ac.slug account_slug, t.optout_token, ac.entity_id, ac.evidence, ac.tz, e.name, e.official_site, e.raw->'properties'->>'headquartered' hq
+           ac.id account_id, ac.slug account_slug, t.optout_token, ac.entity_id, ac.evidence, ac.tz, e.name, e.official_site, e.raw->'properties'->>'headquartered' hq,
+           t.workspace_id, w.signer, wb.name ws_name
     from touches t join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
+    left join workspaces w on w.id = t.workspace_id left join entities wb on wb.qloo_id = w.entity_id
     where t.step = 1 and t.status = 'dry_run' and t.scheduled_for is null
       and exists (select 1 from pairs p where p.id = ac.pair_id and p.deal_status in ('clear','past'))
     order by t.created_at asc limit ${limit}`) as (Acct & {
       id: string; contact_id: string; plan_id: string | null; channel: string; subject: string | null; body: string;
       to_address: string | null; contact_name: string | null; role: string; account_id: string; evidence: Record<string, unknown>;
-      account_slug: string | null; optout_token: string | null;
+      account_slug: string | null; optout_token: string | null; workspace_id: string | null; signer: string | null; ws_name: string | null;
     })[];
   const b = await booked();
   const out = [];
@@ -185,15 +188,18 @@ export async function runSequencer(limit = 10) {
     if (t.channel === "email") {
       const link = `${SITE}/account/${t.account_slug ?? t.account_id}`;
       for (const step of [2, 3]) {
-        const f = await writeFollowUp(t, t.evidence, link, step);
+        // A thread signed as a claimed brand follows up in that brand's name too.
+        const f = t.workspace_id && t.ws_name
+          ? await followUpAs({ name: t.ws_name, signer: t.signer }, STEP_BRIEF[step], t.body, t.evidence, link)
+          : await writeFollowUp(t, t.evidence, link, step);
         cost += f.cost;
         if (!f.body) { skipped.push(`step ${step} broke a hard rule twice`); break; }
         at = nextSlot(addBusinessDays(at, GAP_BUSINESS_DAYS[step - 1], tz), tz, t.entity_id, b);
         const followTok = token();
         const [row] = (await sql()`
-          insert into touches (contact_id, plan_id, channel, step, subject, body, status, to_address, scheduled_for, optout_token, detail)
-          values (${t.contact_id}, ${t.plan_id}, 'email', ${step}, ${`Re: ${t.subject ?? ""}`}, ${f.body}, 'dry_run', ${t.to_address}, ${at.toISOString()}, ${followTok},
-                  ${JSON.stringify({ model: f.model, checks: f.checks, tz, first_touch: t.id })})
+          insert into touches (contact_id, plan_id, channel, step, subject, body, status, to_address, scheduled_for, optout_token, workspace_id, detail)
+          values (${t.contact_id}, ${t.plan_id}, 'email', ${step}, ${`Re: ${t.subject ?? ""}`}, ${f.body}, 'dry_run', ${t.to_address}, ${at.toISOString()}, ${followTok}, ${t.workspace_id},
+                  ${JSON.stringify({ model: f.model, checks: f.checks, tz, first_touch: t.id, ...(t.ws_name ? { signed_as: t.ws_name } : {}) })})
           returning id`) as { id: string }[];
         await sql()`update touches set detail = detail || ${JSON.stringify({ footer: footer(followTok) })}::jsonb where id = ${row.id}`;
         steps++;

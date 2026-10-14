@@ -12,6 +12,8 @@ import { pageBacking, readAll } from "./web";
 import { findContacts, type Account } from "./contacts";
 import { SITE, fillSlugs } from "./slug";
 import type { DealCheck } from "./dealcheck";
+import { claimedEntities } from "./claim";
+import { draftForWorkspace } from "./inward";
 
 
 type Evidence = {
@@ -87,7 +89,7 @@ async function triggers(a: AccountRow): Promise<{ list: Trigger[]; costUsd: numb
   } catch { return { list: [], costUsd: 0 }; }
 }
 
-function evidenceFacts(a: AccountRow) {
+export function evidenceFacts(a: AccountRow) {
   const e = a.evidence;
   return {
     account: a.name, account_type: a.type, evidence_only_partner: a.passed_name,
@@ -183,7 +185,7 @@ export async function writeTouch(a: AccountRow, plan: { id: string; angle: strin
 export async function runOutreach(limit = 1, accountId?: string) {
   await fillSlugs(); // evidence links in the messages use the account's readable address
   const rows = (await sql()`
-    select ac.id, ac.slug, ac.entity_id, ac.evidence, e.name, e.type, e.official_site, p.name passed_name, pr.deal_status, pr.deal_check
+    select ac.id, ac.slug, ac.entity_id, ac.passed_on, ac.evidence, e.name, e.type, e.official_site, p.name passed_name, pr.deal_status, pr.deal_check
     from accounts ac join entities e on e.qloo_id = ac.entity_id left join entities p on p.qloo_id = ac.passed_on join pairs pr on pr.id = ac.pair_id
     where (${accountId ?? null}::uuid is null or ac.id = ${accountId ?? null}::uuid)
       and pr.deal_status in ('clear','past') -- the Deal check has cleared this thesis
@@ -192,7 +194,8 @@ export async function runOutreach(limit = 1, accountId?: string) {
                       and (c.role_status = 'confirmed' or c.created_at > now() - interval '7 days'))
       and not exists (select 1 from plans pl join accounts x on x.id = pl.account_id where x.entity_id = ac.entity_id)
     order by (select max(c.created_at) from contacts c where c.account_id = ac.id) asc nulls first, ac.created_at asc
-    limit ${limit}`) as AccountRow[];
+    limit ${limit}`) as (AccountRow & { passed_on: string | null })[];
+  const claimed = await claimedEntities();
   const out = [];
   for (const a of rows) {
     try {
@@ -209,7 +212,13 @@ export async function runOutreach(limit = 1, accountId?: string) {
       const route = bestInbox(contacts);
       const plan = await planAccount(a, targets, !!route);
       let touches = 0;
-      for (const c of targets) if (await writeTouch(a, plan, c, route)) touches++;
+      // A brand that claimed its page decides who writes to the companies that need it: SYZYGY in the
+      // brand's name if it switched sending on, otherwise nobody (the contacts and plan go in its playbook).
+      const w = a.passed_on ? claimed.get(a.passed_on) : undefined;
+      if (w) {
+        if (w.send_as && !w.claim.needs_review) touches = (await draftForWorkspace(w, targets.length)).drafted;
+        else await logAction({ agent: "writer", kind: "touch.held", summary: `Found who to write to at ${a.name}, but ${a.passed_name} claimed its page, so SYZYGY doesn't pitch ${a.name} about them. It's in their playbook instead.`, refTable: "accounts", refId: a.id });
+      } else for (const c of targets) if (await writeTouch(a, plan, c, route)) touches++;
       out.push({ account: a.name, contacts: contacts.length, verified: usable.length, touches });
     } catch (e) {
       await logAction({ agent: "contact_finder", kind: "outreach.error", summary: `Outreach pass for ${a.name} stopped on an error.`, refTable: "accounts", refId: a.id, detail: { error: (e as Error).message.slice(0, 300) } });

@@ -14,7 +14,7 @@ type Partner = { name: string; type: string; pullOut: number; pullBack: number }
 type Row = {
   id: string; reason: string; created_at: string; pair_id: string; entity_id: string;
   name: string; type: string; x_handle: string | null; x_handle_status: string;
-  passed_name: string; passed_type: string; pair_slug: string | null; passed_on: string | null; deal_status: string | null;
+  passed_name: string; passed_type: string; pair_slug: string | null; passed_on: string | null; deal_status: string | null; claimed_send_as: boolean | null;
   evidence: {
     pair?: { score: number; band: string; thesis: string | null };
     pull?: { partnerFansLikeAccount: number | null; accountFansLikePartner: number | null };
@@ -51,7 +51,8 @@ export default async function Account({ params }: { params: Promise<{ id: string
   if (hit.redirect) permanentRedirect(hit.redirect);
   const id = hit.id;
   const [a] = (await sql()`
-    select ac.*, e.name, e.type, e.x_handle, e.x_handle_status, p.name passed_name, p.type passed_type, (select slug from pairs where id = ac.pair_id) pair_slug, (select deal_status from pairs where id = ac.pair_id) deal_status
+    select ac.*, e.name, e.type, e.x_handle, e.x_handle_status, p.name passed_name, p.type passed_type, (select slug from pairs where id = ac.pair_id) pair_slug, (select deal_status from pairs where id = ac.pair_id) deal_status,
+      (select w.send_as from workspaces w where w.entity_id = ac.passed_on and w.claimed_at is not null and not w.demo) claimed_send_as
     from accounts ac join entities e on e.qloo_id = ac.entity_id left join entities p on p.qloo_id = ac.passed_on
     where ac.id = ${id}`) as Row[];
   if (!a) notFound();
@@ -84,6 +85,12 @@ export default async function Account({ params }: { params: Promise<{ id: string
         <p className="panel" style={{ padding: "12px 16px", marginTop: 8, borderColor: "#ff808066", color: "#ffb3aa" }}>
           Deal check found that {a.name} and {a.passed_name} already work together, so nothing goes out on this thesis.{" "}
           {a.pair_slug && <a href={`/thesis/${a.pair_slug}`} style={{ textDecoration: "underline" }}>See what it found</a>}
+        </p>
+      )}
+      {a.claimed_send_as != null && (
+        <p className="panel" style={{ padding: "12px 16px", marginTop: 8, borderColor: "#22d3ee55", color: "var(--dim)" }}>
+          {a.passed_name} claimed its page, so SYZYGY no longer pitches {a.name} about them.{" "}
+          {a.claimed_send_as ? `Messages to ${a.name} now go out for ${a.passed_name}, signed as them, and stay private to them.` : `${a.name} is in ${a.passed_name}'s playbook now.`}
         </p>
       )}
       <section className="fade-up clear-hero" style={{ padding: "28px 4px 34px", marginTop: 8, position: "relative" }}>

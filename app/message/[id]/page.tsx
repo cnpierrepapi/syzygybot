@@ -15,7 +15,8 @@ export const dynamic = "force-dynamic";
 type Row = {
   id: string; channel: string; step: number; subject: string | null; body: string; status: string; to_address: string | null;
   created_at: string; scheduled_for: string | null;
-  detail: { checks?: Record<string, boolean>; attention?: string | null; tz?: string; footer?: string; cancelled?: string };
+  detail: { checks?: Record<string, boolean>; attention?: string | null; tz?: string; footer?: string; cancelled?: string; signed_as?: string };
+  workspace_id: string | null;
   contact_id: string; contact_name: string | null; contact_role: string; plan_id: string | null; account_id: string; account_name: string;
   slug: string | null; contact_slug: string | null; account_slug: string | null; plan_slug: string | null; optout_token: string | null; entity_id: string;
 };
@@ -27,6 +28,7 @@ const CHECK_LABEL: Record<string, string> = {
   no_percentages: "Affinity scores quoted as scores, not percentages",
   no_em_dash: "No em dashes",
   under_150_words: "Short enough to read in a minute",
+  names_brand: "Says up front which brand it writes for",
 };
 
 // Links in the body become clickable; everything else stays as written.
@@ -76,9 +78,12 @@ export default async function Message({ params }: { params: Promise<{ id: string
             </div>
             <span><span style={{ color: "var(--mute)" }}>to </span>{t.channel === "letter" ? `letter to ${t.account_name} HQ` : maskEmail(t.to_address)}</span>
             {t.detail.attention && <span><span style={{ color: "var(--mute)" }}>attn </span>{t.detail.attention}, {t.contact_role}</span>}
-            <span><span style={{ color: "var(--mute)" }}>subj </span><strong style={{ fontFamily: "var(--display)", fontSize: 16 }}>{t.subject}</strong></span>
+            {!t.workspace_id && <span><span style={{ color: "var(--mute)" }}>subj </span><strong style={{ fontFamily: "var(--display)", fontSize: 16 }}>{t.subject}</strong></span>}
           </div>
-          <div style={{ padding: "22px 24px", whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 15.5, lineHeight: 1.65 }}><Body text={t.body} /></div>
+          {/* Written for a brand that claimed its page: the words are theirs, so only their workspace shows them. */}
+          {t.workspace_id
+            ? <div style={{ padding: "22px 24px", fontSize: 15.5, lineHeight: 1.65, color: "var(--dim)" }}>Written for a brand that claimed its page and signed as them. The message is theirs, so it stays on their private workspace.</div>
+            : <div style={{ padding: "22px 24px", whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 15.5, lineHeight: 1.65 }}><Body text={t.body} /></div>}
           {t.detail.footer && (
             <div style={{ padding: "14px 24px 20px", borderTop: "1px dashed var(--line)", whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 12.5, color: "var(--mute)", fontFamily: "var(--mono)" }}>
               <span className="eyebrow" style={{ display: "block", marginBottom: 6 }}>Added by the Sequencer at send time</span>

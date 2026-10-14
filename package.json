@@ -18,7 +18,8 @@
     "sources:test": "tsx scripts/sources-test.mts",
     "loop": "tsx --env-file-if-exists=.env.local scripts/loop.mts",
     "dealcheck": "tsx --env-file-if-exists=.env.local scripts/dealcheck.mts",
-    "workspace": "tsx --env-file-if-exists=.env.local scripts/workspace.mts"
+    "workspace": "tsx --env-file-if-exists=.env.local scripts/workspace.mts",
+    "handoffs": "tsx --env-file-if-exists=.env.local scripts/workspace.mts handoffs"
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "^5.0.110",

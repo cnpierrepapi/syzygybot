@@ -179,3 +179,48 @@ alter table pairs add column if not exists deal_check jsonb;
 alter table pairs add column if not exists deal_checked_at timestamptz;
 alter table actions drop constraint if exists actions_agent_check;
 alter table actions add constraint actions_agent_check check (agent in ('scout','checker','qualifier','numbers','contact_finder','verifier','strategist','writer','sequencer','inbox','booker'));
+
+-- Claim flow (15 Oct). A brand claims its page by posting a one-time code from its X account; X's oEmbed
+-- says who really posted it. A claim makes (or takes over) the brand's workspace.
+create table if not exists claims (
+  id          uuid primary key default gen_random_uuid(),
+  entity_id   text not null references entities(qloo_id),
+  code        text not null,                   -- public: it goes in the post
+  secret      text not null,                   -- private: held in the claimant's cookie
+  status      text not null default 'pending' check (status in ('pending','verified','failed')),
+  tweet_url   text,
+  detail      jsonb not null default '{}',
+  created_at  timestamptz not null default now(),
+  verified_at timestamptz
+);
+create index if not exists claims_entity_idx on claims (entity_id, created_at desc);
+alter table workspaces add column if not exists claimed_at timestamptz;
+-- handle, tweet url, how it was checked
+alter table workspaces add column if not exists claim jsonb not null default '{}';
+-- judges' test claims: never send, never stop anything
+alter table workspaces add column if not exists demo boolean not null default false;
+-- inward mode: SYZYGY writes for the brand, signed as it
+alter table workspaces add column if not exists send_as boolean not null default false;
+-- "Maria Lopez, partnerships"
+alter table workspaces add column if not exists signer text;
+-- where interested replies go
+alter table workspaces add column if not exists handoff_email text;
+alter table workspaces add column if not exists detail jsonb not null default '{}';
+create unique index if not exists workspaces_entity_real_idx on workspaces (entity_id) where not demo;
+-- A message written for a claimed brand, signed as it. Null = SYZYGY's own pitch.
+alter table touches add column if not exists workspace_id uuid references workspaces(id);
+
+-- Handoff (15 Oct). An interested reply goes to a person: SYZYGY's own desk (who refers it to Qloo),
+-- or the brand itself when the thread was signed as a claimed brand.
+create table if not exists handoffs (
+  id           uuid primary key default gen_random_uuid(),
+  reply_id     uuid not null unique references replies(id) on delete cascade,
+  workspace_id uuid references workspaces(id),   -- null = SYZYGY's desk
+  token        text not null unique,             -- private page /handoff/<token>
+  status       text not null default 'open' check (status in ('open','referred','closed')),
+  packet       jsonb not null default '{}',
+  simulated    boolean not null default false,
+  notified     jsonb not null default '{}',
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);

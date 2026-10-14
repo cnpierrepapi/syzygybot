@@ -18,6 +18,7 @@ import { audienceTags, demographics, pull, search, topFor, type EntityType } fro
 import { addBusinessDays, nextSlot, stopSequence } from "./sequencer";
 import { writeTouch, type AccountRow } from "./outreach";
 import { SITE, fillSlugs } from "./slug";
+import { handOff } from "./handoff";
 
 export const CLASSES = ["interested", "not_now", "referral", "opt_out", "ooo", "other"] as const;
 type Class = (typeof CLASSES)[number];
@@ -33,14 +34,19 @@ Answer the prospect's questions using ONLY numbers returned by the Qloo tools yo
 number you quote. The analysis is built on Qloo's taste data, but you are NOT Qloo and never imply you work for Qloo.
 Affinity values are scores from 0 to 1, never percentages. If a tool returns nothing, say the data has no answer.
 Never invent clients, prices or results. No em dashes, no exclamation marks, no hype. Under 140 words.
-If they are interested, end by saying a person will pick up this thread directly. Sign off "Syzygy (an AI agent)".`;
+If they are interested, end by saying a person will pick up this thread directly. Sign off "Syzygy (an AI agent)".
+If signed_as is given, the thread was written for that brand: say someone from that brand will pick it up, and sign off
+"Syzygy (an AI agent working for <brand>)".`;
 
 const typeOf = (types?: string[]) => (types?.[0]?.replace("urn:entity:", "") ?? "brand") as EntityType;
 
 /** Live Qloo tools; every call is recorded so the reply page can show exactly what was queried. */
 function qlooTools(log: { tool: string; input: unknown; output: unknown }[]) {
   const find = async (name: string) => (await search(name, undefined, 1))[0] ?? null;
-  const record = <T,>(name: string, input: unknown, output: T) => { log.push({ tool: name, input, output }); return output; };
+  // Scores go to the model (and the page) at two decimals, so it never quotes 0.700536963413442.
+  const round = (v: unknown): unknown => typeof v === "number" ? Math.round(v * 100) / 100 : Array.isArray(v) ? v.map(round)
+    : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, round(x)])) : v;
+  const record = <T,>(name: string, input: unknown, output: T) => { const out = round(output) as T; log.push({ tool: name, input, output: out }); return out; };
   return {
     affinity: tool({
       description: "How much the audience of `from` likes `to`, as a 0-1 Qloo affinity score.",
@@ -93,7 +99,7 @@ export const answerChecks = (body: string) => ({
 
 type Thread = {
   id: string; contact_id: string; plan_id: string | null; step: number; subject: string | null; body: string; to_address: string | null;
-  contact_name: string | null; role: string; account_id: string;
+  contact_name: string | null; role: string; account_id: string; signed_as: string | null;
 };
 
 async function loadAccount(id: string) {
@@ -107,7 +113,8 @@ async function loadAccount(id: string) {
 /** Handles one reply to one touch. `simulated` marks test replies until the mailbox exists. */
 export async function handleReply(touchId: string, text: string, simulated = true) {
   const [t] = (await sql()`
-    select t.id, t.contact_id, t.plan_id, t.step, t.subject, t.body, t.to_address, c.name contact_name, c.role, c.account_id
+    select t.id, t.contact_id, t.plan_id, t.step, t.subject, t.body, t.to_address, c.name contact_name, c.role, c.account_id,
+      (select e.name from workspaces w join entities e on e.qloo_id = w.entity_id where w.id = t.workspace_id) signed_as
     from touches t join contacts c on c.id = t.contact_id where t.id = ${touchId}`) as Thread[];
   if (!t) throw new Error(`no touch ${touchId}`);
   const a = await loadAccount(t.account_id);
@@ -183,7 +190,7 @@ export async function handleReply(touchId: string, text: string, simulated = tru
   if (["interested", "not_now", "other", "referral"].includes(cls) && (questions.length || cls === "interested")) {
     const queries: { tool: string; input: unknown; output: unknown }[] = [];
     const prompt = JSON.stringify({
-      account: a.name, evidence_only_partner: a.passed_name, our_message: t.body, their_reply: text, questions, class: cls,
+      account: a.name, evidence_only_partner: t.signed_as ? undefined : a.passed_name, signed_as: t.signed_as ?? undefined, our_message: t.body, their_reply: text, questions, class: cls,
       evidence_link: `${SITE}/account/${a.slug ?? a.id}`,
     });
     for (let attempt = 0; attempt < 2 && !answer; attempt++) {
@@ -206,8 +213,10 @@ export async function handleReply(touchId: string, text: string, simulated = tru
     acted.push(`look again on ${revisit}`);
   }
   if (cls === "interested") {
-    await logAction({ agent: "inbox", kind: "handoff.flagged", summary: `${who} at ${a.name} is interested${tag}. ${simulated ? "In a real run it would go to a person" : "Handed to a person to take the conversation"}; the agents don't book meetings.`, refTable: "replies", refId: reply.id, detail });
-    acted.push(simulated ? "Would hand the thread to a person" : "Handed the thread to a person");
+    // A handoff changes nothing in the pipeline, so a simulated reply gets a real one (marked simulated).
+    const h = await handOff(reply.id);
+    acted.push(t.signed_as ? `Handed the thread to ${t.signed_as}, who it was written for` : "Handed the thread to a person, with a drafted intro to Qloo");
+    await sql()`update replies set detail = detail || ${JSON.stringify({ handoff: true })}::jsonb where id = ${reply.id}`;
   }
   await sql()`update replies set detail = detail || ${JSON.stringify({ acted })}::jsonb where id = ${reply.id}`;
   await fillSlugs();

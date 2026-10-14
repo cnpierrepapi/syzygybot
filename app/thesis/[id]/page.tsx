@@ -1,4 +1,5 @@
 import { notFound, permanentRedirect } from "next/navigation";
+import { claimables } from "@/lib/claim";
 import { sql } from "@/lib/db";
 import { FocusStars } from "../../components/Sky";
 import type { Metadata } from "next";
@@ -16,6 +17,7 @@ type Row = {
   id: string; score: number; band: string; thesis: string | null; called_at: string; rubric_version: string;
   dims: { dims: Record<Dim, { score: number; raw: unknown; note: string }>; gate: string | null; raw?: { tagsA: string[]; tagsB: string[] } };
   a_name: string; a_type: string; a_handle: string | null; b_name: string; b_type: string; b_handle: string | null;
+  account_entity: string | null;
   account_id: string | null; account_name: string | null; account_slug: string | null; slug: string | null; a_id: string; b_id: string;
   deal_status: "clear" | "past" | "active" | null; deal_check: DealCheck | null;
 };
@@ -53,7 +55,7 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
   const id = hit.id;
   const [p] = (await sql()`
     select p.*, a.name a_name, a.type a_type, a.x_handle a_handle, b.name b_name, b.type b_type, b.x_handle b_handle,
-      ac.id account_id, ac.slug account_slug, ae.name account_name
+      ac.id account_id, ac.slug account_slug, ae.name account_name, ac.entity_id account_entity
     from pairs p join entities a on a.qloo_id = p.a_id join entities b on b.qloo_id = p.b_id
     left join accounts ac on ac.id = p.account_id left join entities ae on ae.qloo_id = ac.entity_id
     where p.id = ${id} limit 1`) as Row[];
@@ -61,6 +63,9 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
   const dims = (Object.keys(WEIGHTS) as Dim[]);
   const pull = p.dims.dims.fit.raw as { pullAB: number | null; pullBA: number | null };
   const shared = (p.dims.dims.shared.raw as { shared?: string[] })?.shared ?? [];
+  // The side the other one needs can claim its page and take the outreach over.
+  const strongId = p.account_entity ? (p.account_entity === p.a_id ? p.b_id : p.a_id) : null;
+  const strong = strongId && (p.deal_status === "clear" || p.deal_status === "past") ? (await claimables()).find(c => c.qloo_id === strongId) ?? null : null;
 
   return (
     <main className="wrap">
@@ -122,6 +127,12 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
       </section>
 
       {p.band !== "PASS" && <DealPanel p={p} />}
+      {strong && (
+        <a href={`/claim/${strong.slug}`} className="panel fade-up" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap", padding: "18px 26px", marginTop: 16, borderColor: "#22d3ee55" }}>
+          <span><strong>Are you {strong.name}?</strong> <span style={{ color: "var(--dim)" }}>{p.account_name} needs you more than you need them. Claim your page and the outreach is yours.</span></span>
+          <span style={{ color: "var(--cyan)", whiteSpace: "nowrap" }}>Claim it →</span>
+        </a>
+      )}
 
       <section className="panel fade-up" style={{ padding: 26, marginTop: 16, animationDelay: "200ms" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
