@@ -14,7 +14,7 @@ export interface ActionInput {
   llmCostUsd?: number | null;
 }
 
-/** Every agent step lands here. The SDR floor is a view over this table. */
+/** Every agent step lands here. The live floor is a view over this table. */
 export async function logAction(a: ActionInput): Promise<string> {
   const rows = (await sql()`
     insert into actions (agent, kind, summary, ref_table, ref_id, detail, llm_cost_usd)

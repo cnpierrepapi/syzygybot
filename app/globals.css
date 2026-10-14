@@ -163,3 +163,21 @@ h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -0.015em; }
   content: ""; position: absolute; z-index: -1; pointer-events: none; inset: -20px -10vw 0 -10vw;
   background: radial-gradient(55% 90% at 15% 70%, rgba(5, 6, 11, 0.85) 0%, transparent 70%);
 }
+
+/* Sky interaction: star names are links, and the home page gets zoom controls that scroll away with the hero. */
+.c-star { pointer-events: auto; cursor: pointer; }
+.c-star:hover { color: #fff; }
+.sky-ctl {
+  position: absolute; z-index: 5; top: 78px; right: 5vw; display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute);
+}
+.sky-ctl span { margin-right: 6px; }
+.sky-ctl button {
+  min-width: 30px; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: rgba(10, 12, 22, 0.7);
+  color: var(--fg); font: inherit; font-size: 13px; letter-spacing: 0.04em; cursor: pointer; backdrop-filter: blur(6px);
+}
+.sky-ctl button:hover { border-color: #22d3ee88; }
+@media (max-width: 720px) {
+  .sky-ctl { top: 70px; right: 12px; }
+  .sky-ctl span { display: none; }
+}

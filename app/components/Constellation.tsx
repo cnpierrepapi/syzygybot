@@ -3,9 +3,11 @@
 // The live constellation behind every page. Stars are the brands, artists and shows in published theses;
 // lines are the theses; the ten agents ride an outer ring. When an agent acts, a pulse of light leaves its
 // satellite and lands on the star it touched (window event "syzygy:pulse"). Pages can pull the camera
-// toward the stars they're about (window event "syzygy:focus").
+// toward the stars they're about (window event "syzygy:focus"). Drag turns it, the +/- buttons (or a pinch)
+// zoom, and stars are picked by nearest-on-screen so they're easy to hit.
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import * as THREE from "three";
 import type { Graph, Star } from "@/lib/graph";
 import { AGENTS, AGENT_LABEL, agentColor } from "@/lib/ui";
@@ -66,7 +68,8 @@ const STAR_VERT = /* glsl */ `
     vColor = color; vFlare = flare; vDim = dim;
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     float tw = 0.88 + 0.12 * sin(uTime * 1.3 + phase * 6.283);
-    gl_PointSize = size * tw * (1.0 + flare * 0.7) * uScale / -mv.z;
+    // Capped, so a big star seen up close stays a star instead of a blown-out disc.
+    gl_PointSize = min(size * tw * (1.0 + flare * 0.7) * uScale / -mv.z, 90.0);
     gl_Position = projectionMatrix * mv;
   }`;
 const STAR_FRAG = /* glsl */ `
@@ -83,12 +86,15 @@ const STAR_FRAG = /* glsl */ `
 
 // ---- component ---------------------------------------------------------------------------------------
 
-type Tip = { x: number; y: number; star: Star } | null;
+type Tip = { x: number; y: number; star: Star; touch?: boolean } | null;
+type Controls = { zoom: (k: number) => void; reset: () => void };
 
 export default function Constellation() {
   const host = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<Tip>(null);
+  const controls = useRef<Controls | null>(null);
+  const onHome = usePathname() === "/";
 
   useEffect(() => {
     const el = host.current, labelLayer = labels.current;
@@ -103,7 +109,15 @@ export default function Constellation() {
     el.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(48, el.clientWidth / el.clientHeight, 0.1, 400);
-    const home = new THREE.Vector3(0, small ? 30 : 24, small ? 60 : 46);
+    // Orbit: the camera sits on a sphere around the sky; drag changes pitch (and turns the sky), zoom changes radius.
+    const BASE_DIST = small ? 67 : 52, BASE_PITCH = Math.atan2(small ? 30 : 24, small ? 60 : 46);
+    const orbit = { pitch: BASE_PITCH, zoom: 1, zoomTo: 1, heldUntil: 0 };
+    const home = new THREE.Vector3();
+    const placeHome = () => {
+      const r = BASE_DIST / orbit.zoom;
+      home.set(0, Math.sin(orbit.pitch) * r, Math.cos(orbit.pitch) * r);
+    };
+    placeHome();
     camera.position.copy(home);
     const target = new THREE.Vector3(0, 0, 0), lookAt = new THREE.Vector3();
     const world = new THREE.Group();
@@ -159,6 +173,12 @@ export default function Constellation() {
       if (color) s.style.setProperty("--c", color);
       labelLayer.appendChild(s);
       labelEls.push({ el: s, pos, star });
+      // Star names are links too: easier to hit than the star itself.
+      if (star != null) {
+        s.addEventListener("click", () => { location.href = stars[star].href; });
+        s.addEventListener("pointerenter", e => { setHover(star); setTip({ x: e.clientX, y: e.clientY, star: stars[star] }); });
+        s.addEventListener("pointerleave", () => { setHover(-1); setTip(null); });
+      }
     };
     AGENTS.forEach(a => addLabel(AGENT_LABEL[a] ?? a, agentPos.get(a)!, "c-label c-agent", agentColor(a)));
 
@@ -286,25 +306,112 @@ export default function Constellation() {
     const pending = (window as unknown as { __syzygyFocus?: string[] }).__syzygyFocus;
     if (pending?.length) focus = new Set(pending);
 
-    // ---- hover + click ----
-    const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(9, 9), parallax = new THREE.Vector2();
-    ray.params.Points = { threshold: 0.9 };
+    // ---- hover, click, drag, zoom ----
+    // Picking is by screen distance: the nearest star within a comfortable radius, not a pixel-perfect ray hit.
+    const mouse = new THREE.Vector2(9, 9), parallax = new THREE.Vector2();
     let hovered = -1;
-    const onMove = (e: PointerEvent) => {
-      const r = renderer.domElement.getBoundingClientRect();
-      mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-      parallax.set(mouse.x, mouse.y);
-      if (!starPoints) return;
-      ray.setFromCamera(mouse, camera);
-      const hit = ray.intersectObject(starPoints)[0];
-      hovered = hit?.index ?? -1;
-      renderer.domElement.style.cursor = hovered >= 0 ? "pointer" : "";
-      setTip(hovered >= 0 ? { x: e.clientX, y: e.clientY, star: stars[hovered] } : null);
+    const proj = new THREE.Vector3(), eye = new THREE.Vector3();
+    const pick = (cx: number, cy: number) => {
+      if (!starGeo) return -1;
+      const r = renderer.domElement.getBoundingClientRect(), size = starGeo.getAttribute("size") as THREE.BufferAttribute;
+      let best = -1, bestD = Infinity;
+      for (let i = 0; i < stars.length; i++) {
+        if (focus && focus.size && !focus.has(stars[i].id)) continue;
+        world.localToWorld(proj.copy(starVec(i)));
+        const depth = eye.copy(proj).applyMatrix4(camera.matrixWorldInverse).z;
+        if (depth >= 0) continue;
+        proj.project(camera);
+        const x = r.left + ((proj.x + 1) / 2) * r.width, y = r.top + ((1 - proj.y) / 2) * r.height;
+        const px = Math.min(90, (size.getX(i) * uniforms.uScale.value) / -depth) / renderer.getPixelRatio();
+        const reach = Math.max(18, px * 0.45), d = Math.hypot(x - cx, y - cy);
+        if (d < reach && d < bestD) { best = i; bestD = d; }
+      }
+      return best;
     };
-    const onClick = () => { if (hovered >= 0) location.href = stars[hovered].href; };
-    renderer.domElement.addEventListener("pointermove", onMove);
-    renderer.domElement.addEventListener("click", onClick);
-    renderer.domElement.addEventListener("pointerleave", () => { hovered = -1; setTip(null); });
+    // The hovered star swells and its theses light up; the sky holds still so it doesn't slide away.
+    function setHover(i: number) {
+      if (i === hovered) return;
+      hovered = i;
+      if (!starGeo || !arcGeo) return;
+      applyFocus();
+      if (i < 0) return;
+      const size = starGeo.getAttribute("size") as THREE.BufferAttribute;
+      const ac = arcGeo.getAttribute("color") as THREE.BufferAttribute, base = arcGeo.userData.base as Float32Array, ends = arcGeo.userData.ends as [string, string][];
+      const id = stars[i].id;
+      size.setX(i, baseSize[i] * 2.2);
+      for (let sg = 0; sg < ends.length; sg++) {
+        const on = ends[sg][0] === id || ends[sg][1] === id;
+        for (let v = 0; v < 2; v++) for (let c = 0; c < 3; c++) ac.array[(sg * 2 + v) * 3 + c] = base[(sg * 2 + v) * 3 + c] * (on ? 3 : 0.35);
+      }
+      ac.needsUpdate = size.needsUpdate = true;
+    }
+
+    const canvas = renderer.domElement;
+    canvas.style.touchAction = "pan-y"; // vertical swipes still scroll the page on phones
+    const downs = new Map<number, { x: number; y: number }>();
+    let drag: { x: number; y: number; moved: number } | null = null, pinch0 = 0, zoom0 = 1, tapped = -1;
+    const hold = (ms: number) => { orbit.heldUntil = performance.now() + ms; };
+
+    const onDown = (e: PointerEvent) => {
+      downs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (downs.size === 2) {
+        const [a, b] = [...downs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); zoom0 = orbit.zoomTo; drag = null; return;
+      }
+      drag = { x: e.clientX, y: e.clientY, moved: 0 };
+      canvas.setPointerCapture(e.pointerId);
+    };
+    const onMove = (e: PointerEvent) => {
+      const r = canvas.getBoundingClientRect();
+      mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      if (downs.has(e.pointerId)) downs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (downs.size === 2 && pinch0) {
+        const [a, b] = [...downs.values()];
+        orbit.zoomTo = Math.max(0.7, Math.min(3, zoom0 * Math.hypot(a.x - b.x, a.y - b.y) / pinch0)); hold(8000); return;
+      }
+      if (drag) {
+        const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+        drag.moved += Math.abs(dx) + Math.abs(dy); drag.x = e.clientX; drag.y = e.clientY;
+        if (drag.moved > 5) {
+          world.rotation.y += dx * 0.006;
+          orbit.pitch = Math.max(0.08, Math.min(1.35, orbit.pitch + dy * 0.004));
+          canvas.style.cursor = "grabbing"; setHover(-1); setTip(null); hold(8000); return;
+        }
+      }
+      if (e.pointerType === "touch") return; // touch has no hover; a tap selects instead
+      parallax.set(mouse.x, mouse.y);
+      const i = pick(e.clientX, e.clientY);
+      setHover(i);
+      canvas.style.cursor = i >= 0 ? "pointer" : "grab";
+      setTip(i >= 0 ? { x: e.clientX, y: e.clientY, star: stars[i] } : null);
+    };
+    const onUp = (e: PointerEvent) => {
+      downs.delete(e.pointerId);
+      if (downs.size < 2) pinch0 = 0;
+      const wasDrag = !!drag && drag.moved > 5;
+      drag = null;
+      canvas.style.cursor = hovered >= 0 ? "pointer" : "grab";
+      if (wasDrag) return;
+      const i = pick(e.clientX, e.clientY);
+      if (e.pointerType === "touch") {
+        // First tap shows the star; tapping it again opens it.
+        if (i >= 0 && i === tapped) { location.href = stars[i].href; return; }
+        tapped = i; setHover(i); hold(8000);
+        setTip(i >= 0 ? { x: e.clientX, y: e.clientY, star: stars[i], touch: true } : null);
+        return;
+      }
+      if (i >= 0) location.href = stars[i].href;
+    };
+    canvas.addEventListener("pointerdown", onDown);
+    canvas.addEventListener("pointermove", onMove);
+    canvas.addEventListener("pointerup", onUp);
+    canvas.addEventListener("pointercancel", e => { downs.delete(e.pointerId); drag = null; pinch0 = 0; });
+    // A touch fires pointerleave right after every tap; only a mouse leaving the sky clears the selection.
+    canvas.addEventListener("pointerleave", e => { if (!drag && e.pointerType !== "touch") { setHover(-1); setTip(null); } });
+    canvas.style.cursor = "grab";
+    controls.current = {
+      zoom: k => { orbit.zoomTo = Math.max(0.7, Math.min(3, orbit.zoomTo * k)); hold(8000); },
+      reset: () => { orbit.zoomTo = 1; orbit.pitch = BASE_PITCH; orbit.heldUntil = 0; },
+    };
 
     const onResize = () => {
       camera.aspect = el.clientWidth / el.clientHeight; camera.updateProjectionMatrix();
@@ -321,7 +428,11 @@ export default function Constellation() {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
       uniforms.uTime.value = now / 1000;
       // The sky turns slowly; it holds still while a page is focused on its own stars.
-      if (!reduced && !(focus && focus.size)) world.rotation.y += dt * 0.025;
+      // It also holds still under the pointer and for a few seconds after you drag or zoom it.
+      const still = hovered >= 0 || drag != null || now < orbit.heldUntil;
+      if (!reduced && !(focus && focus.size) && !still) world.rotation.y += dt * 0.025;
+      orbit.zoom += (orbit.zoomTo - orbit.zoom) * Math.min(1, dt * 6);
+      placeHome();
 
       // Camera: drift toward the focus, a little parallax from the pointer.
       // Unfocused, the camera looks at the middle of the page, so the shifted sky stays off the headline.
@@ -330,10 +441,12 @@ export default function Constellation() {
       // Focused stars are framed in the upper right on wide screens (where page heroes leave room),
       // top centre on phones: the camera aims below-left of them rather than at them.
       const wide = innerWidth >= 900;
-      lookAt.lerp(focused ? world.localToWorld(tmp.copy(target)).add(new THREE.Vector3(wide ? -9 : 0, wide ? -4 : -7, 0)) : tmp.set(0, 0, 0), 0.04);
-      const want = focused ? world.localToWorld(tmp.copy(target)).add(new THREE.Vector3(wide ? -9 : 0, 3, small ? 34 : 24)) : tmp.copy(home);
-      if (!reduced) want.add(new THREE.Vector3(parallax.x * 2.2, parallax.y * 1.4, 0));
-      camera.position.lerp(want, 0.03);
+      // Zoomed in, the camera slides over to the sky itself, which sits right of the headline.
+      const zf = Math.max(0, Math.min(1, orbit.zoom - 1)), centre = new THREE.Vector3(world.position.x * zf, world.position.y * zf, 0);
+      lookAt.lerp(focused ? world.localToWorld(tmp.copy(target)).add(new THREE.Vector3(wide ? -9 : 0, wide ? -4 : -7, 0)) : centre, 0.08);
+      const want = focused ? world.localToWorld(tmp.copy(target)).add(new THREE.Vector3(wide ? -9 : 0, 3 / orbit.zoom, (small ? 34 : 24) / orbit.zoom)) : tmp.copy(home).add(centre);
+      if (!reduced && !still) want.add(new THREE.Vector3(parallax.x * 2.2, parallax.y * 1.4, 0));
+      camera.position.lerp(want, drag || pinch0 ? 0.25 : 0.06);
       camera.lookAt(lookAt);
 
       // Flares fade.
@@ -380,6 +493,7 @@ export default function Constellation() {
         if (vis && placed.some(([px, py, pw, ph]) => x < px + pw + 6 && x + lw + 6 > px && y < py + ph && y + lh > py)) vis = false;
         if (vis) placed.push([x, y, lw, lh]);
         l.el.style.opacity = vis ? "" : "0";
+        if (l.star != null) l.el.style.pointerEvents = vis && !l.el.classList.contains("c-dim") ? "" : "none";
         if (vis) l.el.style.transform = `translate(${x - 10}px, ${y - 10}px)`;
       }
     };
@@ -392,6 +506,7 @@ export default function Constellation() {
       removeEventListener("syzygy:focus", onFocus);
       removeEventListener("resize", onResize);
       labelEls.forEach(l => l.el.remove());
+      controls.current = null;
       renderer.dispose();
       renderer.domElement.remove();
     };
@@ -405,7 +520,15 @@ export default function Constellation() {
         <div className="sky-tip" style={{ left: tip.x + 14, top: tip.y + 14 }}>
           <i style={{ background: hue(tip.star.type) }} />
           <strong>{tip.star.name}</strong>
-          <span>{tip.star.type.replace("_", " ")}{tip.star.account ? " · account" : ""} · {tip.star.degree} thes{tip.star.degree === 1 ? "is" : "es"}</span>
+          <span>{tip.star.type.replace("_", " ")}{tip.star.account ? " · account" : ""} · {tip.star.degree} thes{tip.star.degree === 1 ? "is" : "es"}{tip.touch ? " · tap again to open" : ""}</span>
+        </div>
+      )}
+      {onHome && (
+        <div className="sky-ctl" role="group" aria-label="Sky controls">
+          <span>drag to turn</span>
+          <button type="button" aria-label="Zoom in" onClick={() => controls.current?.zoom(1.35)}>+</button>
+          <button type="button" aria-label="Zoom out" onClick={() => controls.current?.zoom(1 / 1.35)}>&minus;</button>
+          <button type="button" aria-label="Reset view" onClick={() => controls.current?.reset()}>reset</button>
         </div>
       )}
     </>

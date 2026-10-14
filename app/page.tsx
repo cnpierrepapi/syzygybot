@@ -97,7 +97,7 @@ export default async function Floor() {
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(siteJsonLd())} />
       <nav className="nav">
         <Logo />
-        <span className="crumb">SDR FLOOR · syzygybot.vercel.app</span>
+        <span className="crumb">LIVE FLOOR · syzygybot.vercel.app</span>
       </nav>
       <Hero />
       <LiveFloor initialItems={items} initialFunnel={counts} middle={<Featured cards={cards} />} />
