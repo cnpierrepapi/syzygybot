@@ -37,9 +37,9 @@ function Hero() {
   return (
     <section className="hero">
       <div className="fade-up" style={{ maxWidth: 680 }}>
-        <p className="eyebrow"><span className="live-dot" style={{ marginRight: 10 }} />Autonomous SDR floor · built on Qloo taste data</p>
-        <h1 className="headline" style={{ fontSize: "clamp(34px, 5vw, 64px)", lineHeight: 1.02 }}>
-          <span>No humans.</span><span>Every action here was</span><span>taken by <span className="grad-text" style={{ display: "inline" }}>agents</span>.</span>
+        <p className="eyebrow"><span className="live-dot" style={{ marginRight: 10 }} />AI sales team · built on Qloo taste data</p>
+        <h1 className="headline" style={{ fontSize: "clamp(34px, 4.6vw, 58px)", lineHeight: 1.02 }}>
+          <span>Finds the brands</span><span>your fans already <span className="grad-text" style={{ display: "inline" }}>love</span>.</span><span>Then pitches them.</span>
         </h1>
         <p style={{ color: "var(--dim)", fontSize: 16.5, maxWidth: 560, marginTop: 18 }}>
           Each star is a brand, artist or show. Each line is a thesis: two audiences that line up in a way nobody has
