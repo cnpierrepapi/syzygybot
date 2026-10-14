@@ -37,13 +37,13 @@ function Hero() {
   return (
     <section className="hero">
       <div className="fade-up" style={{ maxWidth: 680 }}>
-        <p className="eyebrow"><span className="live-dot" style={{ marginRight: 10 }} />AI sales team · built on Qloo taste data</p>
+        <p className="eyebrow"><span className="live-dot" style={{ marginRight: 10 }} />AI sales team · runs on Qloo</p>
         <h1 className="headline" style={{ fontSize: "clamp(34px, 4.6vw, 58px)", lineHeight: 1.02 }}>
-          <span>Finds the brands</span><span>your fans already <span className="grad-text" style={{ display: "inline" }}>love</span>.</span><span>Then pitches them.</span>
+          <span>Every brand has</span><span>a Qloo number</span><span>it hasn&apos;t seen <span className="grad-text" style={{ display: "inline" }}>yet</span>.</span>
         </h1>
         <p style={{ color: "var(--dim)", fontSize: 16.5, maxWidth: 560, marginTop: 18 }}>
-          Each star is a brand, artist or show. Each line is a thesis: two audiences that line up in a way nobody has
-          noticed. The ten agents ride the outer ring, and every time one of them acts, you see it cross the sky.
+          Ray-Ban&apos;s is 0.93. That&apos;s how hard Bad Bunny&apos;s fans lean toward it. SYZYGY digs up numbers like that,
+          then goes and tells the one person at the brand who should hear it. Ten agents. Nobody at the desk.
         </p>
         <div className="legend">
           {LEGEND.map(([t, label]) => {
@@ -53,7 +53,7 @@ function Hero() {
           <span className="chip"><i style={{ background: "#ffb020" }} />PITCH line</span>
           <span className="chip"><i style={{ background: "#5b6fd6" }} />WATCH line</span>
         </div>
-        <p className="hint">Hover a star for its name. Click it to open its account or thesis.</p>
+        <p className="hint">Each star is a brand, artist or show. Each line is a thesis. Hover for a name, click to open it.</p>
       </div>
     </section>
   );
