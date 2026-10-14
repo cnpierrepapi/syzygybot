@@ -78,7 +78,8 @@ export async function askWeb(prompt: string, system: string, maxOutputTokens = 1
     .filter((s): s is typeof s & { url: string } => s.sourceType === "url")
     .map(s => ({ url: s.url, title: s.title ?? "" }));
   const tokens = costUsd(model, r.usage.inputTokens, r.usage.outputTokens) ?? 0;
-  return { text: r.text.trim(), sources, model, costUsd: tokens + SEARCH_USD };
+  const gm = (r.providerMetadata as { vertex?: { groundingMetadata?: { webSearchQueries?: string[] } } } | undefined)?.vertex?.groundingMetadata;
+  return { text: r.text.trim(), sources, queries: gm?.webSearchQueries ?? [], model, costUsd: tokens + SEARCH_USD };
 }
 
 /** Pulls the first JSON object out of a model reply (fenced or bare). */

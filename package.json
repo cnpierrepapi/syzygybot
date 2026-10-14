@@ -17,6 +17,7 @@
     "inbox": "tsx --env-file-if-exists=.env.local scripts/inbox.mts",
     "sources:test": "tsx scripts/sources-test.mts",
     "loop": "tsx --env-file-if-exists=.env.local scripts/loop.mts",
+    "dealcheck": "tsx --env-file-if-exists=.env.local scripts/dealcheck.mts",
     "workspace": "tsx --env-file-if-exists=.env.local scripts/workspace.mts"
   },
   "dependencies": {

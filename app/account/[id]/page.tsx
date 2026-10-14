@@ -14,7 +14,7 @@ type Partner = { name: string; type: string; pullOut: number; pullBack: number }
 type Row = {
   id: string; reason: string; created_at: string; pair_id: string; entity_id: string;
   name: string; type: string; x_handle: string | null; x_handle_status: string;
-  passed_name: string; passed_type: string; pair_slug: string | null; passed_on: string | null;
+  passed_name: string; passed_type: string; pair_slug: string | null; passed_on: string | null; deal_status: string | null;
   evidence: {
     pair?: { score: number; band: string; thesis: string | null };
     pull?: { partnerFansLikeAccount: number | null; accountFansLikePartner: number | null };
@@ -51,7 +51,7 @@ export default async function Account({ params }: { params: Promise<{ id: string
   if (hit.redirect) permanentRedirect(hit.redirect);
   const id = hit.id;
   const [a] = (await sql()`
-    select ac.*, e.name, e.type, e.x_handle, e.x_handle_status, p.name passed_name, p.type passed_type, (select slug from pairs where id = ac.pair_id) pair_slug
+    select ac.*, e.name, e.type, e.x_handle, e.x_handle_status, p.name passed_name, p.type passed_type, (select slug from pairs where id = ac.pair_id) pair_slug, (select deal_status from pairs where id = ac.pair_id) deal_status
     from accounts ac join entities e on e.qloo_id = ac.entity_id left join entities p on p.qloo_id = ac.passed_on
     where ac.id = ${id}`) as Row[];
   if (!a) notFound();
@@ -80,6 +80,12 @@ export default async function Account({ params }: { params: Promise<{ id: string
       <FocusStars stars={[a.entity_id, ...(a.passed_on ? [a.passed_on] : [])]} />
       <nav className="nav"><Logo /><span className="crumb">ACCOUNT · qualified {new Date(a.created_at).toISOString().slice(0, 10)}</span></nav>
 
+      {a.deal_status === "active" && (
+        <p className="panel" style={{ padding: "12px 16px", marginTop: 8, borderColor: "#ff808066", color: "#ffb3aa" }}>
+          Deal check found that {a.name} and {a.passed_name} already work together, so nothing goes out on this thesis.{" "}
+          {a.pair_slug && <a href={`/thesis/${a.pair_slug}`} style={{ textDecoration: "underline" }}>See what it found</a>}
+        </p>
+      )}
       <section className="fade-up clear-hero" style={{ padding: "28px 4px 34px", marginTop: 8, position: "relative" }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <AgentChip agent="qualifier" label="Picked by Qualifier" />

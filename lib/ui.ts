@@ -5,12 +5,12 @@
 export const PALETTE = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"];
 
 export const AGENTS = [
-  "scout", "qualifier", "numbers", "contact_finder", "verifier",
+  "scout", "checker", "qualifier", "numbers", "contact_finder", "verifier",
   "strategist", "writer", "sequencer", "inbox",
 ] as const;
 
 export const AGENT_LABEL: Record<string, string> = {
-  scout: "Scout", qualifier: "Qualifier", numbers: "Numbers", contact_finder: "Contact finder",
+  scout: "Scout", checker: "Deal check", qualifier: "Qualifier", numbers: "Numbers", contact_finder: "Contact finder",
   verifier: "Verifier", strategist: "Strategist", writer: "Writer", sequencer: "Sequencer",
   inbox: "Inbox",
 };
@@ -18,10 +18,13 @@ export const AGENT_LABEL: Record<string, string> = {
 // Brighter steps of the same hues for chips and glows on the dark panels (text stays in ink colours).
 const BRIGHT = ["#5aa2ff", "#ff7a45", "#2fd39a", "#ffb31f", "#ff6fa6", "#3fbf3f", "#a99cff", "#ff8080"];
 
-export function agentColor(agent: string) {
-  const i = AGENTS.indexOf(agent as (typeof AGENTS)[number]);
-  return BRIGHT[(i < 0 ? 0 : i) % BRIGHT.length];
-}
+// Fixed per agent, so adding one never recolours the others.
+const AGENT_COLOR: Record<string, string> = {
+  scout: BRIGHT[0], qualifier: BRIGHT[1], numbers: BRIGHT[2], contact_finder: BRIGHT[3], verifier: BRIGHT[4],
+  strategist: BRIGHT[5], writer: BRIGHT[6], sequencer: BRIGHT[7], inbox: "#e879f9", checker: "#5eead4",
+};
+
+export const agentColor = (agent: string) => AGENT_COLOR[agent] ?? BRIGHT[0];
 
 // Chart marks use the validated steps (all checks pass on #161140); chips use BRIGHT beside a label.
 export const DIM_COLOR: Record<string, string> = {

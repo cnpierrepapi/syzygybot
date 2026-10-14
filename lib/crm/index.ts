@@ -77,7 +77,7 @@ export async function syncConnection(c: Conn) {
     select ac.id account_id, ac.slug account_slug, e.name, e.official_site, ac.evidence, p.thesis, p.score, p.band, pl.angle, pl.detail->>'timing' timing
     from accounts ac join entities e on e.qloo_id = ac.entity_id join pairs p on p.id = ac.pair_id
     left join lateral (select angle, detail from plans where account_id = ac.id order by created_at desc limit 1) pl on true
-    where ac.passed_on = ${w.entity_id} order by ac.created_at`) as Target[];
+    where ac.passed_on = ${w.entity_id} and p.deal_status in ('clear','past') order by ac.created_at`) as Target[];
   let companies = 0, contacts = 0, notes = 0;
   for (const tg of targets) {
     let companyId = await remembered(c.id, "company", tg.account_id);

@@ -172,3 +172,10 @@ create table if not exists crm_records (
   synced_at     timestamptz not null default now(),
   primary key (connection_id, local_type, local_id)
 );
+
+-- Deal check (lib/dealcheck.ts): is the thesis already a live partnership? clear | past | active; null = not checked yet.
+alter table pairs add column if not exists deal_status text;
+alter table pairs add column if not exists deal_check jsonb;
+alter table pairs add column if not exists deal_checked_at timestamptz;
+alter table actions drop constraint if exists actions_agent_check;
+alter table actions add constraint actions_agent_check check (agent in ('scout','checker','qualifier','numbers','contact_finder','verifier','strategist','writer','sequencer','inbox','booker'));

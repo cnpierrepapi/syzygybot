@@ -79,6 +79,19 @@ ok("ssrf: internal addresses blocked", !fetchable("http://169.254.169.254/latest
 ok("ssrf: public pages allowed, LinkedIn never", fetchable("https://www.adweek.com/x") && !fetchable("https://www.linkedin.com/in/x"));
 ok("text: hex entities decoded", htmlToText("Glossier&#x2019;s CMO") === "Glossier’s CMO");
 
+// Deal check (14 Oct).
+const { mentions, coMentions, decide, saysYes } = await import("../lib/dealcheck");
+ok("deal: Google's yes and no read right", saysYes("**Yes**, Bad Bunny and adidas have partnered since 2021.") && saysYes("Bad Bunny and adidas have collaborated on sneakers.") && !saysYes("No, A24 and Julia Jacklin have never officially partnered.") && !saysYes("They have never partnered, though they have collaborated loosely."));
+ok("deal: aliases and punctuation match", mentions("New BAPE drop", ["A Bathing Ape", "BAPE"]) && mentions("ray ban shades", ["Ray-ban"]) && !mentions("Raybanned", ["Ray-ban"]));
+const story = "Filler. ".repeat(200) + "Bad Bunny and adidas unveil the Badbo 1.0 in a new colourway. " + "More filler. ".repeat(200) + "Bad Bunny tours Europe.";
+ok("deal: only passages naming both sides", coMentions(story, ["Bad Bunny"], ["adidas"]).length === 1 && coMentions(story, ["Bad Bunny"], ["Ray-ban"]).length === 0);
+const f = (year: number | null, ongoing = false) => ({ url: "u", quote: "q", kind: "collab", year, ongoing, source: "s" });
+const oct26 = new Date("2026-10-14T00:00:00Z");
+ok("deal: nothing found is clear", decide([], oct26) === "clear");
+ok("deal: recent is active", decide([f(2026)], oct26) === "active" && decide([f(2025)], oct26) === "active");
+ok("deal: old collab is past", decide([f(2011), f(2020)], oct26) === "past" && decide([f(null)], oct26) === "past");
+ok("deal: 'ongoing' on an old page is past, on an undated one active", decide([f(2014, true)], oct26) === "past" && decide([f(null, true)], oct26) === "active");
+
 // CRM connectors (14 Oct).
 import { createHash } from "node:crypto";
 process.env.CRM_TOKEN_KEY ??= Buffer.alloc(32, 7).toString("base64");
@@ -94,3 +107,4 @@ ok("crm: SOQL quotes and backslashes escaped", soql("O'Brien") === String.raw`'O
 ok("crm: domain from site", domainOf("https://www.Ray-Ban.com/usa") === "ray-ban.com");
 const nb = noteBody("Bad Bunny", { account_id: "x", account_slug: "ray-ban", name: "Ray-ban", official_site: null, evidence: { pull: { partnerFansLikeAccount: 0.93, accountFansLikePartner: 0.84 }, sharedTaste: ["friendship"] }, thesis: "t", score: 0.75, band: "PITCH", angle: "a", timing: null }, ["Ana B, CMO"], "Hello");
 ok("crm: note carries numbers as scores and the evidence link", nb.includes("0.93") && !nb.includes("%") && nb.includes("/account/ray-ban") && nb.includes("Drafted first message"));
+ok("writer: 'per cent' in words fails too", !writerChecks(good + " 91 per cent of fans.", "x").no_percentages && !writerChecks(good + " ninety percent.", "x").no_percentages);

@@ -1,7 +1,7 @@
 "use client";
 
 // The live constellation behind every page. Stars are the brands, artists and shows in published theses;
-// lines are the theses; the nine agents ride an outer ring. When an agent acts, a pulse of light leaves its
+// lines are the theses; the ten agents ride an outer ring. When an agent acts, a pulse of light leaves its
 // satellite and lands on the star it touched (window event "syzygy:pulse"). Pages can pull the camera
 // toward the stars they're about (window event "syzygy:focus").
 
@@ -143,7 +143,7 @@ export default function Constellation() {
       satGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
       satGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
       satGeo.setAttribute("size", new THREE.BufferAttribute(new Float32Array(AGENTS.length).fill(3.4), 1));
-      satGeo.setAttribute("phase", new THREE.BufferAttribute(new Float32Array(AGENTS.length).map((_, i) => i / 9), 1));
+      satGeo.setAttribute("phase", new THREE.BufferAttribute(new Float32Array(AGENTS.length).map((_, i) => i / AGENTS.length), 1));
       satGeo.setAttribute("flare", new THREE.BufferAttribute(new Float32Array(AGENTS.length), 1));
       satGeo.setAttribute("dim", new THREE.BufferAttribute(new Float32Array(AGENTS.length).fill(1), 1));
     }

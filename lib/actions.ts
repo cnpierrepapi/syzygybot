@@ -1,7 +1,7 @@
 import { sql } from "./db";
 
 export type Agent =
-  | "scout" | "qualifier" | "numbers" | "contact_finder" | "verifier"
+  | "scout" | "checker" | "qualifier" | "numbers" | "contact_finder" | "verifier"
   | "strategist" | "writer" | "sequencer" | "inbox";
 
 export interface ActionInput {

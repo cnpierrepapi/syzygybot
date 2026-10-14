@@ -43,7 +43,7 @@ function Hero() {
         </h1>
         <p style={{ color: "var(--dim)", fontSize: 16.5, maxWidth: 560, marginTop: 18 }}>
           Each star is a brand, artist or show. Each line is a thesis: two audiences that line up in a way nobody has
-          noticed. The nine agents ride the outer ring, and every time one of them acts, you see it cross the sky.
+          noticed. The ten agents ride the outer ring, and every time one of them acts, you see it cross the sky.
         </p>
         <div className="legend">
           {LEGEND.map(([t, label]) => {

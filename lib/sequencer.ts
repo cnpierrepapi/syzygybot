@@ -158,6 +158,7 @@ export async function runSequencer(limit = 10) {
            ac.id account_id, ac.slug account_slug, t.optout_token, ac.entity_id, ac.evidence, ac.tz, e.name, e.official_site, e.raw->'properties'->>'headquartered' hq
     from touches t join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
     where t.step = 1 and t.status = 'dry_run' and t.scheduled_for is null
+      and exists (select 1 from pairs p where p.id = ac.pair_id and p.deal_status in ('clear','past'))
     order by t.created_at asc limit ${limit}`) as (Acct & {
       id: string; contact_id: string; plan_id: string | null; channel: string; subject: string | null; body: string;
       to_address: string | null; contact_name: string | null; role: string; account_id: string; evidence: Record<string, unknown>;

@@ -162,7 +162,8 @@ export async function runAccounts(limit = 2) {
     from pairs p
     join (select qloo_id, name, type, popularity, x_handle, x_handle_status, official_site from entities) a on a.qloo_id = p.a_id
     join (select qloo_id, name, type, popularity, x_handle, x_handle_status, official_site from entities) b on b.qloo_id = p.b_id
-    where p.band in ('PITCH','WATCH') and p.account_id is null and not exists (select 1 from accounts ac where ac.pair_id = p.id)
+    -- Deal check first: a thesis that is already a live partnership never becomes an account.
+    where p.band in ('PITCH','WATCH') and p.deal_status in ('clear','past') and p.account_id is null and not exists (select 1 from accounts ac where ac.pair_id = p.id)
     order by (p.band = 'PITCH') desc, p.score desc
     limit ${limit}`) as PairRow[];
   const out = [];

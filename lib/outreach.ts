@@ -11,6 +11,7 @@ import { ask, askWeb, parseJson } from "./llm";
 import { pageBacking, readAll } from "./web";
 import { findContacts, type Account } from "./contacts";
 import { SITE, fillSlugs } from "./slug";
+import type { DealCheck } from "./dealcheck";
 
 
 type Evidence = {
@@ -20,7 +21,7 @@ type Evidence = {
   cities?: { shared: string[]; account: string[] };
   morePartners?: { name: string; type: string; pullOut: number; pullBack: number }[];
 };
-export type AccountRow = Account & { passed_name: string; evidence: Evidence; slug?: string | null };
+export type AccountRow = Account & { passed_name: string; evidence: Evidence; slug?: string | null; deal_status?: string | null; deal_check?: DealCheck | null };
 export type Contact = { id: string; kind: string; name: string | null; role: string; email: string | null; role_status: string };
 type Trigger = { what: string; date?: string; source_url?: string; verified?: boolean; page?: string };
 
@@ -44,6 +45,8 @@ Hard rules:
 - Say the analysis is built on Qloo's taste data. You are NOT Qloo and do not work for Qloo; never say "we at Qloo", "our data" or imply you are Qloo staff.
 - Quote at least two specific numbers from the evidence, as given. Do not invent any number, client, budget or result.
 - Mention the extra partners by name as proof the data finds more than one opportunity.
+- If past_partnership is given, the two have worked together before: mention it plainly as history (the audience
+  overlap is still there), and never present the pairing as a new idea.
 - Affinity scores are aggregate audience overlap, not proof a partnership would work; never promise outcomes.
 - Affinity values are Qloo scores from 0 to 1, NOT percentages or shares of an audience: write "an affinity score of 0.91", never "91%" or "91% of fans".
 - Under 150 words in the body. Plain, specific, no hype words, no em dashes, no exclamation marks.
@@ -62,7 +65,7 @@ export function writerChecks(body: string, subject: string) {
     not_posing_as_qloo: !/(we at qloo|i work (at|for) qloo|from qloo['’]s team|qloo team here|on behalf of qloo|our qloo|i('m| am) (from|with) qloo)/.test(all),
     no_em_dash: !/—/.test(all),
     // The evidence holds no percentages, so a "%" means a 0-1 affinity score was misread as a share of fans.
-    no_percentages: !/%|per ?cent/.test(all),
+    no_percentages: !/%|\bper ?cent\b/.test(all),
     under_150_words: body.split(/\s+/).filter(Boolean).length <= 170, // signature + link included
   };
 }
@@ -94,6 +97,9 @@ function evidenceFacts(a: AccountRow) {
     shared_taste: e.sharedTaste?.slice(0, 6), shared_cities: e.cities?.shared,
     more_partners: e.morePartners?.map(p => ({ name: p.name, type: p.type, affinity_out: n2(p.pullOut), affinity_back: n2(p.pullBack) })),
     evidence_link: `${SITE}/account/${a.slug ?? a.id}`,
+    // The Deal check found an older partnership between the two: say so, never pitch the pairing as new.
+    past_partnership: a.deal_status === "past" && a.deal_check?.findings[0]
+      ? { what: a.deal_check.findings[0].kind, year: a.deal_check.findings[0].year, quote: a.deal_check.findings[0].quote } : undefined,
   };
 }
 
@@ -105,7 +111,7 @@ export async function planAccount(a: AccountRow, contacts: Contact[], hasInbox: 
   let r = await ask("write", PLAN_SYSTEM, input, 600);
   type Plan = { angle: string; channels: { contact_id: string; channel: string; why: string }[]; timing: string };
   let plan = parseJson<Plan>(r.text);
-  if (plan?.angle && /%|per ?cent/i.test(plan.angle)) {
+  if (plan?.angle && /%|\bper ?cent\b/i.test(plan.angle)) {
     const cost = r.costUsd ?? 0;
     r = await ask("write", PLAN_SYSTEM, `${input}
 
@@ -113,7 +119,7 @@ Your last angle turned an affinity score into a percentage. Affinity is a 0 to 1
     r = { ...r, costUsd: (r.costUsd ?? 0) + cost };
     plan = parseJson<Plan>(r.text);
   }
-  if (!plan?.angle || /%|per ?cent/i.test(plan.angle)) throw new Error("strategist returned no usable plan");
+  if (!plan?.angle || /%|\bper ?cent\b/i.test(plan.angle)) throw new Error("strategist returned no usable plan");
   const [row] = (await sql()`
     insert into plans (account_id, angle, channels, triggers, detail)
     values (${a.id}, ${plan.angle}, ${JSON.stringify(plan.channels ?? [])}, ${JSON.stringify(t.list)},
@@ -129,7 +135,7 @@ Your last angle turned an affinity score into a percentage. Affinity is a 0 to 1
 }
 
 const INBOX_RANK = [/partner|sponsor|collab|brand/, /market/, /licens|business/, /press|media|pr@/, /info|hello|contact/];
-function bestInbox(contacts: Contact[]) {
+export function bestInbox(contacts: Contact[]) {
   const inboxes = contacts.filter(c => c.kind === "inbox" && c.role_status === "confirmed" && c.email);
   for (const re of INBOX_RANK) { const hit = inboxes.find(c => re.test(c.email!)); if (hit) return hit; }
   return inboxes[0] ?? null;
@@ -177,9 +183,10 @@ export async function writeTouch(a: AccountRow, plan: { id: string; angle: strin
 export async function runOutreach(limit = 1, accountId?: string) {
   await fillSlugs(); // evidence links in the messages use the account's readable address
   const rows = (await sql()`
-    select ac.id, ac.slug, ac.entity_id, ac.evidence, e.name, e.type, e.official_site, p.name passed_name
-    from accounts ac join entities e on e.qloo_id = ac.entity_id left join entities p on p.qloo_id = ac.passed_on
+    select ac.id, ac.slug, ac.entity_id, ac.evidence, e.name, e.type, e.official_site, p.name passed_name, pr.deal_status, pr.deal_check
+    from accounts ac join entities e on e.qloo_id = ac.entity_id left join entities p on p.qloo_id = ac.passed_on join pairs pr on pr.id = ac.pair_id
     where (${accountId ?? null}::uuid is null or ac.id = ${accountId ?? null}::uuid)
+      and pr.deal_status in ('clear','past') -- the Deal check has cleared this thesis
       -- Skip a company once it has a verified contact; one with none is searched again after 7 days.
       and not exists (select 1 from contacts c join accounts x on x.id = c.account_id where x.entity_id = ac.entity_id
                       and (c.role_status = 'confirmed' or c.created_at > now() - interval '7 days'))

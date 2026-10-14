@@ -8,6 +8,7 @@ import { resolve, pathFor } from "@/lib/slug";
 import { WEIGHTS, type Dim } from "@/lib/rubric";
 import { DIM_COLOR, DIM_LABEL } from "@/lib/ui";
 import { Alignment, Logo, ScoreRing, AgentChip } from "../../components/visuals";
+import type { DealCheck } from "@/lib/dealcheck";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ type Row = {
   dims: { dims: Record<Dim, { score: number; raw: unknown; note: string }>; gate: string | null; raw?: { tagsA: string[]; tagsB: string[] } };
   a_name: string; a_type: string; a_handle: string | null; b_name: string; b_type: string; b_handle: string | null;
   account_id: string | null; account_name: string | null; account_slug: string | null; slug: string | null; a_id: string; b_id: string;
+  deal_status: "clear" | "past" | "active" | null; deal_check: DealCheck | null;
 };
 
 const fmt = (v: unknown): string =>
@@ -119,6 +121,8 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
         </div>
       </section>
 
+      {p.band !== "PASS" && <DealPanel p={p} />}
+
       <section className="panel fade-up" style={{ padding: 26, marginTop: 16, animationDelay: "200ms" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
           <h2 style={{ fontSize: 20 }}>Rubric {p.rubric_version}: how the score was built</h2>
@@ -153,6 +157,46 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
         nothing about what a partnership would cause. Written and published by the Scout agent with no human review.
       </p>
     </main>
+  );
+}
+
+const DEAL: Record<string, { label: string; color: string; say: (a: string, b: string) => string }> = {
+  clear: { label: "NO DEAL FOUND", color: "#2fd39a", say: (a, b) => `No sign that ${a} and ${b} have ever worked together. Clear to pitch.` },
+  past: { label: "WORKED TOGETHER BEFORE", color: "#ffb31f", say: (a, b) => `${a} and ${b} partnered before, but nothing recent. The pitch can go, and it says so up front.` },
+  active: { label: "ALREADY PARTNERS", color: "#ff8080", say: (a, b) => `${a} and ${b} already work together, so SYZYGY won't pitch this one.` },
+};
+
+function DealPanel({ p }: { p: Row }) {
+  const d = p.deal_check, look = p.deal_status ? DEAL[p.deal_status] : null;
+  const s = d?.searched ?? {};
+  return (
+    <section className="panel fade-up" style={{ padding: 26, marginTop: 16, animationDelay: "170ms" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+        <AgentChip agent="checker" label="Deal check" />
+        {look && <span className="band" style={{ color: look.color, borderColor: `${look.color}66` }}>{look.label}</span>}
+      </div>
+      <p style={{ fontSize: 16.5, margin: "14px 0 0" }}>
+        {look ? look.say(p.a_name, p.b_name) : "Not checked yet. Nothing goes out on this thesis until it is."}
+      </p>
+      {d && d.findings.length > 0 && (
+        <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+          {d.findings.slice(0, 4).map((f, i) => (
+            <a key={i} href={f.url} target="_blank" rel="noopener nofollow" style={{ display: "block", borderLeft: `2px solid ${look?.color ?? "var(--line)"}`, padding: "2px 0 2px 12px" }}>
+              <span style={{ color: "var(--fg)" }}>&ldquo;{f.quote}&rdquo;</span>
+              <span style={{ display: "block", color: "var(--mute)", fontFamily: "var(--mono)", fontSize: 12, marginTop: 4 }}>
+                {f.kind}{f.year ? ` · ${f.year}` : ""}{f.ongoing ? " · ongoing" : ""} · {new URL(f.url).hostname.replace(/^www\./, "")}
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+      {d && (
+        <p style={{ color: "var(--mute)", fontSize: 12.5, fontFamily: "var(--mono)", margin: "16px 0 0" }}>
+          Checked {d.checked_at.slice(0, 10)} · read {d.pages_read} pages: Wikipedia, Google{s.google_queries ? ` (${s.google_queries} searches)` : ""}, Bing News, {s.trade_sources ?? 0} trade sources
+          {s.trade_feeds ? ` (${s.trade_feeds} searched directly)` : ""}{s.official_sites ? `, ${s.official_sites === 2 ? "both" : "one"} official site${s.official_sites === 2 ? "s" : ""}` : ""}
+        </p>
+      )}
+    </section>
   );
 }
 

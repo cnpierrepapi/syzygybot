@@ -37,7 +37,7 @@ export default async function Connect({ params, searchParams }: { params: Promis
   const q = await searchParams;
   const targets = (await sql()`
     select ac.id, ac.slug, e.name, p.band, p.score from accounts ac join entities e on e.qloo_id = ac.entity_id join pairs p on p.id = ac.pair_id
-    where ac.passed_on = ${w.entity_id} order by p.score desc`) as { id: string; slug: string | null; name: string; band: string; score: number }[];
+    where ac.passed_on = ${w.entity_id} and p.deal_status in ('clear','past') order by p.score desc`) as { id: string; slug: string | null; name: string; band: string; score: number }[];
   const conns = (await sql()`
     select c.id, c.provider, c.last_sync_at, c.last_error, c.created_at, (select count(*)::int from crm_records r where r.connection_id = c.id) records
     from crm_connections c where c.workspace_id = ${w.id}`) as Conn[];
