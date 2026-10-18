@@ -217,7 +217,7 @@ export async function scorePair(a0: QlooEntity, b0: QlooEntity) {
     values (${a.entity_id}, ${b.entity_id}, ${JSON.stringify({ raw, dims: scored.dims, gate: scored.gate })},
             ${scored.score}, ${scored.band}, ${thesis?.text ?? null}, ${RUBRIC_VERSION})
     on conflict (a_id, b_id, rubric_version) do update set
-      dims = excluded.dims, score = excluded.score, band = excluded.band,
+      dims = excluded.dims, score = excluded.score, band = excluded.band, called_at = now(),
       -- A pair rescored to PASS loses its thesis: the old text would argue for numbers that no longer hold.
       thesis = case when excluded.band = 'PASS' then null else coalesce(excluded.thesis, pairs.thesis) end
     returning id`) as { id: string }[];
@@ -237,10 +237,10 @@ export async function scorePair(a0: QlooEntity, b0: QlooEntity) {
   return { pairId, ...scored };
 }
 
-/** Candidates from the seed's own Qloo list, skipping the obvious top picks. */
-export async function candidates(seed: QlooEntity, type: EntityType, n: number) {
+/** Candidates from the seed's own Qloo list, skipping the obvious top picks and partners already scored. */
+export async function candidates(seed: QlooEntity, type: EntityType, n: number, seen = new Set<string>()) {
   const list = await topFor([seed.entity_id], type, LIST);
-  const pool = list.filter(e => e.entity_id !== seed.entity_id).slice(SKIP_TOP);
+  const pool = list.filter(e => e.entity_id !== seed.entity_id).slice(SKIP_TOP).filter(e => !seen.has(e.entity_id));
   // Spread picks across the rest of the list rather than taking ranks 11, 12, 13.
   const step = Math.max(1, Math.floor(pool.length / n));
   return pool.filter((_, i) => i % step === 0).slice(0, n);
@@ -266,9 +266,13 @@ export async function runScout(opts: { seed?: { name: string; type: EntityType }
   }
   await logAction({ agent: "scout", kind: "seed.picked", summary: `Scouting partners for ${seed.name}.`, detail: { entity_id: seed.entity_id } });
 
+  // Partners this seed was already paired with, either way round, so each pass brings new pairs.
+  const seen = new Set(((await sql()`
+    select case when a_id = ${seed.entity_id} then b_id else a_id end as id from pairs
+    where a_id = ${seed.entity_id} or b_id = ${seed.entity_id}`) as { id: string }[]).map(r => r.id));
   const out = [];
   for (const t of PARTNER_TYPES[typeOf(seed)] ?? ["brand"]) {
-    for (const c of await candidates(seed, t, opts.perType ?? 2)) {
+    for (const c of await candidates(seed, t, opts.perType ?? 2, seen)) {
       try { out.push({ a: seed.name, b: c.name, ...(await scorePair(seed, c)) }); }
       catch (e) {
         await logAction({ agent: "scout", kind: "pair.error", summary: `Could not score ${seed.name} × ${c.name}.`, detail: { error: (e as Error).message.slice(0, 300) } });
