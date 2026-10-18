@@ -224,3 +224,42 @@ create table if not exists handoffs (
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
+
+-- Pre-scored queue (18 Oct). The sweep scores every partner on each seed's Qloo list ahead of time;
+-- Scout then takes the best queued pair whose brand hasn't been pitched yet. Picked pairs add both
+-- sides as new seeds, so the pool keeps growing.
+create table if not exists scout_seeds (
+  entity_id   text primary key,
+  name        text not null,
+  type        text not null,
+  source      text not null default 'seed',   -- seed | entities | picked
+  swept_at    timestamptz,
+  added_at    timestamptz not null default now()
+);
+
+create table if not exists pair_queue (
+  id          uuid primary key default gen_random_uuid(),
+  a_id        text not null,
+  b_id        text not null,
+  a           jsonb not null,                 -- Qloo records, so Scout can rescore without a lookup
+  b           jsonb not null,
+  score       double precision not null,
+  band        text not null check (band in ('PASS','WATCH','PITCH')),
+  dims        jsonb not null default '{}',
+  rubric_version text not null,
+  status      text not null default 'queued' check (status in ('queued','picked','skipped')),
+  note        text,
+  pair_id     uuid references pairs(id),
+  scored_at   timestamptz not null default now(),
+  picked_at   timestamptz,
+  unique (a_id, b_id)
+);
+create index if not exists pair_queue_next on pair_queue (status, band, score desc);
+
+-- Brands Scout must never pick, on top of every brand already pitched (any thesis or account).
+create table if not exists scout_exclude (
+  entity_id   text primary key,
+  name        text not null,
+  reason      text,
+  added_at    timestamptz not null default now()
+)

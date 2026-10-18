@@ -1,6 +1,7 @@
 {
   "crons": [
     { "path": "/api/scout", "schedule": "0 */3 * * *" },
-    { "path": "/api/outreach", "schedule": "30 */3 * * *" }
+    { "path": "/api/outreach", "schedule": "30 */3 * * *" },
+    { "path": "/api/prescore", "schedule": "15,45 * * * *" }
   ]
 }

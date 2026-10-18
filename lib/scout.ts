@@ -5,6 +5,7 @@ import { sql } from "./db";
 import { logAction } from "./actions";
 import { ask } from "./llm";
 import { resolveHandle } from "./handles";
+import { pickFromQueue } from "./prescore";
 import { RUBRIC_VERSION, score, sharedTags, type Raw } from "./rubric";
 import {
   audienceTags, demographics, entities, heatmap, pull, search, topFor, trending,
@@ -31,17 +32,17 @@ export const SEEDS: { name: string; type: EntityType }[] = [
 ];
 
 // Pair a seed with these types. Brands are the buyers, so every pair keeps a brand on one side.
-const PARTNER_TYPES: Record<string, EntityType[]> = {
+export const PARTNER_TYPES: Record<string, EntityType[]> = {
   brand: ["artist", "tv_show", "brand"],
   artist: ["brand"],
   tv_show: ["brand"],
 };
 
-const LIST = 50;              // how deep "top list" goes for the surprise dimension
-const SKIP_TOP = 10;          // candidates in the seed's own top 10 are too obvious
+export const LIST = 50;              // how deep "top list" goes for the surprise dimension
+export const SKIP_TOP = 10;          // candidates in the seed's own top 10 are too obvious
 const HEAT_LOCATION = "United States";
 
-const typeOf = (e: QlooEntity): EntityType =>
+export const typeOf = (e: QlooEntity): EntityType =>
   ((e.types?.[0] ?? e.subtype ?? "urn:entity:brand").split(":").pop() as EntityType);
 
 // ---- shape helpers (Qloo's insight payloads differ per filter.type) ----
@@ -137,21 +138,29 @@ const rankIn = (list: QlooEntity[], id: string) => {
 
 const safe = <T,>(p: Promise<T>) => p.catch(() => null);
 
-export async function measure(a: QlooEntity, b: QlooEntity): Promise<Raw> {
+/** Per-entity Qloo results shared across pairs, so a sweep fetches each entity's data once. */
+export type Memo = Map<string, Promise<unknown>>;
+
+export async function measure(a: QlooEntity, b: QlooEntity, memo?: Memo): Promise<Raw> {
   const ta = typeOf(a), tb = typeOf(b);
+  const m = <T,>(key: string, f: () => Promise<T>): Promise<T> => {
+    if (!memo) return f();
+    if (!memo.has(key)) memo.set(key, f().catch(e => { memo.delete(key); throw e; }));
+    return memo.get(key) as Promise<T>;
+  };
   const [pAB, pBA, listA, listB, demA, demB, heatA, heatB, momA, momB, tagsA, tagsB] = await Promise.all([
     pull([a.entity_id], b.entity_id, tb),
     pull([b.entity_id], a.entity_id, ta),
-    topFor([a.entity_id], tb, LIST),
-    topFor([b.entity_id], ta, LIST),
-    safe(demographics([a.entity_id])),
-    safe(demographics([b.entity_id])),
-    safe(heatmap([a.entity_id], HEAT_LOCATION)),
-    safe(heatmap([b.entity_id], HEAT_LOCATION)),
-    trendFor(a),
-    trendFor(b),
-    audienceTags([a.entity_id]).catch(() => [] as string[]),
-    audienceTags([b.entity_id]).catch(() => [] as string[]),
+    m(`top:${a.entity_id}:${tb}`, () => topFor([a.entity_id], tb, LIST)),
+    m(`top:${b.entity_id}:${ta}`, () => topFor([b.entity_id], ta, LIST)),
+    m(`dem:${a.entity_id}`, () => safe(demographics([a.entity_id]))),
+    m(`dem:${b.entity_id}`, () => safe(demographics([b.entity_id]))),
+    m(`heat:${a.entity_id}`, () => safe(heatmap([a.entity_id], HEAT_LOCATION))),
+    m(`heat:${b.entity_id}`, () => safe(heatmap([b.entity_id], HEAT_LOCATION))),
+    m(`trend:${a.entity_id}`, () => trendFor(a)),
+    m(`trend:${b.entity_id}`, () => trendFor(b)),
+    m(`tags:${a.entity_id}`, () => audienceTags([a.entity_id]).catch(() => [] as string[])),
+    m(`tags:${b.entity_id}`, () => audienceTags([b.entity_id]).catch(() => [] as string[])),
   ]);
   const ia = industryOf(a), ib = industryOf(b);
   return {
@@ -256,8 +265,15 @@ async function pickSeed(): Promise<{ name: string; type: EntityType }> {
   return [...SEEDS].sort((x, y) => (last.get(x.name.toLowerCase()) ?? 0) - (last.get(y.name.toLowerCase()) ?? 0))[0];
 }
 
-/** One Scout run: one seed, a few partners per partner type. */
+/**
+ * One Scout run: the best pairs from the pre-scored queue (lib/prescore.ts). If the queue is dry,
+ * or a seed is named, it falls back to one seed and a few partners per partner type.
+ */
 export async function runScout(opts: { seed?: { name: string; type: EntityType }; perType?: number } = {}) {
+  if (!opts.seed) {
+    const picked = await pickFromQueue(2);
+    if (picked.length) return picked;
+  }
   const seedDef = opts.seed ?? (await pickSeed());
   const [seed] = await search(seedDef.name, seedDef.type, 1);
   if (!seed) {

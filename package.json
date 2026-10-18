@@ -19,7 +19,9 @@
     "loop": "tsx --env-file-if-exists=.env.local scripts/loop.mts",
     "dealcheck": "tsx --env-file-if-exists=.env.local scripts/dealcheck.mts",
     "workspace": "tsx --env-file-if-exists=.env.local scripts/workspace.mts",
-    "handoffs": "tsx --env-file-if-exists=.env.local scripts/workspace.mts handoffs"
+    "handoffs": "tsx --env-file-if-exists=.env.local scripts/workspace.mts handoffs",
+    "prescore": "tsx --env-file-if-exists=.env.local scripts/prescore.mts",
+    "exclude": "tsx --env-file-if-exists=.env.local scripts/exclude.mts"
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "^5.0.110",
