@@ -6,6 +6,7 @@ import { logAction } from "./actions";
 import { ask } from "./llm";
 import { resolveHandle } from "./handles";
 import { pickFromQueue } from "./prescore";
+import { isQuotaError } from "./qloo";
 import { RUBRIC_VERSION, score, sharedTags, type Raw } from "./rubric";
 import {
   audienceTags, demographics, entities, heatmap, pull, search, topFor, trending,
@@ -271,8 +272,14 @@ async function pickSeed(): Promise<{ name: string; type: EntityType }> {
  */
 export async function runScout(opts: { seed?: { name: string; type: EntityType }; perType?: number } = {}) {
   if (!opts.seed) {
-    const picked = await pickFromQueue(1);
-    if (picked.length) return picked;
+    try {
+      const picked = await pickFromQueue(1);
+      if (picked.length) return picked;
+    } catch (e) {
+      // The month's Qloo calls are gone; the old seed path needs Qloo too, so this run scouts nothing.
+      if (isQuotaError(e)) return [];
+      throw e;
+    }
   }
   const seedDef = opts.seed ?? (await pickSeed());
   const [seed] = await search(seedDef.name, seedDef.type, 1);

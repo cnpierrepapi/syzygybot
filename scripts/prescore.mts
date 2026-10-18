@@ -14,7 +14,7 @@ if (process.argv[2] === "status") {
   await fillSeeds();
   for (;;) {
     const r = await runPrescore(10 * 60_000);
-    for (const s of r) console.log(`${s.seed}: ${JSON.stringify(s.counts)}${s.done ? "" : " (cut off, resumes)"}`);
-    if (!r.length) break;
+    for (const s of r) console.log(`${s.seed}: ${JSON.stringify(s.counts)}${s.stopped ? ` STOPPED: ${s.stopped}` : s.done ? "" : " (cut off, resumes)"}`);
+    if (!r.length || r.some(s => s.stopped)) break;
   }
 }

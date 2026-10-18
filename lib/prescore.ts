@@ -6,7 +6,7 @@
 import { sql } from "./db";
 import { logAction } from "./actions";
 import { RUBRIC_VERSION, score } from "./rubric";
-import { entities, search, topFor, type EntityType, type QlooEntity } from "./qloo";
+import { entities, isQuotaError, search, topFor, type EntityType, type QlooEntity } from "./qloo";
 import { LIST, PARTNER_TYPES, SEEDS, SKIP_TOP, measure, scorePair, typeOf, type Memo } from "./scout";
 
 type QueueRow = { id: string; a_id: string; b_id: string; a: QlooEntity; b: QlooEntity; score: number; band: string };
@@ -50,7 +50,7 @@ async function sweepSeed(seed: QlooEntity, excluded: Set<string>, memo: Memo, de
     // Insights results lack some properties (industry); full records in batches of 20.
     const full = new Map<string, QlooEntity>();
     for (const ids of chunk(pool.map(e => e.entity_id), 20))
-      for (const f of await entities(ids).catch(() => [] as QlooEntity[])) full.set(f.entity_id, f);
+      for (const f of await entities(ids).catch(e => { if (isQuotaError(e)) throw e; return [] as QlooEntity[]; })) full.set(f.entity_id, f);
     for (const c0 of pool) {
       if (Date.now() > deadline) return { counts, done: false };
       const f = full.get(c0.entity_id);
@@ -64,7 +64,10 @@ async function sweepSeed(seed: QlooEntity, excluded: Set<string>, memo: Memo, de
                   ${JSON.stringify({ raw, dims: s.dims, gate: s.gate })}, ${RUBRIC_VERSION}, ${s.band === "PASS" ? "skipped" : "queued"})
           on conflict (a_id, b_id) do nothing`;
         counts[s.band]++;
-      } catch { /* one bad pair shouldn't stop the sweep; it is retried on the next pass */ }
+      } catch (e) {
+        // Out of Qloo calls: stop here and leave the seed unswept. Anything else: skip this pair, retried next pass.
+        if (isQuotaError(e)) throw e;
+      }
     }
   }
   return { counts, done: true };
@@ -74,16 +77,24 @@ async function sweepSeed(seed: QlooEntity, excluded: Set<string>, memo: Memo, de
 export async function runPrescore(budgetMs = 240_000) {
   const deadline = Date.now() + budgetMs, memo: Memo = new Map();
   const excluded = await excludedIds();
-  const out: { seed: string; counts: Record<string, number>; done: boolean }[] = [];
+  const out: { seed: string; counts: Record<string, number>; done: boolean; stopped?: string }[] = [];
   const seeds = (await sql()`select entity_id, name, type from scout_seeds where swept_at is null order by (source = 'seed') desc, added_at`) as { entity_id: string; name: string; type: string }[];
   for (const s of seeds) {
     if (Date.now() > deadline) break;
     // A pitched brand can't be picked, so its list is no use as a seed.
     if (excluded.has(s.entity_id)) { await sql()`update scout_seeds set swept_at = now() where entity_id = ${s.entity_id}`; continue; }
-    const [seed] = await entities([s.entity_id]).catch(() => [] as QlooEntity[]);
-    if (!seed) { await sql()`update scout_seeds set swept_at = now() where entity_id = ${s.entity_id}`; continue; }
-    if (!seed.types?.length) seed.types = [`urn:entity:${s.type}`];
-    const r = await sweepSeed(seed, excluded, memo, deadline);
+    // A refused call is not an answer: a seed is only marked swept once Qloo has actually been asked.
+    let seed: QlooEntity | undefined, r: Awaited<ReturnType<typeof sweepSeed>>;
+    try {
+      [seed] = await entities([s.entity_id]);
+      if (!seed) { await sql()`update scout_seeds set swept_at = now() where entity_id = ${s.entity_id}`; continue; }
+      if (!seed.types?.length) seed.types = [`urn:entity:${s.type}`];
+      r = await sweepSeed(seed, excluded, memo, deadline);
+    } catch (e) {
+      if (!isQuotaError(e)) throw e;
+      out.push({ seed: s.name, counts: { PITCH: 0, WATCH: 0, PASS: 0 }, done: false, stopped: (e as Error).message });
+      break;
+    }
     if (r.done) await sql()`update scout_seeds set swept_at = now() where entity_id = ${s.entity_id}`;
     const n = r.counts.PITCH + r.counts.WATCH + r.counts.PASS;
     if (n) {
@@ -130,6 +141,12 @@ export async function pickFromQueue(n = 1) {
       await sql()`update actions set ref_table = 'pairs', ref_id = ${scored.pairId} where id = ${pickedAction}`;
       out.push({ a: r.a.name, b: r.b.name, ...scored });
     } catch (e) {
+      // Out of Qloo calls: undo the pick so the pair and its brand stay available, and stop. Nothing on the floor.
+      if (isQuotaError(e)) {
+        await sql()`update pair_queue set status = 'queued', picked_at = null where id = ${r.id}`;
+        await sql()`delete from actions where id = ${pickedAction}`;
+        throw e;
+      }
       await logAction({ agent: "scout", kind: "pair.error", summary: `Could not score ${r.a.name} × ${r.b.name}.`, detail: { error: (e as Error).message.slice(0, 300) } });
     }
     // Both sides become seeds. A picked brand is never picked again, even if the live rescore passed it.

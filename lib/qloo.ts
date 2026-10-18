@@ -19,14 +19,19 @@ const ALLOWED = new Set([
 ]);
 
 export class QlooError extends Error {
-  constructor(public status: number, public path: string, body: string) {
+  constructor(public status: number, public path: string, body: string, public quotaGone = false) {
     super(
       status === 401
         ? `Qloo 401 on ${path}: key rejected. Check QLOO_API_KEY and that the base URL is ${BASE}.`
-        : `Qloo ${status} on ${path}: ${body.slice(0, 300)}`,
+        : quotaGone
+          ? `Qloo monthly quota used up on ${path}; it resets in about ${body}.`
+          : `Qloo ${status} on ${path}: ${body.slice(0, 300)}`,
     );
   }
 }
+
+/** True for a refusal that retrying won't fix soon: the month's calls are gone, or a 429 survived every retry. */
+export const isQuotaError = (e: unknown) => e instanceof QlooError && (e.quotaGone || e.status === 429);
 
 type Params = Record<string, string | number | string[] | undefined>;
 
@@ -40,14 +45,19 @@ export async function qloo<T = unknown>(path: string, params: Params): Promise<T
     qs.set(k, Array.isArray(v) ? v.join(",") : String(v));
   }
   for (let attempt = 0; ; attempt++) {
-    const { status, ok, text, retryAfter } = await throttled(async () => {
+    const { status, ok, text, retryAfter, monthLeft, monthReset } = await throttled(async () => {
       const res = await fetch(`${BASE}${path}?${qs}`, {
         headers: { "X-Api-Key": key, accept: "application/json" },
         cache: "no-store",
       });
-      return { status: res.status, ok: res.ok, text: await res.text(), retryAfter: Number(res.headers.get("retry-after")) };
+      return {
+        status: res.status, ok: res.ok, text: await res.text(), retryAfter: Number(res.headers.get("retry-after")),
+        monthLeft: res.headers.get("x-month-ratelimit-remaining"), monthReset: Number(res.headers.get("x-month-ratelimit-reset")),
+      };
     });
     if (ok) return JSON.parse(text) as T;
+    // The hackathon key has a monthly allowance (10,000 calls). Once it's gone, retrying only burns the run's time.
+    if (status === 429 && monthLeft === "0") throw new QlooError(429, path, `${Math.round(monthReset / 86400)} days`, true);
     if (status === 429 && attempt < 6) {
       await sleep(retryAfter > 0 ? retryAfter * 1000 : 1000 * 2 ** attempt);
       continue;
