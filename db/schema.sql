@@ -325,3 +325,6 @@ create table if not exists pattern_matches (
   evidence     jsonb not null default '[]',
   primary key (profile_id, partner_id)
 )
+;
+-- What a room actually books, read from the web in Qloo's tag vocabulary (18 Oct). Null = scored on city and size only.
+alter table venues add column if not exists profile jsonb
