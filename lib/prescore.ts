@@ -5,11 +5,15 @@
 
 import { sql } from "./db";
 import { logAction } from "./actions";
-import { RUBRIC_VERSION, score } from "./rubric";
-import { entities, isQuotaError, search, topFor, type EntityType, type QlooEntity } from "./qloo";
+import { RUBRIC_VERSION, score, type Raw } from "./rubric";
+import { entities, isQuotaError, qlooCallsLeft, search, topFor, type EntityType, type QlooEntity } from "./qloo";
+
+// The sweep stops while this many of the month's Qloo calls are left (10,000 a month on the hackathon key),
+// so Scout, Numbers and the Inbox agent always have calls to spend.
+export const SWEEP_RESERVE = 4000;
 import { LIST, PARTNER_TYPES, SEEDS, SKIP_TOP, measure, scorePair, typeOf, type Memo } from "./scout";
 
-type QueueRow = { id: string; a_id: string; b_id: string; a: QlooEntity; b: QlooEntity; score: number; band: string };
+type QueueRow = { id: string; a_id: string; b_id: string; a: QlooEntity; b: QlooEntity; score: number; band: string; dims: { raw?: Raw } };
 
 /** Brands already pitched (either side of a WATCH/PITCH pair, or an account) plus the exclude list. */
 export async function excludedIds(): Promise<Set<string>> {
@@ -81,6 +85,11 @@ export async function runPrescore(budgetMs = 240_000) {
   const seeds = (await sql()`select entity_id, name, type from scout_seeds where swept_at is null order by (source = 'seed') desc, added_at`) as { entity_id: string; name: string; type: string }[];
   for (const s of seeds) {
     if (Date.now() > deadline) break;
+    const left = qlooCallsLeft();
+    if (left != null && left < SWEEP_RESERVE) {
+      out.push({ seed: s.name, counts: { PITCH: 0, WATCH: 0, PASS: 0 }, done: false, stopped: `${left} Qloo calls left this month; the sweep keeps ${SWEEP_RESERVE} for the live agents` });
+      break;
+    }
     // A pitched brand can't be picked, so its list is no use as a seed.
     if (excluded.has(s.entity_id)) { await sql()`update scout_seeds set swept_at = now() where entity_id = ${s.entity_id}`; continue; }
     // A refused call is not an answer: a seed is only marked swept once Qloo has actually been asked.
@@ -111,13 +120,13 @@ export async function runPrescore(budgetMs = 240_000) {
 }
 
 /**
- * Takes the best queued pair (one per run, so each run tells one story down the chain) whose brand hasn't been pitched, rescored live with a thesis
- * (scorePair), then adds both sides as seeds so the pool keeps growing. Empty if the queue is dry.
+ * Takes the best queued pair (one per run, so each run tells one story down the chain) whose brand hasn't been pitched, scored from
+ * its stored measurements with a thesis (scorePair), then adds both sides as seeds so the pool keeps growing. Empty if the queue is dry.
  */
 export async function pickFromQueue(n = 1) {
   const excluded = await excludedIds();
   const rows = (await sql()`
-    select id, a_id, b_id, a, b, score, band from pair_queue where status = 'queued'
+    select id, a_id, b_id, a, b, score, band, dims from pair_queue where status = 'queued'
     order by (band = 'PITCH') desc, score desc limit 200`) as QueueRow[];
   const [{ waiting }] = (await sql()`select count(*)::int waiting from pair_queue where status = 'queued'`) as { waiting: number }[];
   const out = [];
@@ -135,7 +144,8 @@ export async function pickFromQueue(n = 1) {
       detail: { entity_id: r.a_id, queue_id: r.id },
     });
     try {
-      const scored = await scorePair(r.a, r.b);
+      // The intake measured this pair today; use those numbers rather than spending Qloo calls again.
+      const scored = await scorePair(r.a, r.b, r.dims.raw ? { raw: r.dims.raw } : undefined);
       await sql()`update pair_queue set pair_id = ${scored.pairId} where id = ${r.id}`;
       // The pick line on the floor opens the thesis it became.
       await sql()`update actions set ref_table = 'pairs', ref_id = ${scored.pairId} where id = ${pickedAction}`;

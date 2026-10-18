@@ -31,6 +31,10 @@ export class QlooError extends Error {
 }
 
 /** True for a refusal that retrying won't fix soon: the month's calls are gone, or a 429 survived every retry. */
+// Calls left this month, from the last response's headers (null until Qloo has answered once in this process).
+let monthLeftSeen: number | null = null;
+export const qlooCallsLeft = () => monthLeftSeen;
+
 export const isQuotaError = (e: unknown) => e instanceof QlooError && (e.quotaGone || e.status === 429);
 
 type Params = Record<string, string | number | string[] | undefined>;
@@ -55,6 +59,7 @@ export async function qloo<T = unknown>(path: string, params: Params): Promise<T
         monthLeft: res.headers.get("x-month-ratelimit-remaining"), monthReset: Number(res.headers.get("x-month-ratelimit-reset")),
       };
     });
+    if (monthLeft != null && monthLeft !== "") monthLeftSeen = Number(monthLeft);
     if (ok) return JSON.parse(text) as T;
     // The hackathon key has a monthly allowance (10,000 calls). Once it's gone, retrying only burns the run's time.
     if (status === 429 && monthLeft === "0") throw new QlooError(429, path, `${Math.round(monthReset / 86400)} days`, true);

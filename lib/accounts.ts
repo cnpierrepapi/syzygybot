@@ -68,6 +68,20 @@ function plainFacts(q: ReturnType<typeof qualify>) {
 
 const NUMBERS_PER_RUN_CANDIDATES = 6;
 
+/** More partners for the account from the pre-scored queue: both pulls are already measured there. */
+async function storedPartners(chosen: Side, exclude: string[]) {
+  const rows = (await sql()`
+    select a_id, b_id, a, b, dims->'raw' raw from pair_queue
+    where ${chosen.qloo_id} in (a_id, b_id)`) as {
+      a_id: string; b_id: string; a: QlooEntity; b: QlooEntity; raw: { pullAB: number | null; pullBA: number | null } | null;
+    }[];
+  return rows.filter(r => r.raw).map(r => {
+    const chosenIsA = r.a_id === chosen.qloo_id, other = chosenIsA ? r.b : r.a;
+    const o = (chosenIsA ? r.raw!.pullAB : r.raw!.pullBA) ?? 0, k = (chosenIsA ? r.raw!.pullBA : r.raw!.pullAB) ?? 0;
+    return { entity_id: other.entity_id, name: other.name, type: (other.types?.[0] ?? "").split(":").pop() ?? "", pullOut: o, pullBack: k, min: Math.min(o, k) };
+  }).filter(x => !exclude.includes(x.entity_id)).sort((x, y) => y.min - x.min).slice(0, 3);
+}
+
 async function morePartners(chosen: Side, exclude: string[]) {
   const types: EntityType[] = chosen.type === "brand" ? ["artist", "tv_show"] : ["brand"];
   // Insights results carry no `types`, so remember which list each candidate came from.
@@ -131,9 +145,12 @@ export async function buildAccount(p: PairRow) {
   const r = p.dims.raw;
   const chosenIsA = q.chosen.qloo_id === p.a.qloo_id;
   const sharedCells = r.cellsA.filter(c => r.cellsB.includes(c));
+  // Stored numbers first (the pair's own age data, other queued pairs for this company); Qloo only fills a gap.
+  const storedAge = chosenIsA ? r.ageA : r.ageB;
+  const stored = await storedPartners(q.chosen, [p.a.qloo_id, p.b.qloo_id]);
   const [demo, partners] = await Promise.all([
-    demographics([q.chosen.qloo_id]).catch(() => null),
-    morePartners(q.chosen, [p.a.qloo_id, p.b.qloo_id]).catch(() => []),
+    storedAge ? Promise.resolve(null) : demographics([q.chosen.qloo_id]).catch(() => null),
+    stored.length >= 3 ? Promise.resolve(stored) : morePartners(q.chosen, [p.a.qloo_id, p.b.qloo_id]).catch(() => stored),
   ]);
   const evidence = {
     qualifier: q.scores,
@@ -141,7 +158,7 @@ export async function buildAccount(p: PairRow) {
     pull: { partnerFansLikeAccount: chosenIsA ? r.pullBA : r.pullAB, accountFansLikePartner: chosenIsA ? r.pullAB : r.pullBA },
     sharedTaste: r.tagsA.filter(t => r.tagsB.includes(t)).slice(0, 12),
     cities: { shared: metros(sharedCells), account: metros(chosenIsA ? r.cellsA : r.cellsB).slice(0, 8) },
-    audienceAge: ageVector(demo),
+    audienceAge: storedAge ?? ageVector(demo),
     morePartners: partners,
     source: "Qloo taste data (hackathon API). Aggregate audience affinity; not causal.",
   };

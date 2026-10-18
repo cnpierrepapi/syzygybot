@@ -208,15 +208,19 @@ export async function writeThesis(a: QlooEntity, b: QlooEntity, raw: Raw, scored
   }
 }
 
-export async function scorePair(a0: QlooEntity, b0: QlooEntity) {
-  const full = await entities([a0.entity_id, b0.entity_id]).catch(() => [] as QlooEntity[]);
+/**
+ * Scores a pair, saves both sides and writes the thesis. With `stored`, the measurements come from the
+ * pre-scored queue (full records, raw numbers) and Qloo isn't called at all.
+ */
+export async function scorePair(a0: QlooEntity, b0: QlooEntity, stored?: { raw: Raw }) {
+  const full = stored ? [] : await entities([a0.entity_id, b0.entity_id]).catch(() => [] as QlooEntity[]);
   const pick = (e: QlooEntity) => {
     const f = full.find(x => x.entity_id === e.entity_id);
     return f ? { ...e, ...f, properties: { ...e.properties, ...f.properties } } : e;
   };
   const a = pick(a0), b = pick(b0);
   await Promise.all([saveEntity(a), saveEntity(b)]);
-  const raw = await measure(a, b);
+  const raw = stored?.raw ?? await measure(a, b);
   const scored = score(raw);
 
   let thesis: Awaited<ReturnType<typeof writeThesis>> | null = null;
