@@ -344,7 +344,7 @@ export async function recheckDepartures(limit = 200) {
         verification = verification || ${JSON.stringify({ gone, was: c.role_status })}::jsonb where id = ${c.id}`;
       const { stopSequence } = await import("./sequencer");
       await stopSequence({ contactId: c.id }, `${c.name} has left or is leaving the role`);
-      await logAction({ agent: "verifier", kind: "contact.departed", summary: `${c.name} has left or is leaving ${c.company} ("${gone.phrase}"). Not pitched; unsent steps cancelled.`, refTable: "contacts", refId: c.id });
+      await logAction({ agent: "verifier", kind: "contact.departed", summary: `${c.name} has left or is leaving ${c.company} ("${gone.phrase}"). Not pitched; unsent steps cancelled.`, refTable: "contacts", refId: c.id, detail: { correction: true } });
       out.departed++;
     } else if (t.title !== c.role) {
       await sql()`update contacts set role = ${t.title}, verification = verification || ${JSON.stringify({ titleDropped: t.dropped, titleWas: c.role })}::jsonb where id = ${c.id}`;

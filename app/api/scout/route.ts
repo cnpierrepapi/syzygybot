@@ -1,4 +1,4 @@
-// One full loop, every 3 hours: Scout → Deal check → Qualifier → Numbers, then the account it just qualified goes
+// One full loop, every hour: Scout → Deal check → Qualifier → Numbers, then the account it just qualified goes
 // straight on to Contact finder → Verifier → Strategist → Writer → Sequencer, so the floor shows the
 // whole chain in one cascade. If the pass qualified nobody new, the oldest waiting account goes instead.
 // The :30 cron (/api/outreach) keeps working the backlog in between.

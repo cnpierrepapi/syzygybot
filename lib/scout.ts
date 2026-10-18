@@ -271,7 +271,7 @@ async function pickSeed(): Promise<{ name: string; type: EntityType }> {
  */
 export async function runScout(opts: { seed?: { name: string; type: EntityType }; perType?: number } = {}) {
   if (!opts.seed) {
-    const picked = await pickFromQueue(2);
+    const picked = await pickFromQueue(1);
     if (picked.length) return picked;
   }
   const seedDef = opts.seed ?? (await pickSeed());

@@ -12,10 +12,10 @@ const INTRO = 10;         // on load, replay the newest N actions as if they wer
 const hhmmss = (iso: string) => new Date(iso).toISOString().slice(11, 19);
 
 function nextScoutRun(now: Date) {
-  // Cron: 0 */3 * * * (UTC).
+  // Cron: 0 * * * * (UTC), on the hour.
   const n = new Date(now);
   n.setUTCMinutes(0, 0, 0);
-  n.setUTCHours(Math.floor(now.getUTCHours() / 3) * 3 + 3);
+  n.setUTCHours(now.getUTCHours() + 1);
   return n;
 }
 

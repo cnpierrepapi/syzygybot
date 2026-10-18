@@ -7,7 +7,7 @@ import { showSimulated } from "./floor";
 import { pathFor } from "./slug";
 
 export type StageRow = { key: string; href: string | null; title: string; sub: string; tag?: string; when: string };
-export type Stage = { slug: string; label: string; agent: string; blurb: string; rows: () => Promise<StageRow[]> };
+export type Stage = { slug: string; label: string; agent: string; blurb: string; rows: () => Promise<StageRow[]>; count?: () => Promise<number> };
 
 const day = (d: string | Date) => new Date(d).toISOString().slice(0, 10);
 const LIMIT = 500;
@@ -49,6 +49,30 @@ const touchRows = async (scheduledOnly: boolean) => ((await sql()`
   }));
 
 export const STAGES: Stage[] = [
+  {
+    slug: "queue", label: "Pairs in queue", agent: "scout",
+    // Same number as the tile: pairs still waiting. The list also shows the latest picks on top.
+    count: async () => ((await sql()`select count(*)::int n from pair_queue where status = 'queued'`) as { n: number }[])[0].n,
+    blurb: "Every pair the intake has pre-scored from Qloo, best first. Scout takes the top one each hour whose brand hasn't been pitched; picked pairs open their thesis.",
+    rows: async () => {
+      const picked = (await sql()`
+        select q.id, q.score, q.band, q.picked_at, q.a->>'name' a, q.b->>'name' b, p.slug, p.id pair_id
+        from pair_queue q left join pairs p on p.id = q.pair_id where q.status = 'picked' order by q.picked_at desc limit 50`) as R[];
+      const waiting = (await sql()`
+        select id, score, band, scored_at, a->>'name' a, b->>'name' b from pair_queue
+        where status = 'queued' order by (band = 'PITCH') desc, score desc limit 3000`) as R[];
+      return [
+        ...picked.map(r => ({
+          key: r.id, href: r.pair_id ? pathFor("pairs", r.slug, r.pair_id) : null, title: `${r.a} × ${r.b}`,
+          tag: `${r.band} ${Number(r.score).toFixed(2)}`, sub: "Picked by Scout and sent down the chain", when: day(r.picked_at),
+        })),
+        ...waiting.map((r, i) => ({
+          key: r.id, href: null, title: `${r.a} × ${r.b}`, tag: `${r.band} ${Number(r.score).toFixed(2)}`,
+          sub: `#${i + 1} in the queue`, when: day(r.scored_at),
+        })),
+      ];
+    },
+  },
   { slug: "pairs", label: "Pairs researched", agent: "scout", blurb: "Every pair Scout has scored on Qloo taste data, kept or passed.", rows: () => pairRows("all") },
   { slug: "theses", label: "Theses published", agent: "scout", blurb: "Pairs that cleared WATCH and got a written thesis.", rows: () => pairRows("theses") },
   { slug: "pitch", label: "PITCH grade", agent: "scout", blurb: "The strongest theses: PITCH band on the rubric.", rows: () => pairRows("pitch") },

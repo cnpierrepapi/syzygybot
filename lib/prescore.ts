@@ -100,10 +100,10 @@ export async function runPrescore(budgetMs = 240_000) {
 }
 
 /**
- * Takes the best queued pairs whose brands haven't been pitched, rescored live with a thesis
+ * Takes the best queued pair (one per run, so each run tells one story down the chain) whose brand hasn't been pitched, rescored live with a thesis
  * (scorePair), then adds both sides as seeds so the pool keeps growing. Empty if the queue is dry.
  */
-export async function pickFromQueue(n = 2) {
+export async function pickFromQueue(n = 1) {
   const excluded = await excludedIds();
   const rows = (await sql()`
     select id, a_id, b_id, a, b, score, band from pair_queue where status = 'queued'
@@ -118,7 +118,7 @@ export async function pickFromQueue(n = 2) {
       continue;
     }
     await sql()`update pair_queue set status = 'picked', picked_at = now() where id = ${r.id}`;
-    await logAction({
+    const pickedAction = await logAction({
       agent: "scout", kind: "queue.picked",
       summary: `Picked ${r.a.name} × ${r.b.name} from the queue: best of ${waiting - out.length} waiting (pre-score ${r.score.toFixed(2)} ${r.band}).`,
       detail: { entity_id: r.a_id, queue_id: r.id },
@@ -126,6 +126,8 @@ export async function pickFromQueue(n = 2) {
     try {
       const scored = await scorePair(r.a, r.b);
       await sql()`update pair_queue set pair_id = ${scored.pairId} where id = ${r.id}`;
+      // The pick line on the floor opens the thesis it became.
+      await sql()`update actions set ref_table = 'pairs', ref_id = ${scored.pairId} where id = ${pickedAction}`;
       out.push({ a: r.a.name, b: r.b.name, ...scored });
     } catch (e) {
       await logAction({ agent: "scout", kind: "pair.error", summary: `Could not score ${r.a.name} × ${r.b.name}.`, detail: { error: (e as Error).message.slice(0, 300) } });

@@ -17,15 +17,19 @@ export type Funnel = { label: string; value: number; agent: string; href: string
 
 const SUBPAGE = ROUTE;
 
+// Kept off the live floor: the intake's per-seed bookkeeping, and the Verifier correcting records it already
+// holds (a fixed title, a restored contact, a recheck finding someone left). The floor shows the team working.
+const OFF_FLOOR = ["queue.scored", "contact.relabelled", "contact.restored"];
+
 // Test replies stay off the public floor until he says they can be shown (SHOW_SIMULATED=1).
 export const showSimulated = () => process.env.SHOW_SIMULATED === "1";
 
 export async function feed(limit = 40, after?: string): Promise<FeedItem[]> {
   const rows = (after
     ? await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed from actions where date_trunc('milliseconds', created_at) > ${after}::timestamptz
-        and (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') order by created_at desc limit ${limit}`
+        and (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' order by created_at desc limit ${limit}`
     : await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed from actions
-        where (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') order by created_at desc limit ${limit}`
+        where (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' order by created_at desc limit ${limit}`
   ) as (FeedItem & { ref_table: string | null; ref_id: string | null; seed: string | null })[];
   // Feed lines link to the readable address of whatever they're about.
   const slugs = new Map<string, string>(), stars = new Map<string, string[]>();
@@ -47,6 +51,7 @@ export async function feed(limit = 40, after?: string): Promise<FeedItem[]> {
 export async function funnel(): Promise<Funnel> {
   const [c] = (await sql()`
     select
+      (select count(*) from pair_queue where status = 'queued')::int queue,
       (select count(*) from pairs)::int pairs,
       (select count(*) from pairs where band in ('WATCH','PITCH'))::int theses,
       (select count(*) from pairs where band = 'PITCH')::int pitch,
@@ -60,6 +65,7 @@ export async function funnel(): Promise<Funnel> {
       (select count(*) from handoffs where ${showSimulated()} or not simulated)::int handoffs,
       (select count(*) from workspaces where claimed_at is not null and not demo)::int claimed`) as Record<string, number>[];
   return [
+    { label: "Pairs in queue", value: c.queue, agent: "scout", href: "/floor/queue" },
     { label: "Pairs researched", value: c.pairs, agent: "scout", href: "/floor/pairs" },
     { label: "Theses published", value: c.theses, agent: "scout", href: "/floor/theses" },
     { label: "PITCH grade", value: c.pitch, agent: "scout", href: "/floor/pitch" },

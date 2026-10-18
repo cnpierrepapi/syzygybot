@@ -203,7 +203,7 @@ export default async function Account({ params }: { params: Promise<{ id: string
       <section style={{ marginTop: 28 }}>
         <h2 style={{ fontSize: 22, marginBottom: 6 }}>Outreach</h2>
         {contacts.length === 0 ? (
-          <p style={{ color: "var(--dim)", fontSize: 14 }}>The Contact finder has not reached this account yet. It works one account per run, every three hours.</p>
+          <p style={{ color: "var(--dim)", fontSize: 14 }}>The Contact finder has not reached this account yet. It works one account per run, every hour.</p>
         ) : (
           <>
             <p style={{ color: "var(--dim)", margin: "0 0 14px", fontSize: 14 }}>

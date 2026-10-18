@@ -13,7 +13,7 @@ export default async function StagePage({ params }: { params: Promise<{ stage: s
   const { stage: slug } = await params;
   const s = stage(slug);
   if (!s) notFound();
-  const rows = await s.rows();
+  const [rows, count] = await Promise.all([s.rows(), s.count ? s.count() : Promise.resolve(null)]);
   const c = agentColor(s.agent);
 
   return (
@@ -29,7 +29,7 @@ export default async function StagePage({ params }: { params: Promise<{ stage: s
       <section className="panel fade-up" style={{ padding: 28, marginTop: 16 }}>
         <AgentChip agent={s.agent} />
         <h1 style={{ fontSize: "clamp(28px, 4vw, 44px)", margin: "18px 0 6px" }}>
-          <span style={{ textShadow: `0 0 18px ${c}88` }}>{rows.length}</span> {s.label.toLowerCase()}
+          <span style={{ textShadow: `0 0 18px ${c}88` }}>{count ?? rows.length}</span> {s.label.toLowerCase()}
         </h1>
         <p style={{ color: "var(--dim)", margin: 0 }}>{s.blurb}</p>
       </section>
