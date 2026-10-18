@@ -72,9 +72,79 @@ function roleNearName(text: string, name: string, title: string) {
   return false;
 }
 
+// Someone who has left a role, or is on the way out, is never pitched. Two places say so:
+// the title the finder returns ("SVP (Former CMO)", "Ex-CMO") and the page text around the name.
+const words = (xs: string[]) => xs.map(x => (/[a-z0-9)]$/.test(x) ? String.raw`${x}\b` : x)).join("|");
+const GONE_WORDS = [
+  "former(?:ly)?", "ex-", "ex ", "previous(?:ly)?", "past", "outgoing", "departing", "departed", "retiring", "retired",
+  "one-time", "onetime", "erstwhile", "then-", "emerit(?:us|a)", "until recently", "until (?:19|20)[0-9][0-9]", "no longer",
+  "stepped down", "stepping down", "resigned", "left", "leaving", "interim until",
+];
+const TITLE_GONE = new RegExp(`(?:^|[^a-z])(?:${words(GONE_WORDS)})`, "i");
+// Just before the name: "former Guess CMO Jane Doe", "the late Jane Doe", "succeeds Jane Doe".
+const GONE_BEFORE = new RegExp(String.raw`\b(${words([
+  "former(?:ly)?", "ex-", "previous", "outgoing", "departing", "retiring", "retired", "one-time", "onetime", "erstwhile",
+  "then-", "the late", "succeeds", "succeeding", "replaces", "replacing", "takes over from", "taking over from", "successor to",
+])})[^.;]{0,60}$`);
+// Just after it: "Jane Doe, who stepped down in May". Not "formerly of Nike" or "who left Nike to join": those say
+// where someone came FROM, so leaving needs this company named, or a plain exit verb.
+const goneAfter = (company: string) => new RegExp(String.raw`^[^.;]{0,120}?\b(${words([
+  "stepped down", "steps down", "stepping down", "will step down", "resigned", "resigns", "resigning", "retired", "retires",
+  "retiring", "has departed", "is departing", "will depart", "departed the company", "parted ways",
+  "no longer (?:with|at|works|serves|leads)", "was replaced", "has been replaced", "replaced by", "succeeded by", "is leaving",
+  "will leave", "has left the company", "left the company", "until recently", "its outgoing", "the outgoing", "as outgoing",
+  `(?:left|exited|exits|exiting|departed|departs|leaves|leaving) ${company}`,
+])})`);
+// Company names after norm() are letters, digits and the odd "&" or "'": any other character matches loosely.
+const escapeRe = (s: string) => s.replace(/[^a-z0-9 ]/g, ".");
+
+/**
+ * Drops clauses that describe a past or ending role. "SVP & GM (Former Global CMO)" -> "SVP & GM";
+ * "Former CMO" or "Outgoing CMO" -> gone, since the role itself is the one they're leaving.
+ */
+export function cleanTitle(title: string): { title: string; gone: boolean; dropped: string[] } {
+  const dropped: string[] = [];
+  let t = title.replace(/\s*[(\[]([^)\]]*)[)\]]/g, (m, inner: string) => (TITLE_GONE.test(inner) ? (dropped.push(inner.trim()), "") : m));
+  const parts = t.split(/\s*(?:;|,|\s[-–—|]\s)\s*/).filter(Boolean);
+  // "(until 2024)" or "(stepped down)" qualifies the whole title, not a second role.
+  const ends = dropped.some(d => /^(until|stepped down|stepping down|resigned|retired|left|leaving|no longer)/i.test(d));
+  if (ends || TITLE_GONE.test(parts[0] ?? "")) return { title: title.trim(), gone: true, dropped: [title.trim()] };
+  const kept = parts.filter(x => !(TITLE_GONE.test(x) && (dropped.push(x.trim()), true)));
+  if (!dropped.length) return { title: title.trim(), gone: false, dropped }; // nothing past in it: leave it exactly as written
+  t = kept.join(", ").replace(/\s+/g, " ").trim();
+  return t ? { title: t, gone: false, dropped } : { title: title.trim(), gone: true, dropped };
+}
+
+const SPAN_OK = new Set(["the", "of", "and", "its", "our", "longtime", "long-time", "global", "senior", "executive", "chief", "officer",
+  "svp", "evp", "cmo", "cbo", "cco", "ceo", "cfo", "coo", "cxo", "us", "north", "america", "emea", "apac", "worldwide", "international", "company's", "brand's",
+  "product", "lead", "leader", "general", "content", "digital", "social", "media", "sales", "business", "commercial", "operations", "experience",
+  "design", "research", "data", "analytics", "public", "relations", "pr", "events", "culture", "community", "ecommerce", "e-commerce", "retail",
+  "merchandising", "boss", "exec", "advertising", "campaigns", "integrated", "regional", "country", "group", "team", "member", "founding"]);
+function beforeSpanOk(span: string, companyHead: string) {
+  return span.split(/[^a-z0-9'&.-]+/).filter(Boolean)
+    .every(w => w === companyHead || w.replace(/'s$/, "") === companyHead || SPAN_OK.has(w) || ROLE_WORDS.test(w));
+}
+
+/** The phrase on this page that says the person has left, if any, next to any mention of their name. */
+export function goneOnPage(text: string, name: string, company: string): string | null {
+  const t = norm(text), n = norm(name);
+  const co = norm(company).split(" ").find(w => w.length >= 3 && !["the", "and", "inc"].includes(w)) ?? norm(company);
+  const after = goneAfter(escapeRe(co));
+  for (let i = t.indexOf(n); i >= 0; i = t.indexOf(n, i + 1)) {
+    const before = GONE_BEFORE.exec(t.slice(Math.max(0, i - 80), i));
+    // "former Guess CMO Jane Doe" counts; "ex-Booking.com CMO Jane Doe" says where she came from. So between the
+    // marker and the name only this company and role words may appear.
+    if (before && beforeSpanOk(before[0].slice(before[1].length), co)) return before[1];
+    const aft = after.exec(t.slice(i + n.length, i + n.length + 160));
+    if (aft) return aft[1];
+  }
+  return null;
+}
+
 export type Verdict = {
-  status: "confirmed" | "stale" | "unconfirmed";
+  status: "confirmed" | "stale" | "unconfirmed" | "departed";
   page: string | null; date: string | null; checked: { url: string; http: number | null; name: boolean; company: boolean; role: boolean }[];
+  gone?: { url: string | null; date: string | null; phrase: string };
 };
 
 export function judgePerson(pages: Page[], name: string, title: string, company: string, officialDomain: string | null): Verdict {
@@ -91,6 +161,15 @@ export function judgePerson(pages: Page[], name: string, title: string, company:
     const fresh = own || (age != null && age <= 24);
     if (!best || (fresh && !best.fresh)) best = { p, fresh };
   }
+  // A page saying they left wins, unless the confirming page is dated after it (they came back, or it's an old stint).
+  let gone: Verdict["gone"];
+  for (const p of pages) {
+    if (p.status >= 400 || !companyOn(p.text, company)) continue;
+    const phrase = goneOnPage(p.text, name, company);
+    if (phrase && (!gone || (p.date ?? "") > (gone.date ?? ""))) gone = { url: p.url, date: p.date, phrase };
+  }
+  if (gone && !(best?.p.date && gone.date && best.p.date > gone.date))
+    return { status: "departed", page: best?.p.url ?? gone.url, date: best?.p.date ?? null, checked, gone };
   if (!best) return { status: "unconfirmed", page: null, date: null, checked };
   return { status: best.fresh ? "confirmed" : "stale", page: best.p.url, date: best.p.date, checked };
 }
@@ -137,10 +216,14 @@ export async function findContacts(a: Account) {
   const sitePages = site ? (await Promise.all(SITE_PATHS.map(p => readPage(site + p)))).filter((p): p is Page => p != null && p.status < 400) : [];
   const allPages = [...pages, ...sitePages, ...swept.pages];
 
+  // Titles first: a past role in brackets is dropped, a title that is itself a past role marks them gone.
+  const titles = people.map(p => cleanTitle(p.title));
+  people.forEach((p, i) => { p.title = titles[i].title; });
   // First pass over what the finder read; anyone not confirmed gets a second, independent search.
   const first = people.map(p => judgePerson(allPages, p.name, p.title, p.company || a.name, officialDomain));
   const recheck = await Promise.all(people.map(async (p, i) => {
-    if (first[i].status === "confirmed" || i >= 6) return { verdict: first[i], cost: 0 }; // second searches cost money; cap them
+    if (titles[i].gone) return { verdict: { ...first[i], status: "departed" as const, gone: { url: p.source_url ?? null, date: p.source_date ?? null, phrase: titles[i].dropped[0] } }, cost: 0 };
+    if (first[i].status === "confirmed" || first[i].status === "departed" || i >= 6) return { verdict: first[i], cost: 0 }; // second searches cost money; cap them
     try {
       const w = await askWeb(`Find public pages (not LinkedIn) that state "${p.name}" works at ${a.name}, and their current title. List the URLs.`, VERIFIER_SYSTEM, 400);
       const extra = await readAll(w.sources.map(s => s.url), 6);
@@ -161,7 +244,7 @@ export async function findContacts(a: Account) {
     saved.push(await saveContact(a, {
       kind: "person", name: p.name, role: p.title, email: null, email_status: "unverified",
       sources: [p.source_url, v.page].filter(Boolean) as string[], role_status: v.status,
-      verification: { ...v, claimed: { url: p.source_url ?? null, date: p.source_date ?? null } },
+      verification: { ...v, claimed: { url: p.source_url ?? null, date: p.source_date ?? null }, ...(titles[i].dropped.length ? { titleDropped: titles[i].dropped } : {}) },
     }));
   }
 
@@ -199,7 +282,8 @@ async function saveContact(a: Account, c: NewContact) {
       and ((${c.kind} = 'person' and lower(name) = lower(${c.name ?? ""})) or (${c.kind} = 'inbox' and lower(email) = lower(${c.email ?? ""})))`) as { id: string; role_status: string }[];
   if (dup) {
     // A later pass can confirm someone an earlier pass held back; keep the record, upgrade it.
-    if (c.role_status === "confirmed" && dup.role_status !== "confirmed") {
+    // Not someone already found to have left: only recheckDepartures' dated comparison can reverse that.
+    if (c.role_status === "confirmed" && dup.role_status !== "confirmed" && dup.role_status !== "departed") {
       await sql()`update contacts set role_status = 'confirmed', role = ${c.role}, email = coalesce(${c.email}, email),
         email_status = ${c.email_status}, sources = ${JSON.stringify(c.sources)}, verified_at = now(), verification = ${JSON.stringify(c.verification)}
         where id = ${dup.id}`;
@@ -222,9 +306,51 @@ async function saveContact(a: Account, c: NewContact) {
     c.kind === "person"
       ? c.role_status === "confirmed" ? `Confirmed ${c.name} as ${c.role}: the cited page names them in that role.`
       : c.role_status === "stale" ? `${c.name} is named, but only on pages over two years old. Held back.`
+      : c.role_status === "departed" ? `${c.name} has left or is leaving the role ("${String((c.verification.gone as { phrase?: string } | undefined)?.phrase ?? "former")}"). Not pitched.`
       : `Could not confirm ${c.name} on any page it read. Held back.`
       : c.role_status === "confirmed" ? `Confirmed ${mask(c.email!)}: published by ${a.name} and the domain takes mail.`
       : `Rejected ${mask(c.email!)}: not found on a page it could read, or the domain takes no mail.`;
   await logAction({ agent: "verifier", kind: `contact.${c.role_status}`, summary: verdict, refTable: "contacts", refId: row.id });
   return { id: row.id, kind: c.kind, status: c.role_status };
+}
+
+/**
+ * Re-reads the pages behind people already on file and applies the departure rules to them: a past role
+ * in the title is dropped from it, and anyone who has left or is leaving stops being pitched (unsent steps
+ * cancelled). Runs over confirmed people first; costs page fetches only, no model calls.
+ */
+export async function recheckDepartures(limit = 200) {
+  const rows = (await sql()`
+    select c.id, c.name, c.role, c.role_status, c.sources, c.verification, e.name company
+    from contacts c join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
+    where c.kind = 'person' and c.name is not null and c.role_status <> 'departed'
+    order by (c.role_status = 'confirmed') desc, c.verified_at desc nulls last limit ${limit}`) as {
+      id: string; name: string; role: string; role_status: string; sources: string[]; company: string;
+      verification: { page?: string | null; date?: string | null; claimed?: { url?: string | null } };
+    }[];
+  const out = { checked: rows.length, relabelled: 0, departed: 0 };
+  for (const c of rows) {
+    const t = cleanTitle(c.role);
+    const pages = await readAll([c.verification.page ?? "", ...(c.sources ?? []), c.verification.claimed?.url ?? ""], 4);
+    let gone: Verdict["gone"] = t.gone ? { url: null, date: null, phrase: t.dropped[0] } : undefined;
+    for (const p of pages) {
+      if (gone || !companyOn(p.text, c.company)) continue;
+      const phrase = goneOnPage(p.text, c.name, c.company);
+      // An older "former" mention doesn't override the newer page that confirmed them.
+      if (phrase && !(c.verification.date && p.date && c.verification.date > p.date)) gone = { url: p.url, date: p.date, phrase };
+    }
+    if (gone) {
+      await sql()`update contacts set role_status = 'departed', verified_at = now(),
+        verification = verification || ${JSON.stringify({ gone, was: c.role_status })}::jsonb where id = ${c.id}`;
+      const { stopSequence } = await import("./sequencer");
+      await stopSequence({ contactId: c.id }, `${c.name} has left or is leaving the role`);
+      await logAction({ agent: "verifier", kind: "contact.departed", summary: `${c.name} has left or is leaving ${c.company} ("${gone.phrase}"). Not pitched; unsent steps cancelled.`, refTable: "contacts", refId: c.id });
+      out.departed++;
+    } else if (t.title !== c.role) {
+      await sql()`update contacts set role = ${t.title}, verification = verification || ${JSON.stringify({ titleDropped: t.dropped, titleWas: c.role })}::jsonb where id = ${c.id}`;
+      await logAction({ agent: "verifier", kind: "contact.relabelled", summary: `Corrected ${c.name}'s title to ${t.title}: "${t.dropped.join("; ")}" was a past role.`, refTable: "contacts", refId: c.id });
+      out.relabelled++;
+    }
+  }
+  return out;
 }

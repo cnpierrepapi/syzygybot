@@ -54,5 +54,6 @@ export const maskEmail = (e: string | null) => (e ? e.replace(/^(.)[^@]*/, "$1**
 export const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   confirmed: { label: "VERIFIED", color: "#2fd39a" },
   stale: { label: "STALE", color: "#ffb31f" },
+  departed: { label: "LEFT THE ROLE", color: "#9aa3b8" },
   unconfirmed: { label: "NOT CONFIRMED", color: "#ff8080" },
 };

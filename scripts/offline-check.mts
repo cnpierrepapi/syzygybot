@@ -21,7 +21,7 @@ console.log("Patagonia×LiquidDeath", s2.band, s2.score.toFixed(3), s2.gate);
 
 // Writer hard rules and the Verifier's page test (13 Oct).
 import { writerChecks } from "../lib/outreach";
-import { judgePerson } from "../lib/contacts";
+import { cleanTitle, judgePerson } from "../lib/contacts";
 import { pageBacking } from "../lib/web";
 const ok = (name: string, cond: boolean) => { console.log(cond ? "PASS" : "FAIL", name); if (!cond) process.exitCode = 1; };
 const good = "I am Syzygy, an AI agent. This is built on Qloo's taste data. A24 fans show 0.94 affinity.";
@@ -36,6 +36,38 @@ ok("verifier: confirmed", judgePerson([page("A24 named Graham Retzik its head of
 ok("verifier: old page is stale", judgePerson([page("A24 named Graham Retzik its head of marketing.", "2019-01-01")], "Graham Retzik", "Head of Marketing", "A24", "a24films.com").status === "stale");
 ok("verifier: own site counts undated", judgePerson([page("Graham Retzik, Head of Marketing, A24", null, "https://a24films.com/team")], "Graham Retzik", "Head of Marketing", "A24", "a24films.com").status === "confirmed");
 ok("verifier: name without company fails", judgePerson([page("Graham Retzik spoke about marketing.", recent)], "Graham Retzik", "Head of Marketing", "A24", null).status === "unconfirmed");
+
+// Departures (18 Oct): a past role in the title is dropped or marks them gone; a page saying they left wins.
+const t1 = cleanTitle("Senior Vice President & Global General Manager (Former Global CMO)");
+ok("verifier: bracketed former role dropped", !t1.gone && t1.title === "Senior Vice President & Global General Manager" && t1.dropped[0] === "Former Global CMO");
+ok("verifier: trailing past clause dropped", cleanTitle("CMO, previously VP Marketing at Nike").title === "CMO");
+for (const g of ["Former CMO", "Ex-CMO", "ex CMO", "Outgoing Chief Marketing Officer", "Retired VP Brand", "Previous Head of Partnerships", "One-time CMO", "Erstwhile CMO", "Then-CMO", "CMO Emeritus", "CMO (until 2024)", "Past President", "Departing CMO"])
+  ok(`verifier: title "${g}" is gone`, cleanTitle(g).gone);
+for (const k of ["Chief Marketing Officer", "Head of Brand Partnerships", "Apex Partnerships Lead", "VP, Experiential Marketing", "Interim CMO"])
+  ok(`verifier: title "${k}" kept`, !cleanTitle(k).gone && cleanTitle(k).title === k);
+const said = (text: string) => judgePerson([page(text, recent)], "Jane Doe", "Chief Marketing Officer", "Guess", null);
+for (const txt of [
+  "Guess said former chief marketing officer Jane Doe will advise the board.",
+  "Guess named a new chief marketing officer. Bob Roe succeeds Jane Doe, who joined in 2019.",
+  "Jane Doe, chief marketing officer at Guess, stepped down in May.",
+  "Jane Doe, the Guess chief marketing officer, is leaving at the end of the year.",
+  "Chief marketing officer Jane Doe has left Guess after six years.",
+  "Guess confirmed that Jane Doe, its outgoing chief marketing officer, will stay until March.",
+]) ok(`verifier: departed "${txt.slice(0, 48)}…"`, said(txt).status === "departed");
+for (const txt of [
+  "Guess named Jane Doe chief marketing officer. Jane Doe was formerly of Nike.",
+  "Jane Doe, who left Nike to join Guess as chief marketing officer, spoke today.",
+  "Guess chief marketing officer Jane Doe said the past year was strong.",
+]) ok(`verifier: still in role "${txt.slice(0, 48)}…"`, said(txt).status === "confirmed");
+ok("verifier: where they came from is not a departure",
+  judgePerson([page("Airbnb names ex-Booking.com hotel boss Jane Doe as chief business officer", recent)], "Jane Doe", "Chief Business Officer", "Airbnb", null).status === "confirmed");
+ok("verifier: former + this company + any role words is a departure",
+  judgePerson([page("Former Airbnb product marketing lead Jane Doe believes paid social is broken.", recent), page("Airbnb product marketing lead Jane Doe", "2024-06-01")], "Jane Doe", "Product Marketing Lead", "Airbnb", null).status === "departed");
+ok("verifier: the person replaced has departed",
+  judgePerson([page("Airbnb named Bob Roe chief business officer. Bob Roe succeeds Jane Doe in the role at Airbnb.", recent)], "Jane Doe", "Chief Business Officer", "Airbnb", null).status === "departed");
+ok("verifier: a title with no past role is left exactly as written", cleanTitle("Executive Vice President, Partnership – Marketing").title === "Executive Vice President, Partnership – Marketing");
+ok("verifier: newer page that confirms beats an older departure",
+  judgePerson([page("Former Guess CMO Jane Doe", "2025-01-01"), page("Guess chief marketing officer Jane Doe", recent)], "Jane Doe", "Chief Marketing Officer", "Guess", null).status === "confirmed");
 ok("strategist: trigger backed", !!pageBacking([page("Duolingo and Taco Bell launch a global partnership for Taco Day with Duo sauce", recent)], "Duolingo", "Duolingo and Taco Bell launch a global marketing partnership for Taco Day"));
 ok("strategist: unrelated page rejected", !pageBacking([page("Duolingo reports quarterly earnings", recent)], "Duolingo", "Duolingo and Taco Bell launch a global marketing partnership for Taco Day"));
 
