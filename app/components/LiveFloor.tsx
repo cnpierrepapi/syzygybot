@@ -52,7 +52,7 @@ export function FunnelBar({ initial, live }: { initial: Funnel; live?: Funnel })
       {data.map((f, i) => {
         const c = agentColor(f.agent), on = f.value > 0;
         return (
-          <div key={f.label} className="panel fade-up" style={{ padding: "14px 16px", animationDelay: `${i * 60}ms`, borderColor: on ? `${c}55` : undefined, opacity: on ? 1 : 0.55 }}>
+          <a key={f.label} href={f.href} className="panel fade-up funnel-tile" style={{ padding: "14px 16px", animationDelay: `${i * 60}ms`, borderColor: on ? `${c}55` : undefined, opacity: on ? 1 : 0.55 }}>
             <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1, color: on ? "#efeaff" : "var(--dim)", textShadow: on ? `0 0 18px ${c}88` : "none" }}>
               <CountUp value={f.value} />
             </div>
@@ -60,7 +60,7 @@ export function FunnelBar({ initial, live }: { initial: Funnel; live?: Funnel })
               <i style={{ width: 7, height: 7, borderRadius: "50%", background: c, display: "block", flex: "none" }} />
               {f.label}
             </div>
-          </div>
+          </a>
         );
       })}
     </div>

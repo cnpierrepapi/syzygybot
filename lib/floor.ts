@@ -13,7 +13,7 @@ const STARS_SQL: Record<string, string> = {
   touches: `select t.id::text id, t.slug, array[ac.entity_id] stars from touches t join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id where t.id::text = any($1)`,
   replies: `select r.id::text id, r.slug, array[ac.entity_id] stars from replies r join touches t on t.id = r.touch_id join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id where r.id::text = any($1)`,
 };
-export type Funnel = { label: string; value: number; agent: string }[];
+export type Funnel = { label: string; value: number; agent: string; href: string }[];
 
 const SUBPAGE = ROUTE;
 
@@ -60,17 +60,17 @@ export async function funnel(): Promise<Funnel> {
       (select count(*) from handoffs where ${showSimulated()} or not simulated)::int handoffs,
       (select count(*) from workspaces where claimed_at is not null and not demo)::int claimed`) as Record<string, number>[];
   return [
-    { label: "Pairs researched", value: c.pairs, agent: "scout" },
-    { label: "Theses published", value: c.theses, agent: "scout" },
-    { label: "PITCH grade", value: c.pitch, agent: "scout" },
-    { label: "Accounts qualified", value: c.accounts, agent: "qualifier" },
-    { label: "Contacts found", value: c.contacts, agent: "contact_finder" },
-    { label: "Verified", value: c.verified, agent: "verifier" },
-    { label: "Messages drafted", value: c.touches, agent: "writer" },
-    { label: "Steps scheduled", value: c.scheduled, agent: "sequencer" },
-    { label: "Replies", value: c.replies, agent: "inbox" },
-    { label: "Opt-outs honoured", value: c.optouts, agent: "inbox" },
-    { label: "Handed to a person", value: c.handoffs, agent: "inbox" },
-    { label: "Brands claimed", value: c.claimed, agent: "verifier" },
+    { label: "Pairs researched", value: c.pairs, agent: "scout", href: "/floor/pairs" },
+    { label: "Theses published", value: c.theses, agent: "scout", href: "/floor/theses" },
+    { label: "PITCH grade", value: c.pitch, agent: "scout", href: "/floor/pitch" },
+    { label: "Accounts qualified", value: c.accounts, agent: "qualifier", href: "/floor/accounts" },
+    { label: "Contacts found", value: c.contacts, agent: "contact_finder", href: "/floor/contacts" },
+    { label: "Verified", value: c.verified, agent: "verifier", href: "/floor/verified" },
+    { label: "Messages drafted", value: c.touches, agent: "writer", href: "/floor/messages" },
+    { label: "Steps scheduled", value: c.scheduled, agent: "sequencer", href: "/floor/scheduled" },
+    { label: "Replies", value: c.replies, agent: "inbox", href: "/floor/replies" },
+    { label: "Opt-outs honoured", value: c.optouts, agent: "inbox", href: "/floor/opt-outs" },
+    { label: "Handed to a person", value: c.handoffs, agent: "inbox", href: "/floor/handoffs" },
+    { label: "Brands claimed", value: c.claimed, agent: "verifier", href: "/floor/claimed" },
   ];
 }
