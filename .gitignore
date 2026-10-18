@@ -13,3 +13,9 @@ AGENTS.md
 .claude/
 .agents/
 skills-lock.json
+data/corpus-*.json
+data/vocab.json
+data/synth-*.json
+data/corpus-metros.json
+data/venues-*.json
+data/metros.json

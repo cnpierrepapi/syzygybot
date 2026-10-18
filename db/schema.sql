@@ -263,3 +263,65 @@ create table if not exists scout_exclude (
   reason      text,
   added_at    timestamptz not null default now()
 )
+;
+
+-- Venues (18 Oct). Concert rooms near each metro, from Wikidata, scored on the Qloo corpus: which measured
+-- audiences concentrate in the venue's city (heatmaps), which artists fit the room's size, and which brands
+-- those audiences pull toward. No new Qloo calls: everything comes from the stored measurements.
+create table if not exists venues (
+  id           text primary key,                 -- Wikidata id
+  name         text not null,
+  metro        text not null,
+  capacity     int,                              -- from Wikidata
+  capacity_est int,                              -- capacity, or a typical size for the kind of room
+  kinds        text,
+  operator     text,
+  owner        text,
+  site         text,
+  lat          double precision,
+  lng          double precision,
+  live_nation  boolean not null default false,
+  score        double precision,
+  evidence     jsonb not null default '{}',
+  slug         text unique,
+  updated_at   timestamptz not null default now()
+);
+
+create table if not exists venue_fits (
+  venue_id     text not null references venues(id) on delete cascade,
+  entity_id    text not null,
+  entity_name  text not null,
+  entity_type  text not null,
+  role         text not null check (role in ('book','sponsor')),
+  fit          double precision not null,
+  evidence     jsonb not null default '{}',
+  primary key (venue_id, entity_id, role)
+);
+
+-- Look-alikes (18 Oct). Brands, people and companies Qloo hasn't measured for us: a profile synthesized from
+-- public sources in Qloo's tag vocabulary, matched to the nearest measured profiles. Never shown as a Qloo number.
+create table if not exists synthetic_profiles (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null unique,
+  kind         text not null check (kind in ('brand','talent')),
+  description  text,
+  tags         jsonb not null default '[]',
+  age          jsonb,
+  metros       jsonb not null default '[]',
+  summary      text,
+  confidence   text,
+  sources      jsonb not null default '[]',
+  lookalikes   jsonb not null default '[]',
+  slug         text unique,
+  created_at   timestamptz not null default now()
+);
+
+create table if not exists pattern_matches (
+  profile_id   uuid not null references synthetic_profiles(id) on delete cascade,
+  partner_id   text not null,
+  partner      text not null,
+  partner_type text not null,
+  match_pct    int not null,
+  evidence     jsonb not null default '[]',
+  primary key (profile_id, partner_id)
+)

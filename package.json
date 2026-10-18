@@ -22,6 +22,9 @@
     "handoffs": "tsx --env-file-if-exists=.env.local scripts/workspace.mts handoffs",
     "prescore": "tsx --env-file-if-exists=.env.local scripts/prescore.mts",
     "exclude": "tsx --env-file-if-exists=.env.local scripts/exclude.mts",
+    "venues": "tsx --env-file-if-exists=.env.local scripts/venues.mts",
+    "lineup": "tsx --env-file-if-exists=.env.local scripts/lineup.mts",
+    "lookalike": "tsx --env-file-if-exists=.env.local scripts/lookalike.mts",
     "verifier:recheck": "tsx --env-file-if-exists=.env.local scripts/recheck-departed.mts"
   },
   "dependencies": {
