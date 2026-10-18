@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
 import * as THREE from "three";
 import type { Graph, Star } from "@/lib/graph";
 import { AGENTS, AGENT_LABEL, agentColor } from "@/lib/ui";
-import { TYPE_HUE, type FocusEvent, type PulseEvent } from "@/lib/sky";
+import { TYPE_HUE, type FocusEvent, type PulseEvent, type SkyFilter } from "@/lib/sky";
 
 
 const hue = (t: string) => TYPE_HUE[t] ?? "#8b7cf6";
@@ -190,6 +190,9 @@ export default function Constellation() {
     let arcGeo: THREE.BufferGeometry | null = null;
     const baseSize: number[] = [];
     let focus: Set<string> | null = null;
+    // Legend filter (homepage only; a page's own focus wins). Isolated stars, the partners at the other end of their lines, the rest hidden.
+    let filter: SkyFilter = null;
+    let starLevel = new Float32Array(0); // 1 normal, 2 isolated, 0.5 partner, 0 hidden by the filter
 
     const curve = (a: THREE.Vector3, b: THREE.Vector3, lift = 0.18) => {
       const mid = a.clone().add(b).multiplyScalar(0.5);
@@ -201,19 +204,33 @@ export default function Constellation() {
     function applyFocus() {
       if (!starGeo || !arcGeo) return;
       const dim = starGeo.getAttribute("dim") as THREE.BufferAttribute, size = starGeo.getAttribute("size") as THREE.BufferAttribute;
+      const ac = arcGeo.getAttribute("color") as THREE.BufferAttribute, base = arcGeo.userData.base as Float32Array, ends = arcGeo.userData.ends as [string, string][];
+      const bands = arcGeo.userData.bands as string[];
+      const f = focus && focus.size ? null : filter;
+      // Which lines the filter keeps, and from them which stars are isolated or partners.
+      const arcOn = new Uint8Array(ends.length);
+      starLevel = new Float32Array(stars.length).fill(f ? 0 : 1);
+      if (f && "type" in f) stars.forEach((s, i) => { if (s.type === f.type) starLevel[i] = 2; });
+      for (let s = 0; s < ends.length; s++) {
+        if (!f) { arcOn[s] = 1; continue; }
+        const ia = starIndex.get(ends[s][0])!, ib = starIndex.get(ends[s][1])!;
+        arcOn[s] = "band" in f ? +(bands[s] === f.band) : +(starLevel[ia] === 2 || starLevel[ib] === 2);
+        if (!arcOn[s]) continue;
+        for (const j of [ia, ib]) if ("band" in f) starLevel[j] = 2; else if (starLevel[j] < 2) starLevel[j] = 0.5;
+      }
       stars.forEach((s, i) => {
+        if (f) { dim.setX(i, starLevel[i] === 2 ? 1 : starLevel[i] ? 0.5 : 0.08); size.setX(i, baseSize[i] * (starLevel[i] === 2 ? 1.5 : 1)); return; }
         const on = !focus || focus.has(s.id);
         dim.setX(i, on ? 1 : 0.16); size.setX(i, baseSize[i] * (focus && on ? 1.7 : 1));
       });
       dim.needsUpdate = size.needsUpdate = true;
-      const ac = arcGeo.getAttribute("color") as THREE.BufferAttribute, base = arcGeo.userData.base as Float32Array, ends = arcGeo.userData.ends as [string, string][];
       for (let s = 0; s < ends.length; s++) {
-        const on = !focus || (focus.has(ends[s][0]) && focus.has(ends[s][1]));
-        const k = !focus ? 1 : on ? 2.4 : 0.12;
+        const on = f ? arcOn[s] === 1 : !focus || (focus.has(ends[s][0]) && focus.has(ends[s][1]));
+        const k = f ? (on ? 2 : 0.05) : !focus ? 1 : on ? 2.4 : 0.12;
         for (let v = 0; v < 2; v++) for (let c = 0; c < 3; c++) ac.array[(s * 2 + v) * 3 + c] = base[(s * 2 + v) * 3 + c] * k;
       }
       ac.needsUpdate = true;
-      labelEls.forEach(l => { if (l.star != null) l.el.classList.toggle("c-dim", !!focus && !focus.has(stars[l.star].id)); });
+      labelEls.forEach(l => { if (l.star != null) l.el.classList.toggle("c-dim", f ? starLevel[l.star] === 0 : !!focus && !focus.has(stars[l.star].id)); });
       labelLayer!.classList.toggle("focused", !!(focus && focus.size));
       // Camera eases toward the focused stars.
       if (focus && focus.size) {
@@ -245,7 +262,7 @@ export default function Constellation() {
       world.add(starPoints);
 
       // Arcs: each thesis as a gentle curve, PITCH warmer and brighter than WATCH.
-      const SEG = 14, segs: number[] = [], cols: number[] = [], ends: [string, string][] = [];
+      const SEG = 14, segs: number[] = [], cols: number[] = [], ends: [string, string][] = [], bands: string[] = [];
       for (const a of g.arcs) {
         const ia = starIndex.get(a.a), ib = starIndex.get(a.b);
         if (ia == null || ib == null) continue;
@@ -255,12 +272,13 @@ export default function Constellation() {
           segs.push(pts[k].x, pts[k].y, pts[k].z, pts[k + 1].x, pts[k + 1].y, pts[k + 1].z);
           cols.push(c.r, c.g, c.b, c.r, c.g, c.b);
           ends.push([a.a, a.b]);
+          bands.push(a.band);
         }
       }
       arcGeo = new THREE.BufferGeometry();
       arcGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(segs), 3));
       arcGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(cols), 3));
-      arcGeo.userData = { base: new Float32Array(cols), ends };
+      arcGeo.userData = { base: new Float32Array(cols), ends, bands };
       world.add(new THREE.LineSegments(arcGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })));
 
       // Name the accounts: the companies the agents are working.
@@ -303,6 +321,8 @@ export default function Constellation() {
     const onFocus = (e: Event) => { const ids = (e as CustomEvent<FocusEvent>).detail.stars; focus = ids.length ? new Set(ids) : null; applyFocus(); };
     addEventListener("syzygy:pulse", onPulse);
     addEventListener("syzygy:focus", onFocus);
+    const onFilter = (e: Event) => { filter = (e as CustomEvent<SkyFilter>).detail; applyFocus(); };
+    addEventListener("syzygy:filter", onFilter);
     const pending = (window as unknown as { __syzygyFocus?: string[] }).__syzygyFocus;
     if (pending?.length) focus = new Set(pending);
 
@@ -317,6 +337,7 @@ export default function Constellation() {
       let best = -1, bestD = Infinity;
       for (let i = 0; i < stars.length; i++) {
         if (focus && focus.size && !focus.has(stars[i].id)) continue;
+        if (filter && !(focus && focus.size) && !starLevel[i]) continue; // hidden by the legend filter
         world.localToWorld(proj.copy(starVec(i)));
         const depth = eye.copy(proj).applyMatrix4(camera.matrixWorldInverse).z;
         if (depth >= 0) continue;
@@ -504,6 +525,7 @@ export default function Constellation() {
       cancelAnimationFrame(raf);
       removeEventListener("syzygy:pulse", onPulse);
       removeEventListener("syzygy:focus", onFocus);
+      removeEventListener("syzygy:filter", onFilter);
       removeEventListener("resize", onResize);
       labelEls.forEach(l => l.el.remove());
       controls.current = null;

@@ -7,6 +7,9 @@ export const TYPE_HUE: Record<string, string> = {
 
 export type PulseEvent = { agent: string; stars: string[] };
 export type FocusEvent = { stars: string[] };
+/** Legend filter on the homepage: isolate one star type, or one band of thesis line. Null clears it. */
+export type SkyFilter = { type: string } | { band: string } | null;
+export const filterSky = (f: SkyFilter) => dispatchEvent(new CustomEvent<SkyFilter>("syzygy:filter", { detail: f }));
 
 /** The feed calls this whenever an agent action lands: light leaves that agent and lands on those stars. */
 export const pulse = (agent: string, stars: string[]) => dispatchEvent(new CustomEvent<PulseEvent>("syzygy:pulse", { detail: { agent, stars } }));

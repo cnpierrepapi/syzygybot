@@ -7,16 +7,18 @@ import type { Metadata } from "next";
 // Only the floor itself claims "/" as its canonical address; every other page sets its own or none.
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 import { Logo } from "./components/visuals";
+import SkyLegend from "./components/SkyLegend";
 import { typeColors } from "@/lib/ui";
+import { graph } from "@/lib/graph";
 
 export const dynamic = "force-dynamic";
 
 type Card = { id: string; slug: string | null; score: number; band: string; thesis: string | null; a_name: string; a_type: string; b_name: string; b_type: string };
 
 async function load() {
-  if (!process.env.DATABASE_URL) return { items: [] as FeedItem[], counts: [] as Funnel, cards: [] as Card[] };
+  if (!process.env.DATABASE_URL) return { items: [] as FeedItem[], counts: [] as Funnel, cards: [] as Card[], types: [] as string[] };
   try {
-    const [items, counts, cards] = await Promise.all([
+    const [items, counts, cards, g] = await Promise.all([
       feed(40),
       funnel(),
       sql()`
@@ -24,16 +26,18 @@ async function load() {
         from pairs p join entities a on a.qloo_id = p.a_id join entities b on b.qloo_id = p.b_id
         where p.band = 'PITCH' and p.thesis is not null
         order by p.called_at desc, p.score desc limit 4`.then(r => r as Card[]),
+      graph(),
     ]);
-    return { items, counts, cards };
+    // The legend only offers types the sky actually has, so no filter ever isolates an empty sky.
+    return { items, counts, cards, types: [...new Set(g.stars.map(s => s.type))] };
   } catch {
-    return { items: [] as FeedItem[], counts: [] as Funnel, cards: [] as Card[] };
+    return { items: [] as FeedItem[], counts: [] as Funnel, cards: [] as Card[], types: [] as string[] };
   }
 }
 
 const LEGEND: [string, string][] = [["brand", "Brands"], ["artist", "Artists"], ["tv_show", "TV shows"], ["movie", "Films"]];
 
-function Hero() {
+function Hero({ types }: { types: string[] }) {
   return (
     <section className="hero">
       <div className="fade-up" style={{ maxWidth: 680 }}>
@@ -45,15 +49,12 @@ function Hero() {
           Ray-Ban&apos;s is 0.93. That&apos;s how hard Bad Bunny&apos;s fans lean toward it. SYZYGY digs up numbers like that,
           then goes and tells the one person at the brand who should hear it. Ten agents. Nobody at the desk.
         </p>
-        <div className="legend">
-          {LEGEND.map(([t, label]) => {
-            const [c] = typeColors(t);
-            return <span key={t} className="chip"><i style={{ background: c, boxShadow: `0 0 8px ${c}` }} />{label}</span>;
-          })}
-          <span className="chip"><i style={{ background: "#ffb020" }} />PITCH line</span>
-          <span className="chip"><i style={{ background: "#5b6fd6" }} />WATCH line</span>
-        </div>
-        <p className="hint">Each star is a brand, artist or show. Each line is a thesis. Hover for a name, click to open it.</p>
+        <SkyLegend items={[
+          ...LEGEND.filter(([t]) => !types.length || types.includes(t)).map(([t, label]) => ({ key: t, label, color: typeColors(t)[0], filter: { type: t } })),
+          { key: "PITCH", label: "PITCH line", color: "#ffb020", filter: { band: "PITCH" } },
+          { key: "WATCH", label: "WATCH line", color: "#5b6fd6", filter: { band: "WATCH" } },
+        ]} />
+        <p className="hint">Each star is a brand, artist or show. Each line is a thesis. Click a label above to show only those; hover a star for its name, click to open it.</p>
       </div>
     </section>
   );
@@ -91,7 +92,7 @@ function Featured({ cards }: { cards: Card[] }) {
 }
 
 export default async function Floor() {
-  const { items, counts, cards } = await load();
+  const { items, counts, cards, types } = await load();
   return (
     <main className="wrap">
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(siteJsonLd())} />
@@ -99,7 +100,7 @@ export default async function Floor() {
         <Logo />
         <span className="crumb">LIVE FLOOR · syzygybot.vercel.app</span>
       </nav>
-      <Hero />
+      <Hero types={types} />
       <LiveFloor initialItems={items} initialFunnel={counts} middle={<Featured cards={cards} />} />
       <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 28, maxWidth: 760 }}>
         Scores describe aggregate audience affinity from Qloo taste data, not individuals, and say nothing about what a
