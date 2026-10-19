@@ -10,6 +10,8 @@ import { Logo } from "./components/visuals";
 import SkyLegend from "./components/SkyLegend";
 import { typeColors } from "@/lib/ui";
 import { graph } from "@/lib/graph";
+import { SOURCES } from "@/lib/sources";
+import { RULE_LABEL } from "@/lib/clearance";
 
 export const dynamic = "force-dynamic";
 
@@ -37,24 +39,54 @@ async function load() {
 
 const LEGEND: [string, string][] = [["brand", "Brands"], ["artist", "Artists"], ["tv_show", "TV shows"], ["movie", "Films"]];
 
-function Hero({ types }: { types: string[] }) {
+type Stack = { sources: number; measured: number; rooms: number; verified: number; rules: number; waiting: number };
+
+async function stackCounts(): Promise<Stack | null> {
+  try {
+    const [c] = (await sql()`select
+      (select count(*) from pair_queue)::int + (select count(*) from pairs)::int measured,
+      (select count(*) from venues)::int rooms,
+      (select count(*) from contacts where role_status = 'confirmed')::int verified,
+      (select count(*) from permission_requests r where not exists (select 1 from request_decisions d where d.request_id = r.id))::int waiting`) as Omit<Stack, "sources" | "rules">[];
+    return { ...c, sources: SOURCES.length, rules: Object.keys(RULE_LABEL).length + 1 };
+  } catch { return null; }
+}
+
+function Hero({ types, stack }: { types: string[]; stack: Stack | null }) {
+  const n = (x: number) => x.toLocaleString("en-US");
+  const steps: [string, string | null][] = stack ? [
+    ["News watch", `${n(stack.sources)} sources`], ["Match scoring", `${n(stack.measured)} Qloo pairs + our own score`],
+    ["Tour routing", `${n(stack.rooms)} rooms`], ["Buyers", `${n(stack.verified)} verified`], ["Writing", null],
+    ["Clearance", `${stack.rules} rules`], ["Send + follow-up", null], ["Inbox", null], ["CRM", null],
+  ] : [];
   return (
     <section className="hero">
-      <div className="fade-up" style={{ maxWidth: 680 }}>
-        <p className="eyebrow"><span className="live-dot" style={{ marginRight: 10 }} />AI sales team · runs on Qloo</p>
-        <h1 className="headline" style={{ fontSize: "clamp(34px, 4.6vw, 58px)", lineHeight: 1.02 }}>
-          <span>Every brand has</span><span>a Qloo number</span><span>it hasn&apos;t seen <span className="grad-text" style={{ display: "inline" }}>yet</span>.</span>
+      <div className="fade-up" style={{ maxWidth: 700 }}>
+        <p className="eyebrow"><span className="live-dot" style={{ marginRight: 10 }} />All-in-one · fully automated · entertainment</p>
+        <h1 className="headline" style={{ fontSize: "clamp(36px, 5vw, 62px)", lineHeight: 1.02 }}>
+          <span>Your audience data,</span><span>finally doing</span><span className="grad-text">the work.</span>
         </h1>
-        <p style={{ color: "var(--dim)", fontSize: 16.5, maxWidth: 560, marginTop: 18 }}>
-          Ray-Ban&apos;s is 0.93. That&apos;s how hard Bad Bunny&apos;s fans lean toward it. SYZYGY digs up numbers like that,
-          then goes and tells the one person at the brand who should hear it. Ten agents. Nobody at the desk.
+        <p style={{ color: "var(--dim)", fontSize: 17, maxWidth: 580, marginTop: 18 }}>
+          Most taste data ends up in a slide deck. SYZYGY puts it on payroll. 17 agents take what an audience loves and turn it into
+          booked rooms, sold sponsorships, signed ambassadors and filled ad slots. All in one place. Fully automated. Running right
+          now, while you read this. You just say yes.
         </p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
+          <a className="btn" href="/desk">Open a desk →</a>
+          <a className="btn quiet" href="#floor">Watch the floor ↓</a>
+        </div>
+        {steps.length > 0 && (
+          <div className="stack-strip" aria-label="The whole stack, running now">
+            <p className="eyebrow" style={{ margin: "0 0 8px" }}>The whole stack, running now</p>
+            <ol>{steps.map(([k, v]) => <li key={k}><b>{k}</b>{v && <span>{v}</span>}</li>)}</ol>
+          </div>
+        )}
         <SkyLegend items={[
           ...LEGEND.filter(([t]) => !types.length || types.includes(t)).map(([t, label]) => ({ key: t, label, color: typeColors(t)[0], filter: { type: t } })),
           { key: "PITCH", label: "PITCH line", color: "#ffb020", filter: { band: "PITCH" } },
           { key: "WATCH", label: "WATCH line", color: "#5b6fd6", filter: { band: "WATCH" } },
         ]} />
-        <p className="hint">Each star is a brand, artist or show. Each line is a thesis. Click a label above to show only those; hover a star for its name, click to open it.</p>
+        <p className="hint">Each star is a brand, artist or show. Each line is a match the agents are working. Click a label to show only those; hover a star for its name, click to open it.</p>
       </div>
     </section>
   );
@@ -92,7 +124,7 @@ function Featured({ cards }: { cards: Card[] }) {
 }
 
 export default async function Floor() {
-  const { items, counts, cards, types } = await load();
+  const [{ items, counts, cards, types }, stack] = await Promise.all([load(), stackCounts()]);
   return (
     <main className="wrap">
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(siteJsonLd())} />
@@ -103,11 +135,12 @@ export default async function Floor() {
           <a className="btn" href="/desk" style={{ padding: "7px 16px", fontSize: 13.5 }}>Open a desk →</a>
         </span>
       </nav>
-      <Hero types={types} />
+      <Hero types={types} stack={stack} />
+      <div id="floor" />
       <LiveFloor initialItems={items} initialFunnel={counts} middle={<Featured cards={cards} />} />
       <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 28, maxWidth: 760 }}>
-        Scores describe aggregate audience affinity from Qloo taste data, not individuals, and say nothing about what a
-        partnership would cause. Contact details are masked on this public page.
+        Match scores describe aggregate audiences, not individuals, and say nothing about what a deal would cause. Our match
+        score is SYZYGY&apos;s own; where Qloo has measured a pair, Qloo&apos;s taste data confirms it. Contact details are masked on this public page.
       </p>
     </main>
   );

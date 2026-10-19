@@ -170,3 +170,5 @@ ok("clearance: unpublished address holds", await status({ addressSource: "guesse
 ok("clearance: departed contact holds", await status({ roleStatus: "departed" }) === "hold");
 ok("clearance: Qloo numbers without credit hold; posing as Qloo holds", await status({ body: out.body.replace(", per Qloo's taste data", "") }) === "hold" && await status({ body: out.body + " We at Qloo agree." }) === "hold");
 ok("clearance: country from the address domain", countryOf("x@verlag.de", "US") === "DE" && countryOf("x@venue.com", "MX") === "MX");
+ok("clearance: sensitive audience labels hold", await status({ body: out.body + " Shared audience tastes include reggaeton, fight and school." }) === "hold"
+  && await status({ body: out.body + " Shared audience tastes include reggaeton and streetwear." }) === "pass");

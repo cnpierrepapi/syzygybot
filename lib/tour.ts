@@ -11,7 +11,7 @@ type Room = { id: string; name: string; slug: string | null; metro: string; capa
 const STAGE_KIND = /music venue|concert hall|amphitheat|theatre|nightclub/i;
 const inactive = (r: Room) => !!r.profile?.summary && !(r.profile.recentActs ?? []).length;
 
-export async function planTour(artistName: string, opts: { cities?: number; roomsPerCity?: number; roomSize?: [number, number] } = {}) {
+export async function planTour(artistName: string, opts: { cities?: number; roomsPerCity?: number; roomSize?: [number, number]; liveNationOnly?: boolean } = {}) {
   const { profiles } = await loadCorpus();
   const artist = [...profiles.values()].find(p => p.name.toLowerCase() === artistName.toLowerCase() && (p.type === "artist" || p.type === "tv_show"));
   if (!artist) return null;
@@ -26,7 +26,7 @@ export async function planTour(artistName: string, opts: { cities?: number; room
     artist: artist.name, popularity: artist.popularity, roomSize: [lo, hi],
     stops: cities.map(([metro, w]) => ({
       metro, fanWeight: +w.toFixed(2),
-      rooms: rooms.filter(r => r.metro === metro && !inactive(r)).map(r => {
+      rooms: rooms.filter(r => r.metro === metro && !inactive(r) && (!opts.liveNationOnly || r.live_nation)).map(r => {
         const s = sizeFit(r.capacity_est, artist.popularity, [lo, hi]);
         const t = r.profile?.tags?.length ? tagSimilarity(new Set(r.profile.tags), artist.tags, df, n) : null;
         return {

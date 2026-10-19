@@ -4,7 +4,7 @@
 import { sql } from "../db";
 import { loadCorpus, type Profile } from "../corpus";
 import { synthesize, lookalike } from "../lookalike";
-import { metroMap, sideOf, syzygyMatch, type Match, type Side } from "../match";
+import { metroMap, sideOf, syzygyMatch, tagLabel, type Match, type Side } from "../match";
 import { makeRequest, talentDeals, type Purpose } from "./common";
 import type { DeskId, Persona } from "../personas";
 
@@ -58,7 +58,7 @@ export async function runPatternTalent(p: Persona, subject: string, n = 3, desk:
     const facts = [
       `Our match score between ${subject}'s audience and ${brand.name}'s: ${m.score} out of 100 (${m.strength}). Qloo hasn't measured ${subject} yet, so this is SYZYGY's own estimate.`,
       `${subject}'s profile was built from public sources in Qloo's tag vocabulary${nearest.length ? `; its nearest measured look-alikes are ${nearest.join(", ")}` : ""}.`,
-      ...(m.sharedTags.length ? [`Shared audience tastes: ${m.sharedTags.slice(0, 4).map(t => t.split(":").pop()!.replace(/_/g, " ")).join(", ")}.`] : []),
+      ...(m.sharedTags.length ? [`Shared audience tastes: ${m.sharedTags.slice(0, 4).map(tagLabel).join(", ")}.`] : []),
       ...(m.sharedCities.length ? [`Both audiences concentrate in ${m.sharedCities.slice(0, 3).join(", ")}.`] : []),
     ];
     const [e] = (await sql()`select official_site from entities where qloo_id = ${brand.id}`) as { official_site: string | null }[];

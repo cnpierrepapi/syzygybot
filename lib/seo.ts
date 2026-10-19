@@ -26,7 +26,7 @@ export const siteJsonLd = () => ({
     { "@type": "WebSite", "@id": `${SITE}/#site`, url: SITE, name: "SYZYGY", publisher: { "@id": ORG["@id"] } },
     {
       "@type": "SoftwareApplication", name: "SYZYGY", url: SITE, applicationCategory: "BusinessApplication", operatingSystem: "Web",
-      description: "A sales team made of AI agents, built on Qloo's taste data, that finds audience overlaps between brands, artists and shows and works the account in public.",
+      description: "A complete, fully automated commercial team for entertainment. 17 AI agents turn audience data into tour routes, venue holds, sponsorship and ambassador pitches, ad sales and sales pipeline, with a compliance agent and a person approving every send. Built on Qloo's taste data plus its own match score.",
       creator: { "@id": ORG["@id"] },
     },
   ],

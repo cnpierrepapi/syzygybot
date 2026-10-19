@@ -9,7 +9,7 @@ import { DESK_COOKIE, openDesk } from "@/lib/desk";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Open a desk",
-  description: "Pick what you do and who you do it for. SYZYGY's agents start working that desk and ask before anything goes out.",
+  description: "Pick your job. SYZYGY switches on every desk it needs, fully automated, and asks before anything goes out.",
   alternates: { canonical: "/desk" },
 };
 
@@ -34,8 +34,9 @@ export default async function DeskStart({ searchParams }: { searchParams: Promis
         <p className="eyebrow">Open a desk</p>
         <h1 style={{ fontSize: "clamp(30px, 4vw, 44px)", lineHeight: 1.05 }}>Tell it what you do.<br /><span className="grad-text">The agents take it from there.</span></h1>
         <p style={{ color: "var(--dim)", maxWidth: 600, marginTop: 14 }}>
-          Your job decides which desks switch on. They research, score and write around the clock. Anything that would leave the building
-          comes to you first, as a request you can approve, edit, reject or park.
+          Pick your job. SYZYGY switches on every desk that job needs and the agents get to work: the research, the scoring, the
+          contacts, the writing, the compliance, the follow-up. Fully automated, around the clock. Anything that would leave the
+          building comes to you first, and you approve, edit, reject or park it.
         </p>
         {full && <p className="chip" style={{ color: "#ff8080", marginTop: 12 }}>Today&apos;s demo desks are all taken. Try again tomorrow.</p>}
       </section>

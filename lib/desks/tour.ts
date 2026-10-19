@@ -8,7 +8,7 @@ import { makeRequest } from "./common";
 import type { Persona } from "../personas";
 
 export async function runTour(p: Persona, artist: string, opts: { stops?: number; liveNationOnly?: boolean } = {}) {
-  const plan = await planTour(artist, { roomSize: p.roomSize, cities: 8, roomsPerCity: 6 });
+  const plan = await planTour(artist, { roomSize: p.roomSize, cities: 12, roomsPerCity: 6, liveNationOnly: opts.liveNationOnly });
   if (!plan) return [];
   const { profiles } = await loadCorpus();
   const a = [...profiles.values()].find(x => x.name === plan.artist)!;
@@ -17,7 +17,7 @@ export async function runTour(p: Persona, artist: string, opts: { stops?: number
   const made: string[] = [];
   const stops = plan.stops.filter(s => s.rooms.length).slice(0, opts.stops ?? 4);
   for (const [i, s] of stops.entries()) {
-    const pick = s.rooms.find(r => !r.needsRead && (!opts.liveNationOnly || r.liveNation)) ?? (opts.liveNationOnly ? null : s.rooms[0]);
+    const pick = s.rooms.find(r => !r.needsRead) ?? s.rooms[0];
     if (!pick) continue;
     const room = rooms.find(r => r.id === pick.id)!;
     const m = room.profile?.tags?.length

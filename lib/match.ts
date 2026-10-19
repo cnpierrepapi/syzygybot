@@ -7,8 +7,12 @@
 import { loadCorpus, tagFrequencies, tagSimilarity, type Profile } from "./corpus";
 import { METROS } from "./geo";
 
-// Tags that may describe what an audience watches but must never appear in a pitch as "shared tastes".
-const SENSITIVE = /prison|violen|fight|crime|criminal|murder|death|drug|addict|\bwar\b|weapon|gun|sex|erotic|nud|gay|lesbian|lgbt|queer|religio|christian|islam|jewish|politic|abuse|suicide|terror|racis|gang|alcohol/i;
+// Tags that may describe what an audience watches but must never appear in a pitch as "shared tastes": violence and crime,
+// sexuality, religion, politics, health, and anything about minors. Clearance holds any message that uses one anyway.
+export const SENSITIVE = /prison|violen|fight|crime|criminal|murder|death|drug|addict|\bwar\b|weapon|\bguns?\b|\bsex|erotic|nud|gay|lesbian|lgbt|queer|religio|christian|islam|jewish|politic|abuse|suicide|terror|racis|gang|alcohol|\bteen|\bboys?\b|\bgirls?\b|\bkids?\b|child|school|\bmexico\b|ethnic|\brace\b|disab|illness|cancer/i;
+
+/** "urn:tag:keyword:qloo:teen_comedy" -> "Teen comedy". */
+export const tagLabel = (t: string) => { const s = t.split(":").pop()!.replace(/_/g, " "); return s.charAt(0).toUpperCase() + s.slice(1); };
 
 export type Side = { id?: string; name: string; tags: Set<string>; age: Record<string, number> | null; metros: Map<string, number> };
 export type QlooConfirm = { toward: number; back: number; band: string };

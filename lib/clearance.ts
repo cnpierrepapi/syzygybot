@@ -2,6 +2,7 @@
 // record rides on the card. A failed rule doesn't kill the draft: it lands on hold with the reason, for a person to clear.
 // The rules are settings, so a clearance lead can tighten or loosen them per workspace (Rules below).
 import { ask, parseJson } from "./llm";
+import { SENSITIVE } from "./match";
 
 export type Rules = {
   disclosure: boolean;        // AI disclosure in the opening lines (EU AI Act Art. 50, applies since 2 Aug 2026)
@@ -120,6 +121,11 @@ export async function clear(o: Outbound, rules: Rules = DEFAULT_RULES): Promise<
   const credits = !o.usesQloo || /qloo/.test(all);
   checks.push({ rule: "data", label: "Data credited honestly", pass: !poses && credits && !/—/.test(all),
     note: poses ? "Reads as if sent by Qloo." : !credits ? "Uses Qloo numbers without crediting Qloo's taste data." : /—/.test(all) ? "House style: no em dashes." : o.usesQloo ? "Qloo's taste data credited; SYZYGY's own match score labelled as ours." : "Only SYZYGY's own match score is used, labelled as ours." });
+  // Not a setting either: an audience is never described by violence, sexuality, religion, politics, health or age.
+  const tastes = /(shared (audience )?tastes?|audiences? (share|like|love|lean)|tastes include)[^.]*\./i.exec(o.body)?.[0] ?? "";
+  const label = SENSITIVE.exec(tastes)?.[0];
+  checks.push({ rule: "data", label: "No sensitive audience labels", pass: !label,
+    note: label ? `Describes the audience with "${label}". Audiences are never described by violence, sexuality, religion, politics, health or age.` : "Audience described by tastes only." });
   if (rules.endorsement) checks.push(endorsementRule(o));
   if (rules.country) checks.push(countryRule(o, rules));
   if (rules.publishedOnly && o.channel === "email") {

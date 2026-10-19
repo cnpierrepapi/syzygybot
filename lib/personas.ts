@@ -36,6 +36,8 @@ export type Persona = {
   role: RoleId;
   subject: string;          // the corpus entity (or look-alike profile) the desks work on
   watch: string[];          // what Market Watch reads for, in order of weight
+  news: string[];           // the news searches behind it (Google News syntax), one per line of interest
+  groups: string[];         // which curated trade-press groups (lib/sources.ts) Market Watch searches
   roomSize?: [number, number];
   lineup?: { name: string; members: string[] };
   brands?: string[];        // the persona's own brands (look-alike profiles)
@@ -49,6 +51,8 @@ export const PERSONAS: Persona[] = [
     who: "Runs the tour and the brand deals that ride on it.",
     forWhom: "Bad Bunny, whose fans concentrate in Puerto Rico, the Dominican Republic, the Texas border and Miami.",
     role: "tour", subject: "Bad Bunny", roomSize: [10000, 60000],
+    news: ["reggaeton OR \"Latin artist\" stadium tour announced", "Coliseo de Puerto Rico OR \"Kaseya Center\" concert", "Latin festival lineup announced", "\"Bad Bunny\" OR \"Karol G\" OR \"Peso Pluma\" brand deal", "\"chief marketing officer\" appointed sportswear OR beverage OR fashion"],
+    groups: ["live", "music", "talent", "marketing", "sports"],
     watch: [
       "stadium and arena tour announcements by Latin and reggaeton artists",
       "venue openings, closures and renovations in Puerto Rico, Miami and Texas",
@@ -63,6 +67,8 @@ export const PERSONAS: Persona[] = [
     who: "Sells the ad slots on the show.",
     forWhom: "This Week in Startups, Jason Calacanis's podcast for founders and angel investors.",
     role: "media", subject: "This Week in Startups",
+    news: ["startup raises Series A OR \"Series B\" consumer", "startup launches product founders", "podcast sponsorship deal advertisers", "startup hires \"chief marketing officer\" OR \"head of growth\""],
+    groups: ["tech", "marketing", "media_business", "business"],
     watch: [
       "startup funding rounds of $10M or more in consumer, fintech and developer tools",
       "startup product launches",
@@ -76,6 +82,8 @@ export const PERSONAS: Persona[] = [
     who: "Brings brands and agencies to Qloo's table.",
     forWhom: "Qloo, with SYZYGY working as its own outbound sales team.",
     role: "brand", subject: "Qloo",
+    news: ["\"chief marketing officer\" appointed consumer brand", "\"consumer insights\" head appointed", "brand partnership announced artist", "agency wins account review", "audience data OR \"taste data\" company"],
+    groups: ["marketing", "pr", "media_business", "business"],
     watch: [
       "new chief marketing officers and heads of consumer insights at consumer brands",
       "brand and artist partnership announcements",
@@ -89,6 +97,8 @@ export const PERSONAS: Persona[] = [
     who: "Signs off on everything the agents send, sets the rules, and keeps the record.",
     forWhom: "A studio's legal and brand-safety office, reviewing every desk's outbound queue.",
     role: "clearance", subject: "Clearance",
+    news: ["\"AI Act\" transparency OR \"Article 50\"", "FTC endorsement OR influencer enforcement", "\"right of publicity\" lawsuit OR \"NO FAKES\"", "CASL OR GDPR OR \"CAN-SPAM\" fine marketing", "exclusive endorsement deal signs"],
+    groups: ["marketing", "media_business", "talent", "business"],
     watch: [
       "EU AI Act transparency rules and enforcement",
       "FTC endorsement guides and influencer enforcement",
@@ -109,6 +119,8 @@ export const PERSONAS: Persona[] = [
       members: ["The Diplomat", "The Pitt", "Pluribus", "Severance", "Slow Horses", "The White Lotus",
         "Abbott Elementary", "The Bear", "Hacks", "Nobody Wants This", "Only Murders in the Building", "The Studio"],
     },
+    news: ["\"Golden Globes\" OR Emmys OR Oscars OR Grammys sponsor", "award season nominations 2027", "actor signs brand ambassador deal", "\"chief marketing officer\" luxury OR auto OR beverage appointed"],
+    groups: ["film_tv", "media_business", "talent", "marketing", "awards"],
     watch: [
       "award season news: Golden Globes, Emmys, Oscars and Grammys",
       "brand deals signed by nominated actors and shows",
@@ -123,6 +135,8 @@ export const PERSONAS: Persona[] = [
     forWhom: "Cedric the Entertainer and his brands: AC Barbeque, Setta Wines, Who Ced and A Bird and a Bear Entertainment.",
     role: "talent", subject: "Cedric the Entertainer",
     brands: ["AC Barbeque", "Setta Wines", "Who Ced", "A Bird and a Bear Entertainment"],
+    news: ["barbecue sauce OR \"BBQ\" brand launch", "wine OR spirits celebrity brand launch", "comedian brand deal ambassador", "food festival OR \"wine festival\" sponsor"],
+    groups: ["food_bev", "drinks", "talent", "marketing"],
     watch: [
       "barbecue, sauce, wine and spirits product launches",
       "brands signing comedians and Black-led TV talent",
@@ -136,6 +150,8 @@ export const PERSONAS: Persona[] = [
     who: "Sells sponsorship across the rooms and the tours that play them.",
     forWhom: "Live Nation's venues, starting with the House of Blues and Fillmore rooms in the corpus.",
     role: "venue", subject: "Live Nation",
+    news: ["arena OR amphitheater tour announced 2027", "venue naming rights deal", "experiential marketing live events brand", "\"AEG Presents\" OR \"Live Nation\" deal"],
+    groups: ["live", "music", "marketing", "sports"],
     watch: [
       "arena and amphitheater tour announcements",
       "venue openings and naming-rights deals",

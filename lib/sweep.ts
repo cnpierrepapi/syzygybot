@@ -22,6 +22,9 @@ type Status = { status: number; robots_block?: boolean; final?: string; search_f
 const results = (status as { results: Record<string, Status> }).results;
 export const readable = (s: Source) => { const r = results[s.domain]; return !!r && r.status >= 200 && r.status < 400 && !r.robots_block; };
 const READABLE = SOURCES.filter(readable);
+/** Readable sources in these groups that publish a search feed (WordPress ?s=...&feed=rss2), for keyword watching. */
+export const feedSources = (groups: string[]) =>
+  READABLE.filter(s => groups.includes(s.group) && results[s.domain]?.search_feed).map(s => ({ ...s, feed: results[s.domain].search_feed! }));
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, "").toLowerCase(); } catch { return ""; } };
 /** The source an article URL belongs to, if it is on the list and readable. */
 export function sourceOf(url: string) {
