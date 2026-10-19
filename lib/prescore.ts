@@ -6,6 +6,7 @@
 import { sql } from "./db";
 import { logAction } from "./actions";
 import { RUBRIC_VERSION, score, type Raw } from "./rubric";
+import type { Estimate } from "./estimate";
 import { entities, isQuotaError, qlooCallsLeft, search, topFor, type EntityType, type QlooEntity } from "./qloo";
 
 // The sweep stops while this many of the month's Qloo calls are left (10,000 a month on the hackathon key),
@@ -13,7 +14,7 @@ import { entities, isQuotaError, qlooCallsLeft, search, topFor, type EntityType,
 export const SWEEP_RESERVE = 4000;
 import { LIST, PARTNER_TYPES, SEEDS, SKIP_TOP, measure, scorePair, typeOf, type Memo } from "./scout";
 
-type QueueRow = { id: string; a_id: string; b_id: string; a: QlooEntity; b: QlooEntity; score: number; band: string; dims: { raw?: Raw } };
+type QueueRow = { id: string; a_id: string; b_id: string; a: QlooEntity; b: QlooEntity; score: number; band: string; dims: { raw?: Raw; estimate?: Estimate } };
 
 /** Brands already pitched (either side of a WATCH/PITCH pair, or an account) plus the exclude list. */
 export async function excludedIds(): Promise<Set<string>> {
@@ -127,7 +128,8 @@ export async function pickFromQueue(n = 1) {
   const excluded = await excludedIds();
   const rows = (await sql()`
     select id, a_id, b_id, a, b, score, band, dims from pair_queue where status = 'queued'
-    order by (band = 'PITCH') desc, score desc limit 200`) as QueueRow[];
+    -- Qloo-measured pairs go first within a band; SYZYGY estimates fill in behind them.
+    order by (band = 'PITCH') desc, (dims ? 'estimate') asc, score desc limit 200`) as QueueRow[];
   const [{ waiting }] = (await sql()`select count(*)::int waiting from pair_queue where status = 'queued'`) as { waiting: number }[];
   const out = [];
   for (const r of rows) {
@@ -140,12 +142,14 @@ export async function pickFromQueue(n = 1) {
     await sql()`update pair_queue set status = 'picked', picked_at = now() where id = ${r.id}`;
     const pickedAction = await logAction({
       agent: "scout", kind: "queue.picked",
-      summary: `Picked ${r.a.name} × ${r.b.name} from the queue: best of ${waiting - out.length} waiting (pre-score ${r.score.toFixed(2)} ${r.band}).`,
+      summary: r.dims.estimate
+        ? `Picked ${r.a.name} × ${r.b.name} from the queue: a SYZYGY estimate, our match ${r.dims.estimate.score}/100 (${r.band}), not measured by Qloo.`
+        : `Picked ${r.a.name} × ${r.b.name} from the queue: best of ${waiting - out.length} waiting (pre-score ${r.score.toFixed(2)} ${r.band}).`,
       detail: { entity_id: r.a_id, queue_id: r.id },
     });
     try {
       // The intake measured this pair today; use those numbers rather than spending Qloo calls again.
-      const scored = await scorePair(r.a, r.b, r.dims.raw ? { raw: r.dims.raw } : undefined);
+      const scored = await scorePair(r.a, r.b, r.dims.raw ? { raw: r.dims.raw, estimate: r.dims.estimate, band: r.band } : undefined);
       await sql()`update pair_queue set pair_id = ${scored.pairId} where id = ${r.id}`;
       // The pick line on the floor opens the thesis it became.
       await sql()`update actions set ref_table = 'pairs', ref_id = ${scored.pairId} where id = ${pickedAction}`;

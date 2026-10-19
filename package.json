@@ -24,6 +24,7 @@
     "exclude": "tsx --env-file-if-exists=.env.local scripts/exclude.mts",
     "venues": "tsx --env-file-if-exists=.env.local scripts/venues.mts",
     "venues:pull": "tsx scripts/venues-pull.mts",
+    "estimate": "tsx --env-file-if-exists=.env.local scripts/estimate.mts",
     "rebands": "tsx --env-file-if-exists=.env.local scripts/rebands.mts",
     "desks": "tsx --env-file-if-exists=.env.local scripts/desks.mts",
     "tour": "tsx --env-file-if-exists=.env.local scripts/tour.mts",

@@ -1,6 +1,7 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { claimables } from "@/lib/claim";
 import { sql } from "@/lib/db";
+import { tagLabel } from "@/lib/match";
 import { FocusStars } from "../../components/Sky";
 import type { Metadata } from "next";
 import { clip, jsonLd, ORG } from "@/lib/seo";
@@ -15,7 +16,8 @@ export const dynamic = "force-dynamic";
 
 type Row = {
   id: string; score: number; band: string; thesis: string | null; called_at: string; rubric_version: string;
-  dims: { dims: Record<Dim, { score: number; raw: unknown; note: string }>; gate: string | null; raw?: { tagsA: string[]; tagsB: string[] } };
+  dims: { dims: Record<Dim, { score: number; raw: unknown; note: string }>; gate: string | null; raw?: { tagsA: string[]; tagsB: string[] };
+    estimate?: { score: number; strength: string; parts: { taste: number; age: number | null; cities: number }; sharedTags: string[]; sharedCities: string[] } };
   a_name: string; a_type: string; a_handle: string | null; b_name: string; b_type: string; b_handle: string | null;
   account_entity: string | null;
   account_id: string | null; account_name: string | null; account_slug: string | null; slug: string | null; a_id: string; b_id: string;
@@ -61,8 +63,10 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
     where p.id = ${id} limit 1`) as Row[];
   if (!p) notFound();
   const dims = (Object.keys(WEIGHTS) as Dim[]);
-  const pull = p.dims.dims.fit.raw as { pullAB: number | null; pullBA: number | null };
-  const shared = (p.dims.dims.shared.raw as { shared?: string[] })?.shared ?? [];
+  // A SYZYGY estimate has our match score and no Qloo pulls or rubric dimensions.
+  const est = p.dims.estimate ?? null;
+  const pull = est ? { pullAB: null, pullBA: null } : p.dims.dims.fit.raw as { pullAB: number | null; pullBA: number | null };
+  const shared = est ? est.sharedTags.map(tagLabel) : (p.dims.dims.shared.raw as { shared?: string[] })?.shared ?? [];
   // The side the other one needs can claim its page and take the outreach over.
   const strongId = p.account_entity ? (p.account_entity === p.a_id ? p.b_id : p.a_id) : null;
   const strong = strongId && (p.deal_status === "clear" || p.deal_status === "past") ? (await claimables()).find(c => c.qloo_id === strongId) ?? null : null;
@@ -119,10 +123,16 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
         </div>
         <div className="panel fade-up" style={{ padding: 26, display: "flex", flexDirection: "column", alignItems: "center", gap: 14, animationDelay: "140ms" }}>
           <ScoreRing score={p.score} band={p.band} />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%" }}>
-            <Pull from={p.a_name} to={p.b_name} v={pull.pullAB} />
-            <Pull from={p.b_name} to={p.a_name} v={pull.pullBA} />
-          </div>
+          {est ? (
+            <p style={{ color: "var(--dim)", fontSize: 13.5, textAlign: "center", margin: 0 }}>
+              SYZYGY estimate: our match score {est.score} out of 100 ({est.strength}). Qloo hasn&apos;t measured this pair yet.
+            </p>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%" }}>
+              <Pull from={p.a_name} to={p.b_name} v={pull.pullAB} />
+              <Pull from={p.b_name} to={p.a_name} v={pull.pullBA} />
+            </div>
+          )}
         </div>
       </section>
 
@@ -134,6 +144,22 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
         </a>
       )}
 
+      {est ? (
+        <section className="panel fade-up" style={{ padding: 26, marginTop: 16, animationDelay: "200ms" }}>
+          <h2 style={{ fontSize: 20 }}>How SYZYGY scored a pair Qloo hasn&apos;t measured</h2>
+          <p style={{ color: "var(--dim)", marginTop: 10, maxWidth: 760 }}>
+            Our match score compares the two audiences Qloo has profiled: taste tags weighted by how rare they are (60%), age profile (20%)
+            and where the audiences live (20%), each ranked against random pairs in the corpus. On pairs Qloo did grade, a score of 90 or more
+            was Qloo WATCH or better 97% of the time.
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+            <span className="chip">Taste {Math.round(est.parts.taste * 100)}th percentile</span>
+            {est.parts.age != null && <span className="chip">Age {Math.round(est.parts.age * 100)}th percentile</span>}
+            <span className="chip">Cities {Math.round(est.parts.cities * 100)}th percentile</span>
+            {est.sharedCities.slice(0, 4).map(c => <span key={c} className="chip">{c}</span>)}
+          </div>
+        </section>
+      ) : (
       <section className="panel fade-up" style={{ padding: 26, marginTop: 16, animationDelay: "200ms" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
           <h2 style={{ fontSize: 20 }}>Rubric {p.rubric_version}: how the score was built</h2>
@@ -162,6 +188,7 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
           })}
         </div>
       </section>
+      )}
 
       <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 24, maxWidth: 760 }}>
         Source: Qloo taste data (hackathon API). Scores describe aggregate audience affinity, not individuals, and say

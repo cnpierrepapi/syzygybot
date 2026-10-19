@@ -11,6 +11,7 @@ import { metros } from "./geo";
 import { demographics, pull, topFor, type EntityType, type QlooEntity } from "./qloo";
 import { ageVector } from "./scout";
 import type { Raw } from "./rubric";
+import type { Estimate } from "./estimate";
 
 // Who has a marketing/partnerships budget and an insights team. Studios are brand entities in Qloo.
 const BUYER: Record<string, number> = { brand: 1, tv_show: 0.5, artist: 0.3 };
@@ -19,7 +20,7 @@ type Side = { qloo_id: string; name: string; type: string; popularity: number | 
 
 type PairRow = {
   id: string; score: number; band: string; thesis: string | null;
-  dims: { raw: Raw };
+  dims: { raw: Raw; estimate?: Estimate };
   a: Side; b: Side;
 };
 
@@ -156,11 +157,15 @@ export async function buildAccount(p: PairRow) {
     qualifier: q.scores,
     pair: { score: p.score, band: p.band, thesis: p.thesis },
     pull: { partnerFansLikeAccount: chosenIsA ? r.pullBA : r.pullAB, accountFansLikePartner: chosenIsA ? r.pullAB : r.pullBA },
-    sharedTaste: r.tagsA.filter(t => r.tagsB.includes(t)).slice(0, 12),
-    cities: { shared: metros(sharedCells), account: metros(chosenIsA ? r.cellsA : r.cellsB).slice(0, 8) },
+    // A SYZYGY estimate carries our match score instead of Qloo pulls; the partners below are still Qloo-measured.
+    estimate: p.dims.estimate ?? null,
+    sharedTaste: p.dims.estimate?.sharedTags ?? r.tagsA.filter(t => r.tagsB.includes(t)).slice(0, 12),
+    cities: { shared: p.dims.estimate?.sharedCities ?? metros(sharedCells), account: metros(chosenIsA ? r.cellsA : r.cellsB).slice(0, 8) },
     audienceAge: storedAge ?? ageVector(demo),
     morePartners: partners,
-    source: "Qloo taste data (hackathon API). Aggregate audience affinity; not causal.",
+    source: p.dims.estimate
+      ? "SYZYGY match score from patterns in Qloo taste data (this pair not measured by Qloo); more partners are Qloo-measured. Aggregate audiences; not causal."
+      : "Qloo taste data (hackathon API). Aggregate audience affinity; not causal.",
   };
   await sql()`update accounts set evidence = ${JSON.stringify(evidence)} where id = ${accountId}`;
   await logAction({

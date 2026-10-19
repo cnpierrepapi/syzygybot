@@ -17,6 +17,7 @@ import { draftForWorkspace } from "./inward";
 
 
 type Evidence = {
+  estimate?: { score: number; strength: string } | null;
   pair?: { score: number; band: string; thesis: string | null };
   pull?: { partnerFansLikeAccount: number | null; accountFansLikePartner: number | null };
   sharedTaste?: string[];
@@ -46,6 +47,8 @@ Hard rules:
 - The first sentence says plainly that you are an AI agent (named Syzygy).
 - Say the analysis is built on Qloo's taste data. You are NOT Qloo and do not work for Qloo; never say "we at Qloo", "our data" or imply you are Qloo staff.
 - Quote at least two specific numbers from the evidence, as given. Do not invent any number, client, budget or result.
+- If pair_measured_by_qloo is false, the pair's number is SYZYGY's own match score out of 100, from patterns in Qloo's taste data:
+  say exactly that, never call it a Qloo affinity, and use the Qloo-measured more_partners as the Qloo numbers.
 - Mention the extra partners by name as proof the data finds more than one opportunity.
 - If past_partnership is given, the two have worked together before: mention it plainly as history (the audience
   overlap is still there), and never present the pairing as a new idea.
@@ -94,6 +97,9 @@ export function evidenceFacts(a: AccountRow) {
   return {
     account: a.name, account_type: a.type, evidence_only_partner: a.passed_name,
     thesis: e.pair?.thesis, thesis_score: n2(e.pair?.score), band: e.pair?.band,
+    // Estimated pairs: our score, not a Qloo number. The writer must say so.
+    syzygy_match_score_out_of_100: e.estimate ? e.estimate.score : undefined,
+    pair_measured_by_qloo: e.estimate ? false : undefined,
     affinity_partner_fans_to_account: n2(e.pull?.partnerFansLikeAccount),
     affinity_account_fans_to_partner: n2(e.pull?.accountFansLikePartner),
     shared_taste: e.sharedTaste?.slice(0, 6), shared_cities: e.cities?.shared,

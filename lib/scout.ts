@@ -8,6 +8,8 @@ import { resolveHandle } from "./handles";
 import { pickFromQueue } from "./prescore";
 import { isQuotaError } from "./qloo";
 import { RUBRIC_VERSION, score, sharedTags, type Raw } from "./rubric";
+import { EST_VERSION, type Estimate } from "./estimate";
+import { tagLabel } from "./match";
 import {
   audienceTags, demographics, entities, heatmap, pull, search, topFor, trending,
   type EntityType, type QlooEntity,
@@ -212,7 +214,22 @@ export async function writeThesis(a: QlooEntity, b: QlooEntity, raw: Raw, scored
  * Scores a pair, saves both sides and writes the thesis. With `stored`, the measurements come from the
  * pre-scored queue (full records, raw numbers) and Qloo isn't called at all.
  */
-export async function scorePair(a0: QlooEntity, b0: QlooEntity, stored?: { raw: Raw }) {
+const ESTIMATE_SYSTEM = `You write one-paragraph partnership theses from SYZYGY's own match score, built from patterns in Qloo
+taste data. Qloo has NOT measured this pair: say plainly it is SYZYGY's estimate, and never give it a Qloo affinity number.
+Describe aggregate audiences only, never individuals. Never claim a partnership will cause sales. The match score is out of 100,
+never a percentage. Two to three sentences, plain English, no hype words, no em dashes. Lead with the non-obvious overlap.`;
+
+async function writeEstimateThesis(a: QlooEntity, b: QlooEntity, est: Estimate) {
+  const facts = { a: a.name, b: b.name, syzygy_match_score_out_of_100: est.score, strength: est.strength, shared_taste_tags: est.sharedTags.map(tagLabel), shared_cities: est.sharedCities, measured_by_qloo: false };
+  try { return await ask("write", ESTIMATE_SYSTEM, JSON.stringify(facts), 250); }
+  catch (e) {
+    const text = `SYZYGY's own match score puts ${a.name} and ${b.name} at ${est.score} out of 100 (${est.strength}), from patterns in Qloo taste data; Qloo hasn't measured this pair yet.` +
+      (est.sharedTags.length ? ` Shared tastes: ${est.sharedTags.slice(0, 3).map(tagLabel).join(", ")}.` : "");
+    return { text, model: `fallback (${(e as Error).message.slice(0, 60)})`, costUsd: null };
+  }
+}
+
+export async function scorePair(a0: QlooEntity, b0: QlooEntity, stored?: { raw: Raw; estimate?: Estimate; band?: string }) {
   const full = stored ? [] : await entities([a0.entity_id, b0.entity_id]).catch(() => [] as QlooEntity[]);
   const pick = (e: QlooEntity) => {
     const f = full.find(x => x.entity_id === e.entity_id);
@@ -221,15 +238,17 @@ export async function scorePair(a0: QlooEntity, b0: QlooEntity, stored?: { raw: 
   const a = pick(a0), b = pick(b0);
   await Promise.all([saveEntity(a), saveEntity(b)]);
   const raw = stored?.raw ?? await measure(a, b);
-  const scored = score(raw);
+  const est = stored?.estimate;
+  // An estimated pair has no Qloo pulls, so the rubric never grades it: its band comes from our match score.
+  const scored = est ? { score: est.score / 100, band: (stored?.band ?? "WATCH") as "PITCH" | "WATCH", dims: {} as ReturnType<typeof score>["dims"], gate: null } : score(raw);
 
   let thesis: Awaited<ReturnType<typeof writeThesis>> | null = null;
-  if (scored.band !== "PASS") thesis = await writeThesis(a, b, raw, scored);
+  if (scored.band !== "PASS") thesis = est ? await writeEstimateThesis(a, b, est) : await writeThesis(a, b, raw, scored);
 
   const rows = (await sql()`
     insert into pairs (a_id, b_id, dims, score, band, thesis, rubric_version)
-    values (${a.entity_id}, ${b.entity_id}, ${JSON.stringify({ raw, dims: scored.dims, gate: scored.gate })},
-            ${scored.score}, ${scored.band}, ${thesis?.text ?? null}, ${RUBRIC_VERSION})
+    values (${a.entity_id}, ${b.entity_id}, ${JSON.stringify(est ? { raw, estimate: est } : { raw, dims: scored.dims, gate: scored.gate })},
+            ${scored.score}, ${scored.band}, ${thesis?.text ?? null}, ${est ? EST_VERSION : RUBRIC_VERSION})
     on conflict (a_id, b_id, rubric_version) do update set
       dims = excluded.dims, score = excluded.score, band = excluded.band, called_at = now(),
       -- A pair rescored to PASS loses its thesis: the old text would argue for numbers that no longer hold.
@@ -241,7 +260,8 @@ export async function scorePair(a0: QlooEntity, b0: QlooEntity, stored?: { raw: 
     agent: "scout",
     kind: thesis ? "thesis.published" : "pair.passed",
     summary: thesis
-      ? `${scored.band} ${a.name} × ${b.name} (${scored.score.toFixed(2)}). Thesis published.`
+      ? est ? `${scored.band} (SYZYGY estimate) ${a.name} × ${b.name}: our match ${est.score}/100, not measured by Qloo. Thesis published.`
+        : `${scored.band} ${a.name} × ${b.name} (${scored.score.toFixed(2)}). Thesis published.`
       : `PASS ${a.name} × ${b.name} (${scored.score.toFixed(2)})${scored.gate ? `: ${scored.gate}` : ""}.`,
     refTable: "pairs",
     refId: pairId,
