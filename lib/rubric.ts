@@ -1,9 +1,11 @@
 // Rubric v1.1. Pure scoring: raw Qloo measurements in, 0..1 dimension scores and a band out.
 // v1 proposed 11 Oct. v1.1 (12 Oct): timing's 5 points moved to surprise, because Qloo has no
 // trending data for brands and the artist series is flat, so timing scored 0.5 for every pair.
+// v1.2 (19 Oct): cut-offs only. On the 811 stored pairs, 0.72 was the median, so half the queue graded PITCH. PITCH is
+// now the top 10% (>= 0.81) and WATCH the next 40% (>= 0.72). Weights unchanged.
 // Change weights here and bump VERSION.
 
-export const RUBRIC_VERSION = "v1.1";
+export const RUBRIC_VERSION = "v1.2";
 
 export const WEIGHTS = {
   fit: 30,        // how much each audience likes the other (mean pull)
@@ -18,7 +20,7 @@ export const WEIGHTS = {
 
 export type Dim = keyof typeof WEIGHTS;
 
-export const CUTOFFS = { pitch: 0.72, watch: 0.55, minPull: 0.75 } as const;
+export const CUTOFFS = { pitch: 0.81, watch: 0.72, minPull: 0.75 } as const;
 
 export type Band = "PASS" | "WATCH" | "PITCH";
 

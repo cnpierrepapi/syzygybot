@@ -328,3 +328,81 @@ create table if not exists pattern_matches (
 ;
 -- What a room actually books, read from the web in Qloo's tag vocabulary (18 Oct). Null = scored on city and size only.
 alter table venues add column if not exists profile jsonb
+;
+
+-- Desks (19 Oct). Each persona (lib/personas.ts) gets desks; desk agents research, score and draft, and every outbound
+-- action waits as a permission request until a person approves it. Clearance runs before a request is shown.
+alter table venues add column if not exists country text not null default 'US';
+alter table workspaces alter column entity_id drop not null;
+alter table workspaces add column if not exists persona text;
+alter table actions drop constraint if exists actions_agent_check;
+alter table actions add constraint actions_agent_check check (agent in ('scout','checker','qualifier','numbers','contact_finder','verifier','strategist','writer','sequencer','inbox','booker','router','sponsor','talent','venue','watch','podcast','clearance'));
+
+create table if not exists permission_requests (
+  id          uuid primary key default gen_random_uuid(),
+  persona     text not null,
+  desk        text not null,
+  action      text not null check (action in ('email','letter','hold_request','sponsor_pitch','ambassador_pitch','podcast_pitch','crm_push')),
+  title       text not null,
+  target      jsonb not null default '{}',     -- org, person, role, address, channel, country, source
+  preview     jsonb not null default '{}',     -- subject, body
+  evidence    jsonb not null default '{}',     -- SYZYGY match (score, strength, why) + Qloo confirmation when measured
+  clearance   jsonb not null default '{}',     -- status pass|hold, checks [{rule, pass, note}]
+  dedupe      text not null unique,            -- persona|desk|target, so a desk re-run never doubles a card
+  ref_table   text,
+  ref_id      text,
+  slug        text unique,
+  created_at  timestamptz not null default now()
+);
+create index if not exists permission_requests_persona on permission_requests (persona, created_at desc);
+
+-- What a visitor (demo workspace) or the operator decided. A demo approval runs a simulated execution.
+create table if not exists request_decisions (
+  workspace_id uuid not null references workspaces(id) on delete cascade,
+  request_id   uuid not null references permission_requests(id) on delete cascade,
+  decision     text not null check (decision in ('approved','rejected','held')),
+  reason       text,
+  edited       jsonb,
+  outcome      jsonb not null default '{}',
+  decided_at   timestamptz not null default now(),
+  primary key (workspace_id, request_id)
+);
+
+-- Market Watch: news an agent read on the web, tuned to a persona, with the move it suggests.
+create table if not exists watch_items (
+  id          uuid primary key default gen_random_uuid(),
+  persona     text not null,
+  headline    text not null,
+  url         text not null,
+  source      text,
+  published   date,
+  why         text not null,
+  move        text,
+  desk        text,
+  dedupe      text not null unique,
+  created_at  timestamptz not null default now()
+);
+create index if not exists watch_items_persona on watch_items (persona, published desc nulls last)
+;
+
+-- A talent's known brand deals, read from the web, for the Clearance exclusivity check.
+create table if not exists talent_deals (
+  talent      text primary key,
+  deals       jsonb not null default '[]',
+  sources     jsonb not null default '[]',
+  checked_at  timestamptz not null default now()
+);
+
+-- Published inboxes found for desk targets (a venue's booking address, a brand's sponsorship address). An address is kept
+-- only if it appears on a page we read; otherwise the target gets a letter.
+create table if not exists org_contacts (
+  org         text not null,
+  purpose     text not null,
+  email       text,
+  url         text,
+  postal      text,
+  status      text not null check (status in ('published','not_found')),
+  detail      jsonb not null default '{}',
+  checked_at  timestamptz not null default now(),
+  primary key (org, purpose)
+)

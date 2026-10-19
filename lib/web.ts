@@ -2,7 +2,7 @@
 
 const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.vercel.app)";
 
-export type Page = { url: string; status: number; text: string; date: string | null; emails: string[] };
+export type Page = { url: string; status: number; text: string; date: string | null; emails: string[]; title?: string | null };
 
 const ENTITIES: Record<string, string> = { amp: "&", nbsp: " ", quot: '"', "#39": "'", apos: "'", lt: "<", gt: ">", rsquo: "'", lsquo: "'", ndash: "-", mdash: "-" };
 
@@ -84,7 +84,9 @@ export async function readPage(url: string): Promise<Page | null> {
     const mailto = [...html.matchAll(/mailto:([^"'?>\s]+)/gi)].map(m => decodeURIComponent(m[1]));
     const text = htmlToText(html);
     const emails = [...new Set([...mailto, ...(text.match(EMAIL) ?? [])].map(e => e.toLowerCase()))];
-    return { url: at, status: r.status, text, date: pageDate(html), emails };
+    const title = (/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i.exec(html)?.[1] ?? /<title[^>]*>([^<]+)<\/title>/i.exec(html)?.[1] ?? null)
+      ?.replace(/&amp;/g, "&").replace(/&#0?39;|&rsquo;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim() ?? null;
+    return { url: at, status: r.status, text, date: pageDate(html), emails, title };
   } catch { return null; }
 }
 

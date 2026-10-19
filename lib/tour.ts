@@ -11,7 +11,7 @@ type Room = { id: string; name: string; slug: string | null; metro: string; capa
 const STAGE_KIND = /music venue|concert hall|amphitheat|theatre|nightclub/i;
 const inactive = (r: Room) => !!r.profile?.summary && !(r.profile.recentActs ?? []).length;
 
-export async function planTour(artistName: string, opts: { cities?: number; roomsPerCity?: number } = {}) {
+export async function planTour(artistName: string, opts: { cities?: number; roomsPerCity?: number; roomSize?: [number, number] } = {}) {
   const { profiles } = await loadCorpus();
   const artist = [...profiles.values()].find(p => p.name.toLowerCase() === artistName.toLowerCase() && (p.type === "artist" || p.type === "tv_show"));
   if (!artist) return null;
@@ -19,13 +19,15 @@ export async function planTour(artistName: string, opts: { cities?: number; room
   const cities = [...artist.metros].sort((a, b) => b[1] - a[1]).slice(0, opts.cities ?? 8);
   const rooms = (await sql()`select id, name, slug, metro, capacity_est, live_nation, kinds, profile from venues
     where metro = any(${cities.map(([m]) => m)})`) as Room[];
-  const [lo, hi] = sizeBand(artist.popularity);
+  // Qloo popularity is a taste percentile, not ticket draw (Young the Giant outranks Bad Bunny), so a desk that knows
+  // the act's real draw passes it in.
+  const [lo, hi] = opts.roomSize ?? sizeBand(artist.popularity);
   return {
     artist: artist.name, popularity: artist.popularity, roomSize: [lo, hi],
     stops: cities.map(([metro, w]) => ({
       metro, fanWeight: +w.toFixed(2),
       rooms: rooms.filter(r => r.metro === metro && !inactive(r)).map(r => {
-        const s = sizeFit(r.capacity_est, artist.popularity);
+        const s = sizeFit(r.capacity_est, artist.popularity, [lo, hi]);
         const t = r.profile?.tags?.length ? tagSimilarity(new Set(r.profile.tags), artist.tags, df, n) : null;
         return {
           id: r.id, name: r.name, slug: r.slug, capacity: r.capacity_est, liveNation: r.live_nation, sizeFit: +s.toFixed(2),

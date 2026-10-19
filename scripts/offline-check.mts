@@ -156,3 +156,17 @@ const inward = "This is Syzygy, an AI agent writing for Bad Bunny. Ray-Ban fans 
 ok("inward: good draft passes", Object.values(inwardChecks(inward, "s", "Bad Bunny")).every(Boolean));
 ok("inward: must name the brand up front", !inwardChecks("This is Syzygy, an AI agent. Qloo's taste data says 0.84.", "s", "Bad Bunny").names_brand);
 ok("inward: posing as Qloo or percentages fail", !inwardChecks(inward + " We at Qloo agree.", "s", "Bad Bunny").not_posing_as_qloo && !inwardChecks(inward + " 84%", "s", "Bad Bunny").no_percentages);
+// Clearance (19 Oct): the release gate. Exclusivity is skipped here (it asks a model); every other rule is pure.
+const { clear, countryOf, DEFAULT_RULES } = await import("../lib/clearance");
+const rules = { ...DEFAULT_RULES, exclusivity: false };
+const out = { channel: "email" as const, subject: "Hold request", address: "booking@venue.com", addressSource: "published" as const, country: "US", talent: ["Bad Bunny"], usesQloo: true,
+  body: "An AI agent (SYZYGY) drafted this for Bad Bunny's touring team, and a person approved it. Bad Bunny's fans concentrate in San Juan, per Qloo's taste data. Which dates could you hold?" };
+const status = async (o: Partial<typeof out> & Record<string, unknown>, r = rules) => (await clear({ ...out, ...o } as never, r)).status;
+ok("clearance: good draft passes, disclosure line is not an endorsement", await status({}) === "pass");
+ok("clearance: talent backing the brand holds", await status({ body: out.body + " Bad Bunny loves your sneakers." }) === "hold");
+ok("clearance: no AI disclosure up front holds", await status({ body: "Hello there. ".repeat(30) + out.body }) === "hold");
+ok("clearance: Germany email holds, Germany letter passes", await status({ country: "DE" }) === "hold" && await status({ country: "DE", channel: "letter", address: null, addressSource: null }) === "pass");
+ok("clearance: unpublished address holds", await status({ addressSource: "guessed" }) === "hold");
+ok("clearance: departed contact holds", await status({ roleStatus: "departed" }) === "hold");
+ok("clearance: Qloo numbers without credit hold; posing as Qloo holds", await status({ body: out.body.replace(", per Qloo's taste data", "") }) === "hold" && await status({ body: out.body + " We at Qloo agree." }) === "hold");
+ok("clearance: country from the address domain", countryOf("x@verlag.de", "US") === "DE" && countryOf("x@venue.com", "MX") === "MX");

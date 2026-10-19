@@ -1,11 +1,15 @@
 // npm run venues -- import data/venues-raw.json   -> load rooms (from the Wikidata pull) into the venues table
+// npm run venues -- clean                         -> drop duplicates and gone rooms, fix known capacities
+// npm run venues -- remetro                       -> file each room under its nearest metro
 // npm run venues -- score                         -> book/sponsor fits for every room from the Qloo corpus
 // npm run venues -- profile [perMetro]             -> read what the top rooms book (web, ~$0.02 each), then rescore
 // npm run venues -- top [metro]                    -> the best-scored rooms
 import { sql } from "../lib/db";
-import { importVenues, profileVenue, scoreVenues, venuesToProfile } from "../lib/venues";
+import { cleanVenues, importVenues, profileVenue, remetro, scoreVenues, venuesToProfile } from "../lib/venues";
 const [cmd, arg] = process.argv.slice(2);
 if (cmd === "import") console.log(await importVenues(arg ?? "data/venues-raw.json"), "rooms");
+else if (cmd === "clean") console.log(await cleanVenues());
+else if (cmd === "remetro") console.log(await remetro(), "rooms moved to their nearest metro");
 else if (cmd === "score") console.log(await scoreVenues());
 else if (cmd === "profile") {
   const ids = await venuesToProfile(Number(arg ?? 3));

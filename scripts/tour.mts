@@ -1,10 +1,12 @@
 // npm run tour -- "Charli XCX"            -> fan cities from Qloo, then the rooms that fit, per city
 // npm run tour -- "Charli XCX" read       -> also read what the shortlisted rooms book (web, ~$0.02 each) and re-rank
+// npm run tour -- "Bad Bunny" read 10000-60000  -> same, for an act whose real draw is known (Qloo popularity isn't draw)
 import { planTour } from "../lib/tour";
 import { profileVenue } from "../lib/venues";
 
-const [name, mode] = process.argv.slice(2);
-let plan = await planTour(name ?? "");
+const [name, mode, size] = process.argv.slice(2);
+const roomSize = size ? (size.split("-").map(Number) as [number, number]) : undefined;
+let plan = await planTour(name ?? "", { roomSize });
 if (!plan) { console.log(`"${name}" isn't an artist or show in the Qloo corpus yet.`); process.exit(0); }
 if (mode === "read") {
   // Read rooms until every city's shortlist is made of rooms we've actually read (inactive ones drop out as we go).
@@ -15,7 +17,7 @@ if (mode === "read") {
     for (let i = 0; i < todo.length; i += 2)
       await Promise.all(todo.slice(i, i + 2).map(r => profileVenue(r.id).catch(e => { failed++; console.log(`  read failed: ${r.name}: ${(e as Error).message.slice(0, 80)}`); })));
     console.log(`round ${round + 1}: read ${todo.length} rooms, ${failed} failed`);
-    plan = (await planTour(name))!;
+    plan = (await planTour(name, { roomSize }))!;
   }
 }
 console.log(`${plan.artist}: Qloo popularity ${plan.popularity}, usual room ${plan.roomSize[0]}-${plan.roomSize[1]}`);

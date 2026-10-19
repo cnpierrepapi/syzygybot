@@ -19,7 +19,7 @@ const SUBPAGE = ROUTE;
 
 // Kept off the live floor: the intake's per-seed bookkeeping, and the Verifier correcting records it already
 // holds (a fixed title, a restored contact, a recheck finding someone left). The floor shows the team working.
-const OFF_FLOOR = ["queue.scored", "contact.relabelled", "contact.restored"];
+const OFF_FLOOR = ["queue.scored", "contact.relabelled", "contact.restored", "desk.run"];
 
 // Test replies stay off the public floor until he says they can be shown (SHOW_SIMULATED=1).
 export const showSimulated = () => process.env.SHOW_SIMULATED === "1";

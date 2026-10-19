@@ -4,10 +4,11 @@
 import { readFileSync } from "node:fs";
 import { sql } from "./db";
 import { slugify } from "./slug";
+import { nearestMetro } from "./geo";
 import { loadCorpus, tagFrequencies, tagSimilarity, type Profile } from "./corpus";
 import { askWeb, parseJson } from "./llm";
 
-type RawVenue = { id: string; name: string; metro: string; capacity: number | null; operator: string | null; owner: string | null; site: string | null; kinds: string; coord?: string };
+type RawVenue = { id: string; name: string; metro: string; capacity: number | null; operator: string | null; owner: string | null; site: string | null; kinds: string; coord?: string; country?: string | null };
 
 // Typical size when Wikidata has no capacity, by the kind of room.
 const TYPICAL: [RegExp, number][] = [[/stadium/, 40000], [/arena/, 15000], [/amphitheat/, 12000], [/concert hall/, 2200], [/theatre/, 1200], [/music venue/, 900], [/nightclub/, 400]];
@@ -22,34 +23,70 @@ export async function importVenues(path: string) {
   const rooms = raw
     .filter(v => !/shopping center/.test(v.kinds) || /music venue|theatre|arena|concert hall|amphitheat|nightclub|stadium/.test(v.kinds.replace("shopping center", "")))
     .filter(v => musicKind.test(v.kinds) || !campus.test(`${v.name} ${v.operator ?? ""} ${v.owner ?? ""}`));
-  const taken = new Set<string>();
+  // Slugs already used by other rooms, so a second pull never collides with the first.
+  const existing = (await sql()`select id, slug from venues where slug is not null`) as { id: string; slug: string }[];
+  const own = new Map(existing.map(r => [r.id, r.slug]));
+  const taken = new Set(existing.filter(r => !rooms.some(v => v.id === r.id)).map(r => r.slug));
   for (const v of rooms) {
     const kinds = v.kinds.toLowerCase();
     const est = v.capacity ?? TYPICAL.find(([re]) => re.test(kinds))?.[1] ?? 800;
     const [lng, lat] = (/Point\(([-\d.]+) ([-\d.]+)\)/.exec(v.coord ?? "") ?? []).slice(1).map(Number);
-    let slug = slugify(v.name), n = 2;
+    // The pull searched 30 km around each metro, and the circles overlap (SF/Oakland, Brooklyn/New York): file the room
+    // under the metro it is actually nearest to.
+    if (lat != null && lng != null) v.metro = nearestMetro(lat, lng) ?? v.metro;
+    let slug = own.get(v.id) ?? slugify(v.name), n = 2;
     if (taken.has(slug)) slug = slugify(`${v.name} ${v.metro}`);
     while (taken.has(slug)) slug = slugify(`${v.name} ${v.metro} ${n++}`);
     taken.add(slug);
     await sql()`
-      insert into venues (id, name, metro, capacity, capacity_est, kinds, operator, owner, site, lat, lng, live_nation, slug)
+      insert into venues (id, name, metro, capacity, capacity_est, kinds, operator, owner, site, lat, lng, live_nation, slug, country)
       values (${v.id}, ${v.name}, ${v.metro}, ${v.capacity}, ${est}, ${v.kinds}, ${v.operator}, ${v.owner}, ${v.site}, ${lat ?? null}, ${lng ?? null},
-              ${LIVE_NATION.test(`${v.operator ?? ""} ${v.owner ?? ""} ${v.name}`)}, ${slug})
+              ${LIVE_NATION.test(`${v.operator ?? ""} ${v.owner ?? ""} ${v.name}`)}, ${slug}, ${v.country ?? "US"})
       on conflict (id) do update set name = excluded.name, metro = excluded.metro, capacity = excluded.capacity, capacity_est = excluded.capacity_est,
-        kinds = excluded.kinds, operator = excluded.operator, owner = excluded.owner, site = excluded.site, live_nation = excluded.live_nation, updated_at = now()`;
+        kinds = excluded.kinds, country = excluded.country, operator = excluded.operator, owner = excluded.owner, site = excluded.site, live_nation = excluded.live_nation, updated_at = now()`;
   }
   return rooms.length;
 }
 
 /** The room size an act of this Qloo popularity usually plays, as [low, high] capacity. */
+/** Re-file every room under the metro it is nearest to (the 18 Oct pull filed SF and Brooklyn rooms under Oakland and New York). */
+export async function remetro() {
+  const rows = (await sql()`select id, metro, lat, lng from venues where lat is not null`) as { id: string; metro: string; lat: number; lng: number }[];
+  let moved = 0;
+  for (const r of rows) {
+    const m = nearestMetro(r.lat, r.lng);
+    if (m && m !== r.metro) { await sql()`update venues set metro = ${m} where id = ${r.id}`; moved++; }
+  }
+  return moved;
+}
+
+// Corrections the web reads and Wikidata got wrong, checked by hand (19 Oct). Capacity is the concert configuration.
+const CAPACITY_FIX: Record<string, number> = { Q7135369: 2700 }; // Brooklyn Paramount: Wikidata says 15,000
+const GONE: Record<string, string> = { Q1475645: "Ralph Wilson Stadium: replaced by the new Highmark Stadium (2026)" };
+
+/** Drop the same room filed twice (same name within 300 m), rooms that no longer exist, and fix known capacities. */
+export async function cleanVenues() {
+  for (const [id, cap] of Object.entries(CAPACITY_FIX)) await sql()`update venues set capacity_est = ${cap} where id = ${id}`;
+  const gone = (await sql()`delete from venues where id = any(${Object.keys(GONE)}) returning id`) as { id: string }[];
+  const dups = (await sql()`
+    delete from venues v using venues k
+    where v.id <> k.id and v.lat is not null and k.lat is not null
+      and abs(v.lat - k.lat) < 0.003 and abs(v.lng - k.lng) < 0.003
+      and lower(regexp_replace(split_part(v.name, ',', 1), '[^a-zA-Z0-9]', '', 'g')) = lower(regexp_replace(split_part(k.name, ',', 1), '[^a-zA-Z0-9]', '', 'g'))
+      -- keep the one we have read (or the lower id when neither is)
+      and ((k.profile is not null and v.profile is null) or ((k.profile is null) = (v.profile is null) and k.id < v.id))
+    returning v.id`) as { id: string }[];
+  return { capacityFixed: Object.keys(CAPACITY_FIX).length, gone: gone.length, duplicates: dups.length };
+}
+
 export function sizeBand(popularity: number | null): [number, number] {
   const p = popularity ?? 0.9;
   return p >= 0.995 ? [10000, 60000] : p >= 0.98 ? [2500, 12000] : p >= 0.93 ? [1000, 3500] : p >= 0.85 ? [400, 1500] : [100, 600];
 }
 
 /** 1 inside the band, falling off with how many times too big or too small the room is. */
-export function sizeFit(capacity: number, popularity: number | null) {
-  const [lo, hi] = sizeBand(popularity);
+export function sizeFit(capacity: number, popularity: number | null, band?: [number, number]) {
+  const [lo, hi] = band ?? sizeBand(popularity);
   if (capacity >= lo && capacity <= hi) return 1;
   const off = capacity < lo ? Math.log2(lo / capacity) : Math.log2(capacity / hi);
   return Math.max(0, 1 - off / 3);

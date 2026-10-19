@@ -2,7 +2,8 @@ import { sql } from "./db";
 
 export type Agent =
   | "scout" | "checker" | "qualifier" | "numbers" | "contact_finder" | "verifier"
-  | "strategist" | "writer" | "sequencer" | "inbox";
+  | "strategist" | "writer" | "sequencer" | "inbox"
+  | "router" | "sponsor" | "talent" | "venue" | "watch" | "podcast" | "clearance";
 
 export interface ActionInput {
   agent: Agent;

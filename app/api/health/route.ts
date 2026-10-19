@@ -2,7 +2,7 @@
 // call and a database round trip) only run with the cron secret, so nobody can spend the Qloo quota
 // by refreshing this page.
 import { sql } from "@/lib/db";
-import { search } from "@/lib/qloo";
+import { isQuotaError, search } from "@/lib/qloo";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +17,13 @@ export async function GET(req: Request) {
 
   if (process.env.QLOO_API_KEY) {
     try { out.qloo = (await search("A24", "brand", 1)).length ? "ok" : "empty"; }
-    catch (e) { out.qloo = `error: ${(e as Error).message.slice(0, 80)}`; }
+    // A spent monthly quota isn't an outage: every desk runs on the stored corpus until it resets.
+    catch (e) { out.qloo = isQuotaError(e) ? "quota used up for the month: running on stored Qloo data until it resets" : `error: ${(e as Error).message.slice(0, 80)}`; }
   }
   if (process.env.DATABASE_URL) {
     try { await sql()`select 1`; out.db = "ok"; }
     catch { out.db = "error"; }
   }
+  out.status = out.db === "error" || out.qloo.startsWith("error") ? "degraded" : "ok";
   return Response.json(out);
 }
