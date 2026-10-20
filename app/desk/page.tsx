@@ -3,13 +3,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Logo } from "../components/visuals";
 import DeskPicker from "./DeskPicker";
-import { DESKS, PERSONAS, ROLES, desksFor, persona } from "@/lib/personas";
+import { DESKS, PERSONAS, desksFor, persona } from "@/lib/personas";
 import { DESK_COOKIE, openDesk } from "@/lib/desk";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Open a desk",
-  description: "Pick your job. SYZYGY switches on every desk it needs, fully automated, and asks before anything goes out.",
+  description: "Pick a judge. SYZYGY opens the desk written for their business, fully automated, and asks before anything goes out.",
   alternates: { canonical: "/desk" },
 };
 
@@ -32,15 +32,15 @@ export default async function DeskStart({ searchParams }: { searchParams: Promis
       <nav className="nav"><Logo /><a className="crumb" href="/">← Live floor</a></nav>
       <section style={{ padding: "36px 0 22px" }}>
         <p className="eyebrow">Open a desk</p>
-        <h1 style={{ fontSize: "clamp(30px, 4vw, 44px)", lineHeight: 1.05 }}>Tell it what you do.<br /><span className="grad-text">The agents take it from there.</span></h1>
+        <h1 style={{ fontSize: "clamp(30px, 4vw, 44px)", lineHeight: 1.05 }}>Pick a judge.<br /><span className="grad-text">The agents take it from there.</span></h1>
         <p style={{ color: "var(--dim)", maxWidth: 600, marginTop: 14 }}>
-          Pick your job. SYZYGY switches on every desk that job needs and the agents get to work: the research, the scoring, the
-          contacts, the writing, the compliance, the follow-up. Fully automated, around the clock. Anything that would leave the
-          building comes to you first, and you approve, edit, reject or park it.
+          Every judge has a desk written for their own business. Tap a face and SYZYGY switches on every desk that job needs. The
+          agents do the research, the scoring, the contacts, the writing and the follow-up, around the clock. Anything that would
+          leave the building comes to you first, and you approve, edit, reject or park it.
         </p>
         {full && <p className="chip" style={{ color: "#ff8080", marginTop: 12 }}>Today&apos;s demo desks are all taken. Try again tomorrow.</p>}
       </section>
-      <DeskPicker personas={personas} roles={Object.entries(ROLES).map(([id, r]) => ({ id, label: r.label }))}
+      <DeskPicker personas={personas}
         deskLabels={Object.fromEntries(Object.entries(DESKS).map(([k, d]) => [k, d.label]))} action={open} />
     </main>
   );

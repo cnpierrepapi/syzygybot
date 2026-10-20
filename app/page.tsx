@@ -72,8 +72,7 @@ function Hero({ types, stack }: { types: string[]; stack: Stack | null }) {
           now, while you read this. You just say yes.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
-          <a className="btn" href="/desk">Open a desk →</a>
-          <a className="btn quiet" href="#floor">Watch the floor ↓</a>
+          <a className="btn btn-lg" href="/desk">Open a desk →</a>
         </div>
         {steps.length > 0 && (
           <div className="stack-strip" aria-label="The whole stack, running now">

@@ -198,6 +198,8 @@ h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -0.015em; }
   border: 1px solid #22d3ee88; border-radius: 999px; padding: 9px 18px; display: inline-block;
 }
 .btn:hover { background: rgba(34, 211, 238, 0.22); }
+.btn.btn-lg { font-size: 18px; font-weight: 600; padding: 15px 34px; background: rgba(34, 211, 238, 0.2); border-color: #22d3ee; box-shadow: 0 0 28px rgba(34, 211, 238, 0.25); }
+.btn.btn-lg:hover { background: rgba(34, 211, 238, 0.32); }
 .btn.quiet { background: transparent; border-color: var(--line); color: var(--dim); }
 .btn.warn { background: rgba(255, 128, 128, 0.1); border-color: #ff808088; }
 .post-text { font-family: var(--mono); font-size: 13.5px; background: rgba(5, 6, 11, 0.7); border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; overflow-wrap: anywhere; }
@@ -227,6 +229,25 @@ a.stage-row:hover { background: rgba(34, 211, 238, 0.06); }
 .field select {
   font: inherit; font-size: 15px; color: var(--fg); background: rgba(5, 6, 11, 0.85); border: 1px solid var(--line-strong);
   border-radius: 10px; padding: 11px 12px; width: 100%;
+}
+.judge-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+.judge-tile {
+  font: inherit; color: var(--dim); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 12px 4px 10px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); text-align: center;
+}
+.judge-tile img, .judge-mono { width: 76px; height: 76px; max-width: 100%; border-radius: 50%; object-fit: cover; border: 2px solid transparent; filter: grayscale(1); }
+.judge-mono { display: grid; place-items: center; font: 600 24px var(--display); color: #05060b; background: var(--grad); filter: none; }
+.judge-tile:hover { border-color: var(--line-strong); color: var(--fg); }
+.judge-tile:hover img { filter: none; }
+.judge-tile.on { color: var(--fg); border-color: #22d3ee99; background: rgba(34, 211, 238, 0.1); }
+.judge-tile.on img, .judge-tile.on .judge-mono { filter: none; border-color: #22d3ee; }
+.judge-name { font-size: 13.5px; line-height: 1.2; }
+.judge-sub { font: 11px var(--mono); color: var(--dim); margin-top: -4px; }
+@media (max-width: 720px) {
+  .judge-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .judge-tile img, .judge-mono { width: 58px; height: 58px; }
+  .judge-mono { font-size: 18px; }
+  .judge-name { font-size: 12px; }
 }
 .persona-card { margin-top: 12px; padding: 16px 18px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.025); }
 
