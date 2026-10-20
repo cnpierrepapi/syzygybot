@@ -1,5 +1,5 @@
 // Source sweep: the Contact finder's deterministic pass over the curated source list (lib/sources.ts).
-// It asks Bing News for recent articles about the company's marketing and partnership people, restricted
+// It asks Google News for recent articles about the company's marketing and partnership people, restricted
 // to the sources relevant to that company, keeps only articles from sources we can read (robots allow
 // us, the page answers our honest user agent), reads them, and pulls out named people with titles and
 // published press inboxes. For US public companies it also searches SEC 8-K filings, where officer
@@ -9,6 +9,7 @@ import status from "../data/sources-status.json";
 import { SOURCES, groupsFor, type Source } from "./sources";
 import { readAll, type Page } from "./web";
 import { ask, parseJson } from "./llm";
+import { googleNews } from "./gnews";
 
 const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.com)";
 const ROLE_TERMS = `(CMO OR "chief marketing officer" OR "chief brand officer" OR "head of partnerships" OR "brand partnerships" OR "head of marketing" OR "VP marketing" OR "vice president of marketing" OR sponsorship OR appoints OR names OR hires OR promotes)`;
@@ -32,23 +33,12 @@ export function sourceOf(url: string) {
   return READABLE.find(s => { const d = s.domain.split("/")[0]; return h === d || h.endsWith(`.${d}`); }) ?? null;
 }
 
-export type Hit = { url: string; title: string; date: string | null; source: string; via: "bing_news" | "search_feed" | "sec_8k"; score?: number };
+export type Hit = { url: string; title: string; date: string | null; source: string; via: "google_news" | "search_feed" | "sec_8k"; score?: number };
 
-/** Bing News RSS: direct article URLs with dates. */
-async function bingNews(q: string): Promise<Hit[]> {
-  try {
-    const r = await fetch(`https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&count=30`, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(12000) });
-    if (!r.ok) return [];
-    const xml = await r.text();
-    return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => {
-      const item = m[1];
-      const link = /<link>([^<]*)<\/link>/.exec(item)?.[1].replace(/&amp;/g, "&") ?? "";
-      const url = decodeURIComponent(/[?&]url=([^&]+)/.exec(link)?.[1] ?? link);
-      const title = (/<title>([^<]*)<\/title>/.exec(item)?.[1] ?? "").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"');
-      const pub = /<pubDate>([^<]*)<\/pubDate>/.exec(item)?.[1];
-      return { url, title, date: pub ? new Date(pub).toISOString() : null, source: sourceOf(url)?.name ?? hostOf(url), via: "bing_news" as const };
-    }).filter(h => h.url.startsWith("http"));
-  } catch { return []; }
+/** Google News: decoded publisher URLs with dates, only from sources on our readable list. */
+async function newsSearch(q: string): Promise<Hit[]> {
+  const hits = await googleNews(q, { keep: d => !!sourceOf(`https://${d}/`), max: 6 });
+  return hits.map(h => ({ url: h.url, title: h.title, date: h.date, source: sourceOf(h.url)?.name ?? h.source, via: "google_news" as const }));
 }
 
 const ROLE_WORDS = /\b(cmo|chief marketing|chief brand|marketing|partnerships?|sponsorships?|appoints?|names|hires?|promotes?|joins|executive|vp|vice president|head of)\b/i;
@@ -144,7 +134,7 @@ export async function sweep(company: { name: string; type: string; tags?: string
 
   const feeds = pool.filter(s => results[s.domain]?.search_feed).slice(0, MAX_FEEDS);
   const found = (await Promise.all([
-    ...queries.map(bingNews),
+    ...queries.map(newsSearch),
     ...feeds.map(s => searchFeed(results[s.domain].search_feed!, s.name, name)),
     company.publicCompany === false ? Promise.resolve([]) : sec8k(name),
   ])).flat();
@@ -153,7 +143,7 @@ export async function sweep(company: { name: string; type: string; tags?: string
   const hits = found.filter(h => {
     if (seen.has(h.url)) return false; seen.add(h.url);
     if (h.date && Date.parse(h.date) < cutoff) return false;
-    return h.via !== "bing_news" || !!sourceOf(h.url); // open-query results count only if the site is on the list
+    return h.via !== "google_news" || !!sourceOf(h.url); // open-query results count only if the site is on the list
   }).sort((a, b) => (b.score ?? 2) - (a.score ?? 2) || Date.parse(b.date ?? "0") - Date.parse(a.date ?? "0"));
 
   const pages = (await readAll(hits.slice(0, MAX_PAGES).map(h => h.url), MAX_PAGES)).filter(p => p.status < 400);

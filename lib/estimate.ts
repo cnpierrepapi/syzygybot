@@ -52,7 +52,7 @@ export async function estimatePairs(opts: { dryRun?: boolean } = {}) {
     const band = k.m.score >= EST_CUTOFFS.pitch ? "PITCH" : "WATCH";
     const r = (await sql()`insert into pair_queue (a_id, b_id, a, b, score, band, dims, rubric_version, status, note)
       values (${k.t}, ${k.b}, ${JSON.stringify(recs.get(k.t))}, ${JSON.stringify(recs.get(k.b))}, ${k.m.score / 100}, ${band},
-              ${JSON.stringify({ estimate: k.m, raw })}, ${EST_VERSION}, 'queued', 'SYZYGY estimate: not measured by Qloo')
+              ${JSON.stringify({ estimate: k.m, raw })}, ${EST_VERSION}, 'queued', 'SYZYGY estimate: our match score from patterns in Qloo taste data')
       on conflict (a_id, b_id) do nothing returning id`) as { id: string }[];
     inserted += r.length;
   }

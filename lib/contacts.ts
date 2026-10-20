@@ -197,7 +197,7 @@ export async function findContacts(a: Account) {
   const via = (k: string) => swept.hits.filter(h => h.via === k).length;
   await logAction({
     agent: "contact_finder", kind: "contacts.swept",
-    summary: `Swept ${swept.sourcesConsidered} listed sources for ${a.name} (${swept.groups.filter(g => !["wire", "business", "registry"].includes(g)).join(", ")}): ${via("bing_news")} news hits, ${via("search_feed")} from ${swept.feedsSearched} site searches${via("sec_8k") ? `, ${via("sec_8k")} SEC filings` : ""}. Read ${swept.pages.length}, found ${swept.people.length} named people.`,
+    summary: `Swept ${swept.sourcesConsidered} listed sources for ${a.name} (${swept.groups.filter(g => !["wire", "business", "registry"].includes(g)).join(", ")}): ${via("google_news")} news hits, ${via("search_feed")} from ${swept.feedsSearched} site searches${via("sec_8k") ? `, ${via("sec_8k")} SEC filings` : ""}. Read ${swept.pages.length}, found ${swept.people.length} named people.`,
     refTable: "accounts", refId: a.id, llmCostUsd: swept.costUsd,
     detail: { groups: swept.groups, queries: swept.queries, hits: swept.hits.slice(0, 40).map(h => ({ url: h.url, title: h.title, source: h.source, date: h.date, via: h.via })) },
   });

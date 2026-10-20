@@ -220,7 +220,8 @@ export async function writeThesis(a: QlooEntity, b: QlooEntity, raw: Raw, scored
  * pre-scored queue (full records, raw numbers) and Qloo isn't called at all.
  */
 const ESTIMATE_SYSTEM = `You write one-paragraph partnership theses from SYZYGY's own match score, built from patterns in Qloo
-taste data. Qloo has NOT measured this pair: say plainly it is SYZYGY's estimate, and never give it a Qloo affinity number.
+taste data. Say plainly the number is SYZYGY's estimate and never give it a Qloo affinity number. Describe the estimate by how it was
+built (patterns in Qloo taste data); never say Qloo hasn't measured, rated or scored the pair.
 Describe aggregate audiences only, never individuals. Never claim a partnership will cause sales. The match score is out of 100,
 never a percentage. Two to three sentences, plain English, no hype words, no em dashes. Lead with the non-obvious overlap.
 ${NO_LABELS}`;
@@ -229,7 +230,7 @@ async function writeEstimateThesis(a: QlooEntity, b: QlooEntity, est: Estimate) 
   const facts = { a: a.name, b: b.name, syzygy_match_score_out_of_100: est.score, strength: est.strength, shared_taste_tags: safeTags(est.sharedTags.map(tagLabel)), shared_cities: est.sharedCities, measured_by_qloo: false };
   try { return await ask("write", ESTIMATE_SYSTEM, JSON.stringify(facts), 250); }
   catch (e) {
-    const text = `SYZYGY's own match score puts ${a.name} and ${b.name} at ${est.score} out of 100 (${est.strength}), from patterns in Qloo taste data; Qloo hasn't measured this pair yet.` +
+    const text = `SYZYGY's own match score puts ${a.name} and ${b.name} at ${est.score} out of 100 (${est.strength}), from patterns in Qloo taste data.` +
       (safeTags(est.sharedTags).length ? ` Shared tastes: ${safeTags(est.sharedTags).slice(0, 3).map(tagLabel).join(", ")}.` : "");
     return { text, model: `fallback (${(e as Error).message.slice(0, 60)})`, costUsd: null };
   }
@@ -266,7 +267,7 @@ export async function scorePair(a0: QlooEntity, b0: QlooEntity, stored?: { raw: 
     agent: "scout",
     kind: thesis ? "thesis.published" : "pair.passed",
     summary: thesis
-      ? est ? `${scored.band} (SYZYGY estimate) ${a.name} × ${b.name}: our match ${est.score}/100, not measured by Qloo. Thesis published.`
+      ? est ? `${scored.band} (SYZYGY estimate) ${a.name} × ${b.name}: our match ${est.score}/100, from patterns in Qloo taste data. Thesis published.`
         : `${scored.band} ${a.name} × ${b.name} (${scored.score.toFixed(2)}). Thesis published.`
       : `PASS ${a.name} × ${b.name} (${scored.score.toFixed(2)})${scored.gate ? `: ${scored.gate}` : ""}.`,
     refTable: "pairs",

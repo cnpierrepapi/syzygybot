@@ -3,7 +3,7 @@
 // It looks in every place a partnership leaves a trace:
 //   - Wikipedia, both sides' articles (collabs, sponsorships, ambassador deals, usually with the year)
 //   - Google, through Gemini's search grounding (newsrooms, press releases, drop pages, retailer listings)
-//   - Bing News, open and limited to the trade press on our source list for both sides' industries
+//   - Google News, open and limited to the trade press on our source list for both sides' industries
 //   - the WordPress search feeds of those trade sources, which reach back years, and of both official sites
 // Every page has to name both sides near each other, then the model judges what kind of link it is and
 // quotes the line. The quote has to be on the page. Ongoing, announced, or dated this year or last = active:
@@ -16,6 +16,7 @@ import { readAll, type Page } from "./web";
 import { stopSequence } from "./sequencer";
 import { SOURCES, groupsFor } from "./sources";
 import { readable, searchName } from "./sweep";
+import { googleNews } from "./gnews";
 import status from "../data/sources-status.json";
 
 const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.com)";
@@ -94,17 +95,8 @@ async function wikipedia(title: string): Promise<Page | null> {
   } catch { return null; }
 }
 
-async function bingNews(q: string): Promise<Hit[]> {
-  try {
-    const r = await fetch(`https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&count=30&mkt=en-US&setlang=en-US&cc=US`, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(12000) });
-    if (!r.ok) return [];
-    return [...(await r.text()).matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => {
-      const link = /<link>([^<]*)<\/link>/.exec(m[1])?.[1].replace(/&amp;/g, "&") ?? "";
-      const url = decodeURIComponent(/[?&]url=([^&]+)/.exec(link)?.[1] ?? link);
-      const title = (/<title>([^<]*)<\/title>/.exec(m[1])?.[1] ?? "").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"');
-      return { url, title, source: "Bing News" };
-    }).filter(h => h.url.startsWith("http"));
-  } catch { return []; }
+async function newsSearch(q: string): Promise<Hit[]> {
+  return (await googleNews(q, { max: 6 })).map(h => ({ url: h.url, title: h.title, source: "Google News" }));
 }
 
 /** A WordPress site's own search: every article naming both sides, however old. */
@@ -157,7 +149,7 @@ export async function checkPair(pairId: string) {
   if (!p) throw new Error(`no pair ${pairId}`);
   const [idA, idB] = await Promise.all([identity(p.a), identity(p.b)]);
   const A = searchName(p.a.name), B = searchName(p.b.name);
-  // Bing query terms: the name plus the aliases, e.g. ("A Bathing Ape" OR "BAPE").
+  // News query terms: the name plus the aliases, e.g. ("A Bathing Ape" OR "BAPE").
   const q = (names: string[]) => { const f = [...new Set(names.map(searchName))].slice(0, 3); return f.length > 1 ? `(${f.map(n => `"${n}"`).join(" OR ")})` : `"${f[0]}"`; };
   const QA = q(idA.names), QB = q(idB.names);
 
@@ -174,8 +166,8 @@ export async function checkPair(pairId: string) {
   const [wikiA, wikiB, google, news, tradeNews, feedHits, officialHits] = await Promise.all([
     wikipedia(idA.title), wikipedia(idB.title),
     askWeb(`Have ${idA.names.join(" / ")} (${p.a.type.replace("_", " ")}) and ${idB.names.join(" / ")} (${p.b.type.replace("_", " ")}) ever partnered or collaborated? Search for it.`, GOOGLE_SYSTEM, 800).catch(() => null),
-    Promise.all([bingNews(`${QA} ${QB}`), bingNews(`${QA} ${QB} ${DEAL_TERMS}`), bingNews(`${A} ${B} collab`)]).then(x => x.flat()),
-    Promise.all(tradeQueries.map(bingNews)).then(x => x.flat().map(h => ({ ...h, source: "trade press (Bing News)" }))),
+    Promise.all([newsSearch(`${QA} ${QB}`), newsSearch(`${QA} ${QB} ${DEAL_TERMS}`), newsSearch(`${A} ${B} collab`)]).then(x => x.flat()),
+    Promise.all(tradeQueries.map(newsSearch)).then(x => x.flat().map(h => ({ ...h, source: "trade press (Google News)" }))),
     Promise.all(feeds.map(s => wpSearch(results[s.domain].search_feed!, s.name, `${A} ${B}`))).then(x => x.flat()),
     // Each official site searched for the other side's name.
     Promise.all([
@@ -232,7 +224,7 @@ export async function checkPair(pairId: string) {
   const result: DealCheck = {
     status: decide(findings), checked_at: new Date().toISOString(), findings,
     searched: {
-      wikipedia: [wikiA, wikiB].filter(Boolean).length, google: googleHits.length, google_queries: google?.queries.length ?? 0, google_follow_up: followUp, bing_news: news.length,
+      wikipedia: [wikiA, wikiB].filter(Boolean).length, google: googleHits.length, google_queries: google?.queries.length ?? 0, google_follow_up: followUp, google_news: news.length,
       trade_sources: trade.length, trade_news: tradeNews.length, trade_feeds: feeds.length, official_sites: official.length,
     },
     pages_read: pages.length, co_mentions: passages.length,
@@ -240,7 +232,7 @@ export async function checkPair(pairId: string) {
   await sql()`update pairs set deal_status = ${result.status}, deal_check = ${JSON.stringify(result)}, deal_checked_at = now() where id = ${p.id}`;
 
   const top = findings[0];
-  const where = `${result.pages_read} pages across Wikipedia, Google, Bing News, ${trade.length} trade sources and the official sites`;
+  const where = `${result.pages_read} pages across Wikipedia, Google, Google News, ${trade.length} trade sources and the official sites`;
   let stopped = 0;
   if (result.status === "active") {
     // Anything already drafted on this thesis stops. The account's other theses can still carry it later.

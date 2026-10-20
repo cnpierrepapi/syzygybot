@@ -143,7 +143,7 @@ export async function pickFromQueue(n = 1) {
     const pickedAction = await logAction({
       agent: "scout", kind: "queue.picked",
       summary: r.dims.estimate
-        ? `Picked ${r.a.name} × ${r.b.name} from the queue: a SYZYGY estimate, our match ${r.dims.estimate.score}/100 (${r.band}), not measured by Qloo.`
+        ? `Picked ${r.a.name} × ${r.b.name} from the queue: a SYZYGY estimate, our match ${r.dims.estimate.score}/100 (${r.band}), from patterns in Qloo taste data.`
         : `Picked ${r.a.name} × ${r.b.name} from the queue: best of ${waiting - out.length} waiting (pre-score ${r.score.toFixed(2)} ${r.band}).`,
       detail: { entity_id: r.a_id, queue_id: r.id },
     });

@@ -80,7 +80,7 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first }: { r: Request;
           <div className="req-score" title="SYZYGY's own match score, out of 100">
             <b>{m.score}</b><span>our match</span>
             {m.qloo ? <em className="qloo-yes">Qloo confirms {m.qloo.toward.toFixed(2)} / {m.qloo.back.toFixed(2)}</em>
-              : <em className="qloo-no">{m.strength} · not measured by Qloo yet</em>}
+              : <em className="qloo-no">{m.strength} · SYZYGY estimate</em>}
           </div>
         )}
       </div>
