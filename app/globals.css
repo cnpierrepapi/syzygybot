@@ -320,3 +320,5 @@ body:has(.desk-mode) .sky-labels { display: none; }
 .stack-strip li b { font-weight: 500; }
 .stack-strip li span { font: 11px var(--mono); color: #ffb020; }
 .hero p, .hero h1 { text-shadow: 0 0 18px rgba(5, 6, 11, 0.95), 0 0 4px rgba(5, 6, 11, 0.9); }
+/* Gradient text has a transparent fill, so a text-shadow shows through it and muddies the colour; drop-shadow sits behind. */
+.hero h1 .grad-text { text-shadow: none; filter: drop-shadow(0 0 10px rgba(5, 6, 11, 0.85)) drop-shadow(0 0 3px rgba(5, 6, 11, 0.9)); }
