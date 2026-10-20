@@ -1,7 +1,7 @@
 // Hunter guard. The free plan has 50 searches a month (resets 19 Nov), so every paid call is fenced:
 // a free GET /v2/account first, a reserve that is never spent, a hard cap per run, and every call logged in hunter_calls.
-// Only the Email Finder is used, for a named person already verified in the role. Its answer counts only with Hunter's
-// own public sources and a "valid" verification; anything else is dropped, and a personal address is never guessed.
+// Only the Email Finder is used, for a named person already verified in the role. Hunter's check is king (his rule, 20 Oct):
+// a "valid" verification counts on its own; "accept_all" or "unknown" never does, and a personal address is never guessed.
 import { sql } from "./db";
 import { logAction } from "./actions";
 
@@ -47,10 +47,27 @@ export async function findEmail(domain: string, first: string, last: string, bud
   await sql()`insert into hunter_calls (endpoint, query, left_before, result)
     values ('email-finder', ${JSON.stringify({ domain, first, last })}, ${q.left}, ${JSON.stringify({ http: r.status, found })})`;
   await logAction({ agent: "contact_finder", kind: "hunter.search",
-    summary: `Asked Hunter for one verified work address at ${domain}: ${found ? (usable(found) ? "found, with public sources" : "found but not usable") : "none"}. ${q.left - 1} searches left this month.`,
+    summary: `Asked Hunter for one verified work address at ${domain}: ${found ? (usable(found) ? "found and verified" : "found but not verified") : "none"}. ${q.left - 1} searches left this month.`,
     detail: { left: q.left - 1 } });
   return { found };
 }
 
-/** A Hunter answer we may use: Hunter verified it and can point to public pages that show it. */
-export const usable = (f: Found | null): f is Found => !!f && f.status === "valid" && f.sources.length > 0;
+export const AUTO_CAP = 2; // searches one automatic outreach run may spend
+
+/** A named person's own work address via Hunter, stored on the contact when Hunter verifies it. Null if not. */
+export async function hunterFor(c: { id: string; name: string | null; email: string | null }, site: string | null, budget: { spent: number; cap?: number }) {
+  if (c.email || !c.name || !site) return null;
+  const domain = site.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+  const [first, ...rest] = c.name.replace(/^(dr|mr|mrs|ms)\.?\s+/i, "").split(/\s+/);
+  if (!rest.length) return null;
+  const r = await findEmail(domain, first, rest.join(" "), budget).catch(() => ({ refused: "error" as const }));
+  if ("refused" in r) return null;
+  await sql()`update contacts set verification = verification || ${JSON.stringify({ hunter: { domain, found: r.found, usable: usable(r.found), at: new Date().toISOString() } })}::jsonb where id = ${c.id}`;
+  if (!usable(r.found)) return null;
+  await sql()`update contacts set email = ${r.found.email}, email_status = 'valid',
+    verification = verification || ${JSON.stringify({ address_source: "hunter" })}::jsonb where id = ${c.id}`;
+  return r.found.email;
+}
+
+/** A Hunter answer we may use: Hunter verified it as deliverable. */
+export const usable = (f: Found | null): f is Found => !!f && f.status === "valid";

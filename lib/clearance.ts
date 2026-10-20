@@ -132,7 +132,7 @@ export async function clear(o: Outbound, rules: Rules = DEFAULT_RULES): Promise<
   if (rules.publishedOnly && o.channel === "email") {
     const ok = o.addressSource === "published" || o.addressSource === "verified";
     checks.push({ rule: "publishedOnly", label: RULE_LABEL.publishedOnly, pass: ok,
-      note: o.addressSource === "verified" ? `${o.address} was found and verified by a mail service with public sources; never guessed.`
+      note: o.addressSource === "verified" ? `${o.address} was found and verified as deliverable by Hunter; never guessed.`
         : ok ? `${o.address} appears on a page the company published.` : "The address wasn't found on a published page." });
   }
   if (rules.departed && o.roleStatus) {

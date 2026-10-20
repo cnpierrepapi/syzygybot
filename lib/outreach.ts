@@ -15,6 +15,7 @@ import { safeTags } from "./match";
 import type { DealCheck } from "./dealcheck";
 import { claimedEntities } from "./claim";
 import { draftForWorkspace } from "./inward";
+import { AUTO_CAP, hunterFor } from "./hunter";
 
 
 type Evidence = {
@@ -223,6 +224,9 @@ export async function runOutreach(limit = 1, accountId?: string) {
       }
       const people = usable.filter(c => c.kind === "person").slice(0, 2);
       const targets = people.length ? people : usable.slice(0, 1);
+      // Address order (his rule): Hunter's verified address first, then an inbox the company published, then a letter.
+      const hb = { spent: 0, cap: AUTO_CAP };
+      for (const c of targets) if (c.kind === "person" && !c.email) { const e = await hunterFor(c, a.official_site, hb); if (e) c.email = e; }
       const route = bestInbox(contacts);
       const plan = await planAccount(a, targets, !!route);
       let touches = 0;
