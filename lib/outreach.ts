@@ -51,6 +51,8 @@ Hard rules:
 - Quote at least two specific numbers from the evidence, as given. Do not invent any number, client, budget or result.
 - If pair_measured_by_qloo is false, the pair's number is SYZYGY's own match score out of 100, from patterns in Qloo's taste data:
   say exactly that, never call it a Qloo affinity, and use the Qloo-measured more_partners as the Qloo numbers.
+- Describe our match score by how it was built (from patterns in Qloo's taste data, or a profile built from public
+  sources in Qloo's tag vocabulary). Never say Qloo hasn't measured, rated or scored something.
 - Mention the extra partners by name as proof the data finds more than one opportunity.
 - If past_partnership is given, the two have worked together before: mention it plainly as history (the audience
   overlap is still there), and never present the pairing as a new idea.
@@ -79,8 +81,12 @@ export function writerChecks(body: string, subject: string) {
     under_150_words: body.split(/\s+/).filter(Boolean).length <= 170, // signature + link included
     // The agents don't book meetings: the only ask is a reply, and a person takes it from there.
     no_meeting_ask: !MEETING_ASK.test(all),
+    // Our estimate is described by how it was built, never by what Qloo hasn't measured (his rule, 20 Oct).
+    no_unmeasured_note: !UNMEASURED.test(all),
   };
 }
+
+export const UNMEASURED = /qloo\s+(has|had|does|did)?\s*(n['’]t|not|yet to)\s+(yet\s+)?(been\s+)?(measured|rated|scored|covered|tracked)|(not|never|un)\s*(yet\s+)?(been\s+)?(directly\s+)?measured\s+(directly\s+)?(yet\s+)?by\s+qloo|without\s+a\s+qloo\s+(number|score|measurement|rating)|no\s+qloo\s+(number|score|measurement|rating|data)/i;
 
 export const MEETING_ASK = /\b(\d+[- ]minute|(a|an) (quick |brief |short |introductory )?(call|meeting|chat|conversation)|book a|schedule a|set up a time|hop on|calendar|meet with)\b/i;
 

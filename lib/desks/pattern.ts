@@ -56,7 +56,7 @@ export async function runPatternTalent(p: Persona, subject: string, n = 3, desk:
   const nearest = (s.lookalikes?.nearest ?? []).slice(0, 3).map(x => x.name);
   for (const { brand, m } of (await rankBrands(sideOfSynthetic(s), 25, p.brands ?? [])).filter(c => !taken.has(c.brand.name)).slice(0, n)) {
     const facts = [
-      `Our match score between ${subject}'s audience and ${brand.name}'s: ${m.score} out of 100 (${m.strength}). Qloo hasn't measured ${subject} yet, so this is SYZYGY's own estimate.`,
+      `Our match score between ${subject}'s audience and ${brand.name}'s: ${m.score} out of 100 (${m.strength}). It's SYZYGY's own estimate.`,
       `${subject}'s profile was built from public sources in Qloo's tag vocabulary${nearest.length ? `; its nearest measured look-alikes are ${nearest.join(", ")}` : ""}.`,
       ...(m.sharedTags.length ? [`Shared audience tastes: ${m.sharedTags.slice(0, 4).map(tagLabel).join(", ")}.`] : []),
       ...(m.sharedCities.length ? [`Both audiences concentrate in ${m.sharedCities.slice(0, 3).join(", ")}.`] : []),

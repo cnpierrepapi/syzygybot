@@ -93,6 +93,15 @@ export async function render(t: Row) {
   };
 }
 
+/** Now if the recipient's sending window is open, else the next time it opens. */
+export function nextWindow(tz: string, from = new Date()) {
+  const step = 15 * 60_000;
+  if (inWindow(from, tz)) return from;
+  let t = new Date(Math.ceil(from.getTime() / step) * step);
+  for (let i = 0; i < 4 * 24 * 14 && !inWindow(t, tz); i++) t = new Date(t.getTime() + step);
+  return t;
+}
+
 const who = (t: Row) => t.contact_name ?? `the ${t.company} inbox`;
 
 /** His go for one message: re-checks every gate except timing, then marks it queued for the next window. */
@@ -101,8 +110,11 @@ export async function approve(touchId: string, by: string) {
   if (!t) return { ok: false, why: "no such message" };
   const g = (await gates(t, false)).filter(x => !x.pass);
   if (g.length) return { ok: false, why: g.map(x => x.note).join(" ") };
-  await sql()`update touches set status = 'queued', detail = detail || ${JSON.stringify({ approved: { by, at: new Date().toISOString() } })}::jsonb where id = ${t.id}`;
-  await logAction({ agent: "sequencer", kind: "touch.approved", summary: `A person approved the ${t.channel} to ${who(t)} at ${t.company}. It goes out in the next sending window.`, refTable: "touches", refId: t.id });
+  // Approval moves the message to the next open window; the Sequencer's earlier booking was a plan, not a hold.
+  const at = nextWindow(t.detail?.tz ?? t.tz ?? "America/New_York");
+  await sql()`update touches set status = 'queued', scheduled_for = ${at.toISOString()},
+    detail = detail || ${JSON.stringify({ approved: { by, at: new Date().toISOString() } })}::jsonb where id = ${t.id}`;
+  await logAction({ agent: "sequencer", kind: "touch.approved", summary: `A person approved the ${t.channel} to ${who(t)} at ${t.company}. It goes out ${+at - Date.now() < 60_000 ? "now" : `at ${new Intl.DateTimeFormat("en-GB", { timeZone: t.detail?.tz ?? t.tz ?? "America/New_York", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(at)} their time`}.`, refTable: "touches", refId: t.id });
   return { ok: true };
 }
 

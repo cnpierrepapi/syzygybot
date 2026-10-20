@@ -220,7 +220,6 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
         <a role="tab" aria-selected={!desk} className={!desk ? "on" : ""} href={`/desk/${p.id}`}>All <span>{pending.length}</span></a>
         {desks.map(d => <a key={d} role="tab" aria-selected={desk === d} className={desk === d ? "on" : ""} href={`/desk/${p.id}?desk=${d}`}>{DESKS[d].label} <span>{counts[d]}</span></a>)}
         {isClearance && <a href="#rules">Rules</a>}
-        <a href="#watch">Market Watch <span>{news.length}</span></a>
       </div>
 
       <div className="desk-grid">

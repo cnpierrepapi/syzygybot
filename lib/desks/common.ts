@@ -8,7 +8,7 @@ import { slugify, token } from "../slug";
 import { clear, countryOf, type Deal, type Outbound } from "../clearance";
 import type { Match } from "../match";
 import { rejectionNotes } from "../desk";
-import { MEETING_ASK } from "../outreach";
+import { MEETING_ASK, UNMEASURED } from "../outreach";
 import type { DeskId, Persona } from "../personas";
 
 export type Purpose = "booking" | "sponsorship" | "partnerships" | "advertising";
@@ -64,6 +64,7 @@ const WRITER = `You write one short outbound message for a desk on SYZYGY, an AI
 Hard rules:
 - The first sentence says plainly that an AI agent (SYZYGY) drafted this for the sender named in the brief, and a person approved it.
 - Use only facts and numbers from the brief. SYZYGY's match score is out of 100 and is SYZYGY's own estimate: call it "our match score".
+  Describe it by how it was built (as the brief says); never say Qloo hasn't measured, rated or scored something.
   Qloo affinity numbers are 0 to 1 scores from Qloo's taste data: credit them as Qloo's, never as percentages. Never claim to be Qloo.
 - Talent appears only as audience data ("Bad Bunny's fans lean toward..."), never as liking, using or backing anything.
 - One clear ask, answered by a reply. Never ask for a call, a meeting or a time slot; a person takes over after a reply. Under 140 words. No em dashes, no exclamation marks, no hype words.
@@ -76,6 +77,7 @@ const style = (b: string, subject: string) => ({
   short: b.split(/\s+/).length <= 170,
   discloses: /\bai\b/i.test(b.slice(0, 260)),
   no_meeting_ask: !MEETING_ASK.test(`${subject}\n${b}`),
+  no_unmeasured_note: !UNMEASURED.test(`${subject}\n${b}`),
 });
 
 export async function draft(brief: Record<string, unknown>) {

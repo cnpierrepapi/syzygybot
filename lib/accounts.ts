@@ -165,7 +165,7 @@ export async function buildAccount(p: PairRow) {
     audienceAge: storedAge ?? ageVector(demo),
     morePartners: partners,
     source: p.dims.estimate
-      ? "SYZYGY match score from patterns in Qloo taste data (this pair not measured by Qloo); more partners are Qloo-measured. Aggregate audiences; not causal."
+      ? "SYZYGY match score from patterns in Qloo taste data; more partners are Qloo-measured. Aggregate audiences; not causal."
       : "Qloo taste data (hackathon API). Aggregate audience affinity; not causal.",
   };
   await sql()`update accounts set evidence = ${JSON.stringify(evidence)} where id = ${accountId}`;

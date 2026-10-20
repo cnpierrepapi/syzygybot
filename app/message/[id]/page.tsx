@@ -37,6 +37,7 @@ const CHECK_LABEL: Record<string, string> = {
   under_150_words: "Short enough to read in a minute",
   names_brand: "Says up front which brand it writes for",
   no_meeting_ask: "Asks for a reply, never a meeting",
+  no_unmeasured_note: "Explains our estimate by how it was built",
 };
 
 // Links in the body become clickable; everything else stays as written.
@@ -180,6 +181,7 @@ export default async function Message({ params, searchParams }: { params: Promis
             <div className="panel fade-up" style={{ padding: 24, animationDelay: "130ms", display: "grid", gap: 8, fontSize: 14 }}>
               <p className="eyebrow" style={{ marginBottom: 2 }}>Delivery</p>
               {t.detail.approved && <span>Approved by a person {when(t.detail.approved.at)}</span>}
+              {t.status === "queued" && t.channel === "email" && t.scheduled_for && <span>Goes out {when(t.scheduled_for)}{tz ? ` (${tz})` : ""}, the next time their sending window opens</span>}
               {t.sent_at && <span>{t.channel === "letter" ? "Sent to print" : "Sent"} {when(t.sent_at)}</span>}
               {t.detail.postgrid && (
                 <span>

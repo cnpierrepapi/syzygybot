@@ -33,7 +33,7 @@ export async function brandsFor(talent: Profile, take = 12): Promise<Candidate[]
 
 const evidenceFacts = (subject: string, b: string, m: Match) => [
   `Our match score between ${subject}'s audience and ${b}'s: ${m.score} out of 100 (${m.strength}).`,
-  ...(m.qloo ? [`Qloo's taste data confirms it: ${subject}'s audience leans toward ${b} at ${m.qloo.toward.toFixed(2)}, and ${b}'s audience back at ${m.qloo.back.toFixed(2)} (0 to 1).`] : ["Qloo hasn't measured this pair yet; the score is SYZYGY's own estimate."]),
+  ...(m.qloo ? [`Qloo's taste data confirms it: ${subject}'s audience leans toward ${b} at ${m.qloo.toward.toFixed(2)}, and ${b}'s audience back at ${m.qloo.back.toFixed(2)} (0 to 1).`] : ["The score is SYZYGY's own estimate, from patterns in Qloo's taste data."]),
   ...(m.sharedTags.length ? [`Shared audience tastes: ${m.sharedTags.slice(0, 4).map(tagLabel).join(", ")}.`] : []),
   ...(m.sharedCities.length ? [`Both audiences concentrate in ${m.sharedCities.slice(0, 3).join(", ")}.`] : []),
 ];
