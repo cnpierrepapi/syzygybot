@@ -9,7 +9,7 @@ import { pickFromQueue } from "./prescore";
 import { isQuotaError } from "./qloo";
 import { RUBRIC_VERSION, score, sharedTags, type Raw } from "./rubric";
 import { EST_VERSION, type Estimate } from "./estimate";
-import { tagLabel } from "./match";
+import { tagLabel, safeTags } from "./match";
 import {
   audienceTags, demographics, entities, heatmap, pull, search, topFor, trending,
   type EntityType, type QlooEntity,
@@ -187,14 +187,19 @@ export async function measure(a: QlooEntity, b: QlooEntity, memo?: Memo): Promis
   };
 }
 
+// Theses are public pages. Brand and show names are fine; describing who an audience is, is not.
+export const NO_LABELS = `Never describe an audience by sexuality, gender identity, age or minors (no "teen", "kids", "young girls"), religion,
+ethnicity or race, health, politics, or crime and violence. Talk about what they like (genres, styles, products), not who they are.`;
+
 const THESIS_SYSTEM = `You write one-paragraph partnership theses from Qloo audience data.
 Rules: describe aggregate audience affinity only, never individuals. Never claim a partnership
 will cause sales or growth. Name the source as "Qloo taste data". Two to three sentences, plain
 English, no hype words, no em dashes. Lead with the non-obvious overlap.
-Affinity values are scores from 0 to 1, never percentages or shares of an audience.`;
+Affinity values are scores from 0 to 1, never percentages or shares of an audience.
+${NO_LABELS}`;
 
 export async function writeThesis(a: QlooEntity, b: QlooEntity, raw: Raw, scored: ReturnType<typeof score>) {
-  const shared = sharedTags(raw.tagsA, raw.tagsB).slice(0, 8);
+  const shared = safeTags(sharedTags(raw.tagsA, raw.tagsB)).slice(0, 8);
   const facts = {
     a: a.name, b: b.name, pull_a_to_b: raw.pullAB, pull_b_to_a: raw.pullBA,
     shared_taste_tags: shared,
@@ -217,14 +222,15 @@ export async function writeThesis(a: QlooEntity, b: QlooEntity, raw: Raw, scored
 const ESTIMATE_SYSTEM = `You write one-paragraph partnership theses from SYZYGY's own match score, built from patterns in Qloo
 taste data. Qloo has NOT measured this pair: say plainly it is SYZYGY's estimate, and never give it a Qloo affinity number.
 Describe aggregate audiences only, never individuals. Never claim a partnership will cause sales. The match score is out of 100,
-never a percentage. Two to three sentences, plain English, no hype words, no em dashes. Lead with the non-obvious overlap.`;
+never a percentage. Two to three sentences, plain English, no hype words, no em dashes. Lead with the non-obvious overlap.
+${NO_LABELS}`;
 
 async function writeEstimateThesis(a: QlooEntity, b: QlooEntity, est: Estimate) {
-  const facts = { a: a.name, b: b.name, syzygy_match_score_out_of_100: est.score, strength: est.strength, shared_taste_tags: est.sharedTags.map(tagLabel), shared_cities: est.sharedCities, measured_by_qloo: false };
+  const facts = { a: a.name, b: b.name, syzygy_match_score_out_of_100: est.score, strength: est.strength, shared_taste_tags: safeTags(est.sharedTags.map(tagLabel)), shared_cities: est.sharedCities, measured_by_qloo: false };
   try { return await ask("write", ESTIMATE_SYSTEM, JSON.stringify(facts), 250); }
   catch (e) {
     const text = `SYZYGY's own match score puts ${a.name} and ${b.name} at ${est.score} out of 100 (${est.strength}), from patterns in Qloo taste data; Qloo hasn't measured this pair yet.` +
-      (est.sharedTags.length ? ` Shared tastes: ${est.sharedTags.slice(0, 3).map(tagLabel).join(", ")}.` : "");
+      (safeTags(est.sharedTags).length ? ` Shared tastes: ${safeTags(est.sharedTags).slice(0, 3).map(tagLabel).join(", ")}.` : "");
     return { text, model: `fallback (${(e as Error).message.slice(0, 60)})`, costUsd: null };
   }
 }
