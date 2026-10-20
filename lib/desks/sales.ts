@@ -31,7 +31,7 @@ export async function runSales(p: Persona, n = 6) {
     ];
     const id = await makeRequest({
       persona: p, desk: "sales", agent: "writer", action: r.channel === "letter" ? "letter" : "email",
-      title: `${r.org}: pitch Qloo's taste data`, dedupe: `${p.id}|sales|${r.touch_id}`,
+      title: `${r.org}: pitch Qloo's taste data to ${r.contact_name ?? r.role}`, dedupe: `${p.id}|sales|${r.touch_id}`,
       target: { org: r.org, site: r.site, person: r.contact_name, role: r.role, country: "US", purpose: "partnerships" },
       brief: {}, evidence: { match: m, facts },
       preset: { subject: r.subject ?? "", body: r.body, address: r.to_address, roleStatus: r.role_status, person: r.contact_name },
@@ -50,7 +50,7 @@ export async function runSales(p: Persona, n = 6) {
 People: ${people.join("; ") || "published inboxes only"}.
 Each company gets a note with the thesis, our match score, Qloo's numbers where measured, and the drafted message.`;
       const [row] = (await sql()`insert into permission_requests (persona, desk, action, title, target, preview, evidence, clearance, dedupe)
-        values (${p.id}, 'sales', 'crm_push', ${`Push ${accounts.length} accounts to the CRM`},
+        values (${p.id}, 'sales', 'crm_push', ${`Push ${accounts.length} accounts to the CRM: ${accounts.join(", ")}`},
           ${JSON.stringify({ org: "HubSpot or Salesforce", channel: "email", country: "US", crm: true })},
           ${JSON.stringify({ subject: `${accounts.length} companies, ${people.length} people, ${rows.length} drafted messages`, body })},
           ${JSON.stringify({ facts: [`Every record links back to its public evidence page on SYZYGY.`, `Contact emails go to the CRM only when they were published by the company.`] })},
