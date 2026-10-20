@@ -15,14 +15,17 @@ export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`)
     return Response.json({ error: "unauthorized" }, { status: 401 });
+  // Each step after the first only starts with room left before the 300s limit; skipped steps wait for the next cron.
+  const t0 = Date.now(), room = (s: number) => (Date.now() - t0) / 1000 < s;
+  const late = { skipped: "out of time" };
   return Response.json(await withLock("outreach", 290, async () => {
     // Backlog and two-week rechecks of theses with messages still waiting to go.
     const deals = await runDealCheck(3);
-    const outreach = await runOutreach(1);
+    const outreach = room(120) ? await runOutreach(1) : late;
     // Brands that claimed their page and switched sending on: drafts for anyone newly confirmed.
-    const inward = await runInward(3);
-    const sequencer = await runSequencer(6);
+    const inward = room(200) ? await runInward(3) : late;
+    const sequencer = room(240) ? await runSequencer(6) : late;
     // Brands that connected a CRM get whatever is new about the companies that need them.
-    return { deals, outreach, inward, sequencer, crm: await syncAll() };
+    return { deals, outreach, inward, sequencer, crm: room(260) ? await syncAll() : late };
   }));
 }
