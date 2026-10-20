@@ -1,4 +1,4 @@
-// Inbox agent entry point. Until the mailbox exists, replies arrive here by hand and are marked simulated.
+// Inbox agent entry point for test replies posted by hand (marked simulated). Real replies come from the mailbox (lib/mailbox.ts).
 import { handleReply } from "@/lib/inbox";
 
 export const dynamic = "force-dynamic";

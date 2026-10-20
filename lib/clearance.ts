@@ -38,7 +38,7 @@ export type Outbound = {
   subject: string;
   body: string;
   address: string | null;                            // email address (null for a letter)
-  addressSource: "published" | "guessed" | null;     // where the address came from
+  addressSource: "published" | "verified" | "guessed" | null; // published by the company, or found + verified by a service (Hunter)
   roleStatus?: string | null;                        // contacts.role_status for a named person
   country: string;                                   // ISO-2 of the recipient
   talent: string[];                                  // talent named in the message
@@ -61,6 +61,7 @@ function countryRule(o: Outbound, rules: Rules): Check {
   const label = RULE_LABEL.country;
   const c = o.country;
   if (o.channel === "letter") return { rule: "country", label, pass: true, note: `Postal letter to ${c}: no consent rule applies to business post.` };
+  // A service-verified address isn't one the company published: fine under CAN-SPAM, held where consent leans on publication.
   const published = o.addressSource === "published";
   if (c === "DE" && rules.germanyLetterOnly)
     return { rule: "country", label, pass: false, note: "Germany (UWG §7): cold B2B email needs prior consent. Send it as a letter instead." };
@@ -129,8 +130,10 @@ export async function clear(o: Outbound, rules: Rules = DEFAULT_RULES): Promise<
   if (rules.endorsement) checks.push(endorsementRule(o));
   if (rules.country) checks.push(countryRule(o, rules));
   if (rules.publishedOnly && o.channel === "email") {
-    const ok = o.addressSource === "published";
-    checks.push({ rule: "publishedOnly", label: RULE_LABEL.publishedOnly, pass: ok, note: ok ? `${o.address} appears on a page the company published.` : "The address wasn't found on a published page." });
+    const ok = o.addressSource === "published" || o.addressSource === "verified";
+    checks.push({ rule: "publishedOnly", label: RULE_LABEL.publishedOnly, pass: ok,
+      note: o.addressSource === "verified" ? `${o.address} was found and verified by a mail service with public sources; never guessed.`
+        : ok ? `${o.address} appears on a page the company published.` : "The address wasn't found on a published page." });
   }
   if (rules.departed && o.roleStatus) {
     const ok = o.roleStatus !== "departed";

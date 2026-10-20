@@ -3,7 +3,7 @@
 // keeps only the ones whose page it can read, and sets the angle and channels.
 // Writer: one message per verified contact, built from that account's evidence. It says up front that it
 // is an AI agent, says it is built on Qloo's taste data, and never claims to be Qloo.
-// Nothing is sent: touches are stored as dry_run until the sending mailbox exists.
+// Nothing is sent: touches are stored as dry_run until a person approves each one (lib/mail.ts, lib/letters.ts).
 
 import { sql } from "./db";
 import { logAction } from "./actions";
@@ -182,7 +182,7 @@ export async function writeTouch(a: AccountRow, plan: { id: string; angle: strin
     returning id`) as { id: string }[];
   await logAction({
     agent: "writer", kind: "touch.drafted",
-    summary: `Wrote to ${c.name ?? `${a.name}'s ${c.role}`}: "${draft!.subject}". Held as a dry run until the mailbox is live.`,
+    summary: `Wrote to ${c.name ?? `${a.name}'s ${c.role}`}: "${draft!.subject}". Held as a dry run until a person approves it.`,
     refTable: "touches", refId: row.id, llmCostUsd: cost,
   });
   return row.id;

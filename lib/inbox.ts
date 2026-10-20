@@ -5,7 +5,7 @@
 //   referral   → stops the sequence, adds the person they pointed to, and the Writer drafts to them.
 //   opt_out    → do-not-contact, every unsent message to that address cancelled. No reply.
 //   ooo        → pushes the remaining steps past the return date. No reply.
-// Replies are stored with a `simulated` flag until the mailbox exists. A simulated reply is sorted and
+// Test replies posted by hand carry a `simulated` flag; real ones come from lib/mailbox.ts. A simulated reply is sorted and
 // answered for real, but runs in shadow: it never cancels a real sequence, never adds to do-not-contact
 // and never creates a contact; the page lists what it WOULD have done. Shown only if SHOW_SIMULATED=1.
 
@@ -110,7 +110,7 @@ async function loadAccount(id: string) {
   return a;
 }
 
-/** Handles one reply to one touch. `simulated` marks test replies until the mailbox exists. */
+/** Handles one reply to one touch. `simulated` marks test replies posted by hand. */
 export async function handleReply(touchId: string, text: string, simulated = true) {
   const [t] = (await sql()`
     select t.id, t.contact_id, t.plan_id, t.step, t.subject, t.body, t.to_address, c.name contact_name, c.role, c.account_id,
@@ -194,7 +194,9 @@ export async function handleReply(touchId: string, text: string, simulated = tru
       evidence_link: `${SITE}/account/${a.slug ?? a.id}`,
     });
     for (let attempt = 0; attempt < 2 && !answer; attempt++) {
-      const r = await askTools(ANSWER_SYSTEM, attempt ? `${prompt}\n\nYour last answer broke a hard rule (AI disclosure, never Qloo, no em dash, no percentages). Fix it.` : prompt, qlooTools(queries) as never);
+      // A Qloo refusal (quota) must not lose the reply: no answer, and the thread still goes to a person.
+      const r = await askTools(ANSWER_SYSTEM, attempt ? `${prompt}\n\nYour last answer broke a hard rule (AI disclosure, never Qloo, no em dash, no percentages). Fix it.` : prompt, qlooTools(queries) as never)
+        .catch(() => ({ text: "", costUsd: 0 }));
       cost += r.costUsd ?? 0;
       if (r.text && Object.values(answerChecks(r.text)).every(Boolean)) answer = r.text;
     }

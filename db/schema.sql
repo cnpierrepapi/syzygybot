@@ -178,7 +178,8 @@ alter table pairs add column if not exists deal_status text;
 alter table pairs add column if not exists deal_check jsonb;
 alter table pairs add column if not exists deal_checked_at timestamptz;
 alter table actions drop constraint if exists actions_agent_check;
-alter table actions add constraint actions_agent_check check (agent in ('scout','checker','qualifier','numbers','contact_finder','verifier','strategist','writer','sequencer','inbox','booker'));
+-- (the full agent list, so a re-run doesn't trip on rows from agents added later; widened again below)
+alter table actions add constraint actions_agent_check check (agent in ('scout','checker','qualifier','numbers','contact_finder','verifier','strategist','writer','sequencer','inbox','booker','router','sponsor','talent','venue','watch','podcast','clearance'));
 
 -- Claim flow (15 Oct). A brand claims its page by posting a one-time code from its X account; X's oEmbed
 -- says who really posted it. A claim makes (or takes over) the brand's workspace.
@@ -405,4 +406,21 @@ create table if not exists org_contacts (
   detail      jsonb not null default '{}',
   checked_at  timestamptz not null default now(),
   primary key (org, purpose)
+)
+;
+
+-- Real mail (20 Oct). The inbox reader remembers the last message it read; the Hunter guard logs every call it makes.
+create table if not exists mailbox_state (
+  name         text primary key,
+  uid_validity bigint,
+  last_uid     bigint not null default 0,
+  updated_at   timestamptz not null default now()
+);
+create table if not exists hunter_calls (
+  id          uuid primary key default gen_random_uuid(),
+  endpoint    text not null,
+  query       jsonb not null default '{}',
+  left_before int,
+  result      jsonb not null default '{}',
+  created_at  timestamptz not null default now()
 )

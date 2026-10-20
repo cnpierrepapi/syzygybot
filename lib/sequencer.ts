@@ -3,7 +3,7 @@
 // piece of paper, so it gets one step. Every step lands Tue–Thu 09:00–11:30 in the recipient's own
 // time zone, no more than DAILY_CAP messages a day overall and one per company per day. Before
 // scheduling it checks the do-not-contact list, and every message carries an opt-out link and a
-// postal address. Nothing is sent: steps stay dry_run until the mailbox exists.
+// postal address. Nothing is sent here: a step leaves only after a person approves it (lib/mail.ts).
 
 import { sql } from "./db";
 import { logAction } from "./actions";

@@ -88,7 +88,7 @@ export const STAGES: Stage[] = [
   },
   { slug: "contacts", label: "Contacts found", agent: "contact_finder", blurb: "Named buyers and published inboxes from public sources. Never LinkedIn, never a guessed email.", rows: () => contactRows(false) },
   { slug: "verified", label: "Verified", agent: "verifier", blurb: "Contacts the Verifier confirmed on a page it read itself.", rows: () => contactRows(true) },
-  { slug: "messages", label: "Messages drafted", agent: "writer", blurb: "First messages the Writer drafted, one per verified contact. Held as dry runs until the mailbox is live.", rows: () => touchRows(false) },
+  { slug: "messages", label: "Messages drafted", agent: "writer", blurb: "First messages the Writer drafted, one per verified contact. Held as dry runs until a person approves each one.", rows: () => touchRows(false) },
   { slug: "scheduled", label: "Steps scheduled", agent: "sequencer", blurb: "Every step the Sequencer has timed, follow-ups included, in the recipient's working hours.", rows: () => touchRows(true) },
   {
     slug: "replies", label: "Replies", agent: "inbox", blurb: "Replies the Inbox agent sorted and answered. The wording stays private; this shows the class only.",

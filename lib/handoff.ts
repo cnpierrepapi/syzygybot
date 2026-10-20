@@ -9,6 +9,7 @@ import { sql } from "./db";
 import { logAction } from "./actions";
 import { ask, parseJson } from "./llm";
 import { SITE, token } from "./slug";
+import { notifyPerson } from "./mail";
 
 export type Packet = {
   who: string; role: string; company: string; for_brand: string | null;
@@ -29,7 +30,7 @@ Use only the facts given. Affinity values are 0 to 1 scores, never percentages. 
 export const handoffPath = (t: string) => `/handoff/${t}`;
 
 type Row = {
-  reply_id: string; reply_slug: string | null; summary: string | null; questions: string[] | null; answer: string | null; simulated: boolean;
+  reply_id: string; reply_slug: string | null; reply_body: string | null; summary: string | null; questions: string[] | null; answer: string | null; simulated: boolean;
   contact_name: string | null; role: string; account_id: string; account_slug: string | null; company: string; evidence: Record<string, unknown>;
   partner: string | null; thesis: string | null; workspace_id: string | null; ws_name: string | null; ws_demo: boolean | null; handoff_email: string | null; angle: string | null;
 };
@@ -37,7 +38,7 @@ type Row = {
 /** Builds the packet, stores the handoff, tells the person. Called by the Inbox agent on an interested reply. */
 export async function handOff(replyId: string) {
   const [r] = (await sql()`
-    select r.id reply_id, r.slug reply_slug, r.detail->>'summary' summary, r.detail->'questions' questions, r.answer, r.simulated,
+    select r.id reply_id, r.slug reply_slug, r.body reply_body, r.detail->>'summary' summary, r.detail->'questions' questions, r.answer, r.simulated,
       c.name contact_name, c.role, ac.id account_id, ac.slug account_slug, e.name company, ac.evidence, pe.name partner, p.thesis,
       t.workspace_id, wb.name ws_name, w.demo ws_demo, w.handoff_email,
       (select pl.angle from plans pl where pl.id = t.plan_id) angle
@@ -78,7 +79,7 @@ export async function handOff(replyId: string) {
     on conflict (reply_id) do nothing returning id`) as { id: string }[];
   if (!h) return { token: ((await sql()`select token from handoffs where reply_id = ${replyId}`) as { token: string }[])[0].token, existed: true };
 
-  const notified = await notify(packet, t, r.simulated, r.handoff_email);
+  const notified = await notify(packet, t, r.simulated, r.handoff_email, r.reply_body);
   await sql()`update handoffs set notified = ${JSON.stringify(notified)} where id = ${h.id}`;
   const tag = r.simulated ? " (simulated reply)" : "";
   await logAction({
@@ -91,9 +92,21 @@ export async function handOff(replyId: string) {
   return { token: t, existed: false, notified };
 }
 
-/** Tells the person. A webhook if one is set; brand emails wait for the mailbox like everything else. */
-async function notify(p: Packet, t: string, simulated: boolean, brandEmail: string | null) {
+/** Tells the person: an email to HANDOFF_EMAIL for a real reply, plus a webhook if one is set. Brand emails wait. */
+async function notify(p: Packet, t: string, simulated: boolean, brandEmail: string | null, replyBody: string | null) {
   const out: Record<string, string> = {};
+  if (!simulated && !p.for_brand) {
+    const to = process.env.HANDOFF_EMAIL?.trim() || "admin@onenept.com";
+    const text = [
+      `${p.who} (${p.role}) at ${p.company} replied interested. The agents stop here; the thread is yours.`,
+      "", `Next step: ${p.next_step}`, "", "Their reply:", replyBody ?? p.summary ?? "",
+      ...(p.answer ? ["", "Drafted answer (not sent):", p.answer] : []),
+      ...(p.intro_note ? ["", "Intro note you can forward to Qloo:", p.intro_note] : []),
+      "", `Handoff page: ${SITE}${handoffPath(t)}`, `Evidence: ${p.account_url}`,
+    ].join("\n");
+    try { out.email = await notifyPerson(to, `SYZYGY handoff: ${p.company} replied interested`, text); }
+    catch (e) { out.email = `failed: ${(e as Error).message.slice(0, 80)}`; }
+  }
   const url = process.env.HANDOFF_WEBHOOK_URL?.trim();
   const text = `${simulated ? "[simulated] " : ""}${p.who} (${p.role}) at ${p.company} replied interested${p.for_brand ? ` to a message signed as ${p.for_brand}` : ""}. ${p.summary ?? ""}\n${SITE}${handoffPath(t)}`;
   if (url && !p.for_brand) {

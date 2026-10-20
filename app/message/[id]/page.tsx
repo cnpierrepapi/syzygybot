@@ -15,7 +15,11 @@ export const dynamic = "force-dynamic";
 type Row = {
   id: string; channel: string; step: number; subject: string | null; body: string; status: string; to_address: string | null;
   created_at: string; scheduled_for: string | null;
-  detail: { checks?: Record<string, boolean>; attention?: string | null; tz?: string; footer?: string; cancelled?: string; signed_as?: string };
+  detail: {
+    checks?: Record<string, boolean>; attention?: string | null; tz?: string; footer?: string; cancelled?: string; signed_as?: string;
+    approved?: { at: string }; letter_held?: string; postgrid?: { live: boolean; status: string; to_status?: string | null; imb?: string | null; at: string };
+  };
+  sent_at: string | null;
   workspace_id: string | null;
   contact_id: string; contact_name: string | null; contact_role: string; plan_id: string | null; account_id: string; account_name: string;
   slug: string | null; contact_slug: string | null; account_slug: string | null; plan_slug: string | null; optout_token: string | null; entity_id: string;
@@ -73,7 +77,8 @@ export default async function Message({ params }: { params: Promise<{ id: string
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
               <AgentChip agent={t.step > 1 ? "sequencer" : "writer"} label={t.step > 1 ? "Follow-up by Sequencer" : "Written by Writer"} />
               <span className="band" style={{ background: dry ? "#ffb31f22" : "#2fd39a22", color: dry ? "#ffb31f" : "#2fd39a", border: `1px solid ${dry ? "#ffb31f88" : "#2fd39a88"}` }}>
-                {t.status === "cancelled" ? "CANCELLED" : dry ? "DRY RUN · NOT SENT" : t.status.toUpperCase()}
+                {t.status === "cancelled" ? "CANCELLED" : dry ? "DRY RUN · NOT SENT"
+                  : t.status === "queued" ? (t.detail.postgrid && !t.detail.postgrid.live ? "APPROVED · TEST LETTER" : "APPROVED · WAITING TO SEND") : t.status.toUpperCase()}
               </span>
             </div>
             <span><span style={{ color: "var(--mute)" }}>to </span>{t.channel === "letter" ? `letter to ${t.account_name} HQ` : maskEmail(t.to_address)}</span>
@@ -122,7 +127,7 @@ export default async function Message({ params }: { params: Promise<{ id: string
                   </span>
                 </a>
               ))}
-              <span style={{ color: "var(--dim)", fontSize: 12.5 }}>Tue to Thu, 09:00 to 11:30 in their time zone. Max 20 a day, one per company a day. Stops on any reply or opt-out.</span>
+              <span style={{ color: "var(--dim)", fontSize: 12.5 }}>Tue to Thu, 09:00 to 11:30 in their time zone. A person approves each message; at most 5 go out a day, one per company. Stops on any reply or opt-out.</span>
             </div>
           )}
           {replies.length > 0 && (
@@ -133,9 +138,23 @@ export default async function Message({ params }: { params: Promise<{ id: string
               ))}
             </div>
           )}
+          {(t.detail.approved || t.sent_at || t.detail.postgrid || t.detail.letter_held) && (
+            <div className="panel fade-up" style={{ padding: 24, animationDelay: "130ms", display: "grid", gap: 8, fontSize: 14 }}>
+              <p className="eyebrow" style={{ marginBottom: 2 }}>Delivery</p>
+              {t.detail.approved && <span>Approved by a person {when(t.detail.approved.at)}</span>}
+              {t.sent_at && <span>{t.channel === "letter" ? "Sent to print" : "Sent"} {when(t.sent_at)}</span>}
+              {t.detail.postgrid && (
+                <span>
+                  {t.detail.postgrid.live ? "Letter" : "Test letter (PostGrid test mode, not printed)"}: {t.detail.postgrid.status.replace(/_/g, " ")}
+                  {t.detail.postgrid.to_status ? `, address ${t.detail.postgrid.to_status}` : ""}{t.detail.postgrid.imb ? `, USPS: ${t.detail.postgrid.imb}` : ""}
+                </span>
+              )}
+              {t.detail.letter_held && <span style={{ color: "#ffb31f" }}>Held: {t.detail.letter_held}</span>}
+            </div>
+          )}
           {dry && (
             <p style={{ color: "var(--mute)", fontSize: 12.5, margin: 0 }}>
-              Held until the sending mailbox exists. Nothing on this page has been sent.
+              Waiting for a person to approve it. Nothing on this page has been sent.
             </p>
           )}
         </div>

@@ -132,7 +132,7 @@ export default async function Connect({ params, searchParams }: { params: Promis
                         {d && (
                           <div style={{ borderLeft: "2px solid #22d3ee66", paddingLeft: 12 }}>
                             <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "#ffb31f" }}>
-                              {w.demo ? "DEMO DRAFT · NOT SENT" : "DRAFT · held until the mailbox is live"}{"scheduled_for" in d && d.scheduled_for ? ` · scheduled ${when(d.scheduled_for)}` : ""}
+                              {w.demo ? "DEMO DRAFT · NOT SENT" : "DRAFT · waiting for approval"}{"scheduled_for" in d && d.scheduled_for ? ` · scheduled ${when(d.scheduled_for)}` : ""}
                             </span>
                             <strong style={{ display: "block", margin: "6px 0" }}>{d.subject}</strong>
                             <div style={{ whiteSpace: "pre-wrap", color: "var(--dim)", lineHeight: 1.6 }}>{d.body}</div>
