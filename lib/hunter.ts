@@ -22,20 +22,26 @@ export async function searchesLeft() {
   return { left: q.available - (q.used ?? 0), used: q.used ?? 0, available: q.available, resets: j?.data?.reset_date ?? null };
 }
 
-export type Found = { email: string; score: number; sources: string[]; status: string };
+export type Found = { email: string; score: number; sources: string[]; status: string; position: string | null };
 
 /** One Email Finder search, only if the reserve allows it. Returns null when refused or not found. */
-export async function findEmail(domain: string, first: string, last: string, budget: { spent: number }) {
-  if (budget.spent >= RUN_CAP) return { refused: `run cap of ${RUN_CAP} reached` as const };
+export async function findEmail(domain: string, first: string, last: string, budget: { spent: number; cap?: number }) {
+  const cap = Math.min(budget.cap ?? RUN_CAP, 10);
+  if (budget.spent >= cap) return { refused: `run cap of ${cap} reached` as const };
   const q = await searchesLeft();
   if (q.left <= RESERVE) return { refused: `only ${q.left} searches left, reserve is ${RESERVE}` as const };
   const r = await fetch(`${API}/email-finder?domain=${encodeURIComponent(domain)}&first_name=${encodeURIComponent(first)}&last_name=${encodeURIComponent(last)}&api_key=${key()}`,
     { signal: AbortSignal.timeout(30000) });
-  budget.spent++;
   const j = await r.json().catch(() => ({})) as any;
+  // A refusal (restricted account, rate limit, bad key) is not a "not found": stop the run and say why.
+  if (!r.ok) {
+    await sql()`insert into hunter_calls (endpoint, query, left_before, result) values ('email-finder', ${JSON.stringify({ domain, first, last })}, ${q.left}, ${JSON.stringify({ http: r.status, error: j?.errors?.[0] ?? null })})`;
+    return { refused: `Hunter said ${r.status}: ${j?.errors?.[0]?.details ?? "no detail"}` as const };
+  }
+  budget.spent++;
   const d = j?.data ?? {};
   const found: Found | null = d.email ? {
-    email: String(d.email).toLowerCase(), score: d.score ?? 0,
+    email: String(d.email).toLowerCase(), score: d.score ?? 0, position: d.position ?? null,
     sources: (d.sources ?? []).map((s: { uri?: string }) => s.uri).filter(Boolean).slice(0, 5), status: d.verification?.status ?? "unknown",
   } : null;
   await sql()`insert into hunter_calls (endpoint, query, left_before, result)
