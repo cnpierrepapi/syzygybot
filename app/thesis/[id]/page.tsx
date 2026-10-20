@@ -230,7 +230,7 @@ function DealPanel({ p }: { p: Row }) {
       )}
       {d && (
         <p style={{ color: "var(--mute)", fontSize: 12.5, fontFamily: "var(--mono)", margin: "16px 0 0" }}>
-          Checked {d.checked_at.slice(0, 10)} · read {d.pages_read} pages: Wikipedia, Google{s.google_queries ? ` (${s.google_queries} searches)` : ""}, {"google_news" in s ? "Google News" : "Bing News"}, {s.trade_sources ?? 0} trade sources
+          Checked {d.checked_at.slice(0, 10)} · read {d.pages_read} pages: Wikipedia, Google{s.google_queries ? ` (${s.google_queries} searches)` : ""}, {"google_news" in s ? "Google News, " : ""}{s.trade_sources ?? 0} trade sources
           {s.trade_feeds ? ` (${s.trade_feeds} searched directly)` : ""}{s.official_sites ? `, ${s.official_sites === 2 ? "both" : "one"} official site${s.official_sites === 2 ? "s" : ""}` : ""}
         </p>
       )}
