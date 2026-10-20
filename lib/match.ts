@@ -10,6 +10,8 @@ import { METROS } from "./geo";
 // Tags that may describe what an audience watches but must never appear in a pitch as "shared tastes": violence and crime,
 // sexuality, religion, politics, health, and anything about minors. Clearance holds any message that uses one anyway.
 export const SENSITIVE = /prison|violen|fight|crime|criminal|murder|death|drug|addict|\bwar\b|weapon|\bguns?\b|\bsex|erotic|nud|gay|lesbian|lgbt|queer|religio|christian|islam|jewish|politic|abuse|suicide|terror|racis|gang|alcohol|\bteen|\bboys?\b|\bgirls?\b|\bkids?\b|child|school|\bmexico\b|ethnic|\brace\b|disab|illness|cancer/i;
+/** Shared tastes safe to show or send. Stored packs predate the filter, so every reader applies it too. */
+export const safeTags = (tags: string[] | null | undefined) => (tags ?? []).filter(t => !SENSITIVE.test(t));
 
 /** "urn:tag:keyword:qloo:teen_comedy" -> "Teen comedy". */
 export const tagLabel = (t: string) => { const s = t.split(":").pop()!.replace(/_/g, " "); return s.charAt(0).toUpperCase() + s.slice(1); };

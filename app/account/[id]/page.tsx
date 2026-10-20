@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { clip } from "@/lib/seo";
 import { resolve, pathFor } from "@/lib/slug";
 import { maskEmail, STATUS_LABEL, typeColors } from "@/lib/ui";
+import { safeTags } from "@/lib/match";
 import { Alignment, Logo, AgentChip } from "../../components/visuals";
 
 export const dynamic = "force-dynamic";
@@ -173,10 +174,10 @@ export default async function Account({ params }: { params: Promise<{ id: string
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {(ev.cities?.account ?? []).map(c => <span key={c} className="chip">{c}</span>)}
           </div>
-          {!!ev.sharedTaste?.length && (
+          {!!safeTags(ev.sharedTaste).length && (
             <>
               <h3 style={{ fontSize: 15, margin: "22px 0 10px", color: "var(--dim)" }}>Taste the two audiences share</h3>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{ev.sharedTaste.map(t => <span key={t} className="chip">{t}</span>)}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{safeTags(ev.sharedTaste).map(t => <span key={t} className="chip">{t}</span>)}</div>
             </>
           )}
         </div>

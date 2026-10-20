@@ -1,7 +1,7 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { claimables } from "@/lib/claim";
 import { sql } from "@/lib/db";
-import { tagLabel } from "@/lib/match";
+import { tagLabel, safeTags } from "@/lib/match";
 import { FocusStars } from "../../components/Sky";
 import type { Metadata } from "next";
 import { clip, jsonLd, ORG } from "@/lib/seo";
@@ -66,7 +66,7 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
   // A SYZYGY estimate has our match score and no Qloo pulls or rubric dimensions.
   const est = p.dims.estimate ?? null;
   const pull = est ? { pullAB: null, pullBA: null } : p.dims.dims.fit.raw as { pullAB: number | null; pullBA: number | null };
-  const shared = est ? est.sharedTags.map(tagLabel) : (p.dims.dims.shared.raw as { shared?: string[] })?.shared ?? [];
+  const shared = safeTags(est ? est.sharedTags.map(tagLabel) : (p.dims.dims.shared.raw as { shared?: string[] })?.shared);
   // The side the other one needs can claim its page and take the outreach over.
   const strongId = p.account_entity ? (p.account_entity === p.a_id ? p.b_id : p.a_id) : null;
   const strong = strongId && (p.deal_status === "clear" || p.deal_status === "past") ? (await claimables()).find(c => c.qloo_id === strongId) ?? null : null;

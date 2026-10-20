@@ -11,6 +11,7 @@ import { ask, askWeb, parseJson } from "./llm";
 import { pageBacking, readAll } from "./web";
 import { findContacts, type Account } from "./contacts";
 import { SITE, fillSlugs } from "./slug";
+import { safeTags } from "./match";
 import type { DealCheck } from "./dealcheck";
 import { claimedEntities } from "./claim";
 import { draftForWorkspace } from "./inward";
@@ -102,7 +103,7 @@ export function evidenceFacts(a: AccountRow) {
     pair_measured_by_qloo: e.estimate ? false : undefined,
     affinity_partner_fans_to_account: n2(e.pull?.partnerFansLikeAccount),
     affinity_account_fans_to_partner: n2(e.pull?.accountFansLikePartner),
-    shared_taste: e.sharedTaste?.slice(0, 6), shared_cities: e.cities?.shared,
+    shared_taste: safeTags(e.sharedTaste).slice(0, 6), shared_cities: e.cities?.shared,
     more_partners: e.morePartners?.map(p => ({ name: p.name, type: p.type, affinity_out: n2(p.pullOut), affinity_back: n2(p.pullBack) })),
     evidence_link: `${SITE}/account/${a.slug ?? a.id}`,
     // The Deal check found an older partnership between the two: say so, never pitch the pairing as new.

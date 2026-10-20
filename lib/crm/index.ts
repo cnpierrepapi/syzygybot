@@ -7,6 +7,7 @@
 import { sql } from "../db";
 import { open, seal } from "../crypto";
 import { SITE } from "../slug";
+import { safeTags } from "../match";
 import { hubspot } from "./hubspot";
 import { salesforce } from "./salesforce";
 import { CrmError, domainOf, splitName, type Crm, type Tokens } from "./types";
@@ -52,7 +53,7 @@ type Target = {
 /** The note a brand reads in its CRM: why this company needs them, in numbers, and what to say. */
 export function noteBody(brand: string, t: Target, people: string[], draft: string | null) {
   const pull = (t.evidence.pull ?? {}) as { partnerFansLikeAccount?: number | null; accountFansLikePartner?: number | null };
-  const shared = ((t.evidence.sharedTaste ?? []) as string[]).slice(0, 8);
+  const shared = safeTags(t.evidence.sharedTaste as string[] | undefined).slice(0, 8);
   const lines = [
     `${t.name} needs ${brand}. Found by SYZYGY, an AI sales team built on Qloo's taste data.`,
     t.thesis ? `Thesis${t.band ? ` (${t.band} ${Number(t.score).toFixed(2)})` : ""}: ${t.thesis}` : "",

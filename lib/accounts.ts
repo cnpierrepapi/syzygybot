@@ -10,6 +10,7 @@ import { ask } from "./llm";
 import { metros } from "./geo";
 import { demographics, pull, topFor, type EntityType, type QlooEntity } from "./qloo";
 import { ageVector } from "./scout";
+import { safeTags } from "./match";
 import type { Raw } from "./rubric";
 import type { Estimate } from "./estimate";
 
@@ -159,7 +160,7 @@ export async function buildAccount(p: PairRow) {
     pull: { partnerFansLikeAccount: chosenIsA ? r.pullBA : r.pullAB, accountFansLikePartner: chosenIsA ? r.pullAB : r.pullBA },
     // A SYZYGY estimate carries our match score instead of Qloo pulls; the partners below are still Qloo-measured.
     estimate: p.dims.estimate ?? null,
-    sharedTaste: p.dims.estimate?.sharedTags ?? r.tagsA.filter(t => r.tagsB.includes(t)).slice(0, 12),
+    sharedTaste: safeTags(p.dims.estimate?.sharedTags ?? r.tagsA.filter(t => r.tagsB.includes(t))).slice(0, 12),
     cities: { shared: p.dims.estimate?.sharedCities ?? metros(sharedCells), account: metros(chosenIsA ? r.cellsA : r.cellsB).slice(0, 8) },
     audienceAge: storedAge ?? ageVector(demo),
     morePartners: partners,
