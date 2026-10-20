@@ -52,12 +52,14 @@ const USELESS_INBOX = /privacy|dpo|legal|order|shop|support|help|career|job|abus
 const norm = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const domainOf = (url: string | null) => { try { return url ? new URL(url).hostname.replace(/^www\./, "") : null; } catch { return null; } };
 
-/** Company names on pages vary ("A24", "A24 Films"); match the distinctive first word. */
-function companyOn(text: string, company: string) {
-  const t = norm(text), c = norm(company);
-  if (t.includes(c)) return true;
+/** Company names on pages vary ("A24", "A24 Films"); match the distinctive first word. Whole words only, so "Iope" doesn't
+ * match the Italian "sciopero", but a space, hyphen or dot may split a name ("Oliveyoung" on file, "Olive Young" on the page). */
+export function companyOn(text: string, company: string) {
+  const t = norm(text), c = norm(company).replace(/[.,]+$/, "");
+  const word = (w: string) => new RegExp(`(?<![a-z0-9])${[...w].map(ch => ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(w.length >= 6 ? "[\\s.-]?" : "")}(?![a-z0-9])`).test(t);
+  if (word(c)) return true;
   const head = c.split(" ").find(w => w.length >= 3 && !["the", "and", "inc", "films", "records"].includes(w));
-  return head ? new RegExp(`\\b${head.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(t) : false;
+  return head ? word(head) : false;
 }
 
 function roleNearName(text: string, name: string, title: string) {
