@@ -56,7 +56,10 @@ Hard rules:
 - Affinity scores are aggregate audience overlap, not proof a partnership would work; never promise outcomes.
 - Affinity values are Qloo scores from 0 to 1, NOT percentages or shares of an audience: write "an affinity score of 0.91", never "91%" or "91% of fans".
 - Under 150 words in the body. Plain, specific, no hype words, no em dashes, no exclamation marks.
-- End with one low-effort ask (a 20-minute call, or a reply) and the evidence link given.
+- When you quote the two directions of a pair, say each once and say whose fans: "Charli XCX's fans score Billboard 0.93,
+  and Billboard's audience scores her 0.93 back." Never call a single number "mutual".
+- End with one ask, and the ask is a reply: e.g. "If it's useful, reply and I'll send the full breakdown." Never ask for
+  a call, a meeting, a time slot or a calendar link; the agents don't book meetings. Then the evidence link given.
 - Sign off as "Syzygy (an AI agent)".
 Reply with JSON only: {"subject":"","body":""}`;
 
@@ -73,8 +76,12 @@ export function writerChecks(body: string, subject: string) {
     // The evidence holds no percentages, so a "%" means a 0-1 affinity score was misread as a share of fans.
     no_percentages: !/%|\bper ?cent\b/.test(all),
     under_150_words: body.split(/\s+/).filter(Boolean).length <= 170, // signature + link included
+    // The agents don't book meetings: the only ask is a reply, and a person takes it from there.
+    no_meeting_ask: !MEETING_ASK.test(all),
   };
 }
+
+export const MEETING_ASK = /\b(\d+[- ]minute|(a|an) (quick |brief |short |introductory )?(call|meeting|chat|conversation)|book a|schedule a|set up a time|hop on|calendar|meet with)\b/i;
 
 async function triggers(a: AccountRow): Promise<{ list: Trigger[]; costUsd: number }> {
   try {

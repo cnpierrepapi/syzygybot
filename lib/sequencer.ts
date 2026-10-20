@@ -119,6 +119,7 @@ follow-up to a cold email that got no reply. Hard rules:
 - Say the analysis is built on Qloo's taste data. You are NOT Qloo; never imply you work for Qloo.
 - Affinity values are scores from 0 to 1, never percentages.
 - Use only numbers from the evidence. Do not invent any number, client or result. No em dashes, no exclamation marks, no hype.
+- The ask is a reply. Never ask for a call, a meeting or a time slot; the agents don't book meetings.
 - Sign off as "Syzygy (an AI agent)".
 Reply with JSON only: {"body":""}`;
 

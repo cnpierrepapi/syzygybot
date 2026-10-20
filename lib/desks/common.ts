@@ -8,6 +8,7 @@ import { slugify, token } from "../slug";
 import { clear, countryOf, type Deal, type Outbound } from "../clearance";
 import type { Match } from "../match";
 import { rejectionNotes } from "../desk";
+import { MEETING_ASK } from "../outreach";
 import type { DeskId, Persona } from "../personas";
 
 export type Purpose = "booking" | "sponsorship" | "partnerships" | "advertising";
@@ -65,7 +66,7 @@ Hard rules:
 - Use only facts and numbers from the brief. SYZYGY's match score is out of 100 and is SYZYGY's own estimate: call it "our match score".
   Qloo affinity numbers are 0 to 1 scores from Qloo's taste data: credit them as Qloo's, never as percentages. Never claim to be Qloo.
 - Talent appears only as audience data ("Bad Bunny's fans lean toward..."), never as liking, using or backing anything.
-- One clear ask. Under 140 words. No em dashes, no exclamation marks, no hype words.
+- One clear ask, answered by a reply. Never ask for a call, a meeting or a time slot; a person takes over after a reply. Under 140 words. No em dashes, no exclamation marks, no hype words.
 - Sign as the sender in the brief.
 Reply with JSON only: {"subject": "", "body": ""}`;
 
@@ -74,6 +75,7 @@ const style = (b: string, subject: string) => ({
   no_percent: !/%|\bper ?cent\b/i.test(`${subject}${b}`),
   short: b.split(/\s+/).length <= 170,
   discloses: /\bai\b/i.test(b.slice(0, 260)),
+  no_meeting_ask: !MEETING_ASK.test(`${subject}\n${b}`),
 });
 
 export async function draft(brief: Record<string, unknown>) {
@@ -110,7 +112,9 @@ export type RequestInput = {
 
 /** Re-run Clearance on stored requests (after a rule changes). Edited copies are re-cleared when they're decided. */
 export async function reclear(where: { persona?: string } = {}) {
-  const rows = (await sql()`select id, target, preview, evidence from permission_requests where (${where.persona ?? null}::text is null or persona = ${where.persona ?? null})`) as
+  // A CRM push isn't a message to anyone, so the message rules don't apply to it.
+  const rows = (await sql()`select id, target, preview, evidence from permission_requests where action <> 'crm_push'
+    and (${where.persona ?? null}::text is null or persona = ${where.persona ?? null})`) as
     { id: string; target: Record<string, any>; preview: { subject: string; body: string }; evidence: Evidence }[];
   let held = 0;
   for (const r of rows) {

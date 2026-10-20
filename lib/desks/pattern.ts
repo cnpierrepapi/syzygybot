@@ -40,7 +40,7 @@ const KIND: Record<string, { action: "ambassador_pitch" | "sponsor_pitch" | "pod
   talent: { action: "ambassador_pitch", agent: "talent", purpose: "partnerships", title: (s, b) => `${s} × ${b}: ambassador deal`,
     ask: (s, b) => `An ambassador pitch to ${b}: a campaign with ${s}, built on how close ${b}'s audience is to the people who follow ${s}. Ask who runs talent partnerships.` },
   sales: { action: "sponsor_pitch", agent: "sponsor", purpose: "partnerships", title: (s, b) => `${s} × ${b}: co-branded drop`,
-    ask: (s, b) => `A co-branding pitch from ${s} to ${b}: a limited co-branded product or a joint promotion, because their audiences look alike. Ask for a call with their partnerships lead.` },
+    ask: (s, b) => `A co-branding pitch from ${s} to ${b}: a limited co-branded product or a joint promotion, because their audiences look alike. Ask them to reply if they want the full numbers.` },
   podcast: { action: "podcast_pitch", agent: "podcast", purpose: "advertising", title: (s, b) => `${b} sponsoring ${s}`,
     ask: (s, b) => `An ad-sales pitch to ${b}: a host-read sponsorship package on ${s}, because the show's listeners look like ${b}'s customers. Ask who buys podcast or creator media.` },
 };

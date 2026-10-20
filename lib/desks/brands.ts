@@ -108,7 +108,7 @@ export async function runLineupSponsors(p: Persona, n = 4) {
       title: `${brand.name} for the ${p.subject} broadcast`,
       dedupe: `${p.id}|sponsorship|${brand.id}`,
       target: { org: brand.name, site: await site(brand), country: "US", purpose: "sponsorship" },
-      brief: { kind: `A sponsorship pitch to ${brand.name}: a broadcast or category partnership on the ${p.subject}, because the nominees' audiences already lean toward ${brand.name}. Ask for a call with their sponsorship lead.`, sender: p.title, facts },
+      brief: { kind: `A sponsorship pitch to ${brand.name}: a broadcast or category partnership on the ${p.subject}, because the nominees' audiences already lean toward ${brand.name}. Ask them to reply if they want the full numbers.`, sender: p.title, facts },
       evidence: { match: m, facts }, talent: c.measured, targetBrand: brand.name,
     });
     if (id) made.push(id);

@@ -33,6 +33,7 @@ const CHECK_LABEL: Record<string, string> = {
   no_em_dash: "No em dashes",
   under_150_words: "Short enough to read in a minute",
   names_brand: "Says up front which brand it writes for",
+  no_meeting_ask: "Asks for a reply, never a meeting",
 };
 
 // Links in the body become clickable; everything else stays as written.

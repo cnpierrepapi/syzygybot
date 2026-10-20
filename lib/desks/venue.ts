@@ -34,7 +34,7 @@ export async function runVenueDesk(p: Persona, n = 4) {
       persona: p, desk: "venue", agent: "venue", action: "sponsor_pitch",
       title: `${brand.name} at ${f.venue}`, dedupe: `${p.id}|venue|${f.venue_id}|${f.entity_id}`,
       target: { org: brand.name, site: e?.official_site ?? null, country: "US", purpose: "sponsorship" },
-      brief: { kind: `A venue sponsorship pitch to ${brand.name}: a season partnership at ${f.venue} (on-site activation, presale and naming of a bar or deck), because the room's crowd matches ${brand.name}'s audience. Ask for a call with their sponsorship lead.`, sender: p.title, facts },
+      brief: { kind: `A venue sponsorship pitch to ${brand.name}: a season partnership at ${f.venue} (on-site activation, presale and naming of a bar or deck), because the room's crowd matches ${brand.name}'s audience. Ask them to reply if they want the full numbers.`, sender: p.title, facts },
       evidence: { match: m, facts }, targetBrand: brand.name, talent: f.evidence?.via ? [f.evidence.via] : [],
     });
     if (id) made.push(id);

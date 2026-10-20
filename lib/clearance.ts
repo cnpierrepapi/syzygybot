@@ -123,7 +123,7 @@ export async function clear(o: Outbound, rules: Rules = DEFAULT_RULES): Promise<
   checks.push({ rule: "data", label: "Data credited honestly", pass: !poses && credits && !/—/.test(all),
     note: poses ? "Reads as if sent by Qloo." : !credits ? "Uses Qloo numbers without crediting Qloo's taste data." : /—/.test(all) ? "House style: no em dashes." : o.usesQloo ? "Qloo's taste data credited; SYZYGY's own match score labelled as ours." : "Only SYZYGY's own match score is used, labelled as ours." });
   // Not a setting either: an audience is never described by violence, sexuality, religion, politics, health or age.
-  const tastes = /(shared (audience )?tastes?|audiences? (share|like|love|lean)|tastes include)[^.]*\./i.exec(o.body)?.[0] ?? "";
+  const tastes = [...o.body.matchAll(/(shared (audience )?(tastes?|preferences?|interests?)|audiences? (share|like|love|lean)|tastes include|preferences? for|overlap in|interests? in)[^.]*\./gi)].map(m => m[0]).join(" ");
   const label = SENSITIVE.exec(tastes)?.[0];
   checks.push({ rule: "data", label: "No sensitive audience labels", pass: !label,
     note: label ? `Describes the audience with "${label}". Audiences are never described by violence, sexuality, religion, politics, health or age.` : "Audience described by tastes only." });
