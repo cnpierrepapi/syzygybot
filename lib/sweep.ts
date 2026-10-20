@@ -10,7 +10,7 @@ import { SOURCES, groupsFor, type Source } from "./sources";
 import { readAll, type Page } from "./web";
 import { ask, parseJson } from "./llm";
 
-const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.vercel.app)";
+const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.com)";
 const ROLE_TERMS = `(CMO OR "chief marketing officer" OR "chief brand officer" OR "head of partnerships" OR "brand partnerships" OR "head of marketing" OR "VP marketing" OR "vice president of marketing" OR sponsorship OR appoints OR names OR hires OR promotes)`;
 const SITES_PER_QUERY = 8;
 const MAX_QUERIES = 6;
@@ -84,7 +84,7 @@ async function sec8k(company: string): Promise<Hit[]> {
   const q = `"${company}" ("Chief Marketing Officer" OR "Chief Brand Officer" OR "Chief Commercial Officer")`;
   try {
     const r = await fetch(`https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(q)}&forms=8-K&dateRange=custom&startdt=${since}`, {
-      headers: { "user-agent": "SyzygyBot/0.1 (Onenept Studios Inc.; contact via https://syzygybot.vercel.app)" }, signal: AbortSignal.timeout(12000),
+      headers: { "user-agent": "SyzygyBot/0.1 (Onenept Studios Inc.; contact via https://syzygybot.com)" }, signal: AbortSignal.timeout(12000),
     });
     if (!r.ok) return [];
     const j = (await r.json()) as { hits?: { hits?: { _id: string; _source: { ciks?: string[]; display_names?: string[]; file_date?: string } }[] } };

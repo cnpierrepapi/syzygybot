@@ -6,7 +6,7 @@
 import { randomBytes } from "node:crypto";
 import { sql } from "./db";
 
-export const SITE = "https://syzygybot.vercel.app";
+export const SITE = "https://syzygybot.com";
 
 export function slugify(s: string, max = 60) {
   return s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase()

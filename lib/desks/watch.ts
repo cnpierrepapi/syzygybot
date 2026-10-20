@@ -9,7 +9,7 @@ import { ask, parseJson } from "../llm";
 import { feedSources, sourceOf } from "../sweep";
 import { desksFor, type Persona } from "../personas";
 
-const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.vercel.app)";
+const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.com)";
 const DAYS = 30;
 
 type Item = { title: string; url: string; source: string; date: string; summary: string; curated: boolean; via: "google_news" | "trade_feed" };

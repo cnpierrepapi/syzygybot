@@ -5,7 +5,7 @@ import type { QlooEntity } from "./qloo";
 
 export type HandleSource = { source: "qloo" | "wikidata" | "site"; handle: string; url?: string };
 
-const UA = "SyzygyBot/0.1 (+https://syzygybot.vercel.app)";
+const UA = "SyzygyBot/0.1 (+https://syzygybot.com)";
 const NOT_HANDLES = new Set(["intent", "share", "home", "search", "i", "hashtag", "login", "signup", "explore", "settings", "tos", "privacy"]);
 
 const norm = (h: string) => h.replace(/^@/, "").trim().toLowerCase();

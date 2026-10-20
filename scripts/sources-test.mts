@@ -1,7 +1,7 @@
 // npm run sources:test  -> checks every source with our honest user agent; writes data/sources-status.json
 import { writeFileSync } from "node:fs";
 import { SOURCES } from "../lib/sources";
-const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.vercel.app)";
+const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.com)";
 
 /** True if robots.txt bars us (or everyone) from the whole site. */
 function robotsBlocks(txt: string) {

@@ -131,7 +131,7 @@ export default async function Floor() {
       <nav className="nav">
         <Logo />
         <span style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <span className="crumb nav-hide-sm">LIVE FLOOR · syzygybot.vercel.app</span>
+          <span className="crumb nav-hide-sm">LIVE FLOOR · syzygybot.com</span>
           <a className="btn" href="/desk" style={{ padding: "7px 16px", fontSize: 13.5 }}>Open a desk →</a>
         </span>
       </nav>

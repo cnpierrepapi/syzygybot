@@ -1,6 +1,6 @@
 // Reading public web pages for the Verifier: follow search redirects, strip to text, find a date.
 
-const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.vercel.app)";
+const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.com)";
 
 export type Page = { url: string; status: number; text: string; date: string | null; emails: string[]; title?: string | null };
 

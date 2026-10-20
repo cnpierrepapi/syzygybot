@@ -15,7 +15,7 @@ for (const name of names) {
     OPTIONAL { ?v wdt:P1083 ?cap. } OPTIONAL { ?v wdt:P137 ?op. } OPTIONAL { ?v wdt:P127 ?own. } OPTIONAL { ?v wdt:P856 ?site. } OPTIONAL { ?v wdt:P17 ?c. ?c wdt:P297 ?cc. }
     SERVICE wikibase:label { bd:serviceParam wikibase:language "en,es". ?v rdfs:label ?vLabel. ?op rdfs:label ?opLabel. ?own rdfs:label ?ownLabel. ?k rdfs:label ?kLabel. }
   } GROUP BY ?v ?vLabel ?cap ?opLabel ?ownLabel ?site ?coord ?cc`;
-  const r = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(q)}`, { headers: { "user-agent": "SYZYGY venue pull (https://syzygybot.vercel.app)" } });
+  const r = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(q)}`, { headers: { "user-agent": "SYZYGY venue pull (https://syzygybot.com)" } });
   const j = await r.json() as { results: { bindings: Record<string, { value: string }>[] } };
   const seen = new Set<string>();
   for (const b of j.results.bindings) {

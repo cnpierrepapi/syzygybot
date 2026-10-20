@@ -18,7 +18,7 @@ import { SOURCES, groupsFor } from "./sources";
 import { readable, searchName } from "./sweep";
 import status from "../data/sources-status.json";
 
-const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.vercel.app)";
+const UA = "Mozilla/5.0 (compatible; SyzygyBot/0.1; +https://syzygybot.com)";
 const DEAL_TERMS = `(collab OR collaboration OR partnership OR partners OR "teams up" OR sponsor OR sponsorship OR ambassador OR capsule OR "limited edition" OR campaign OR "co-branded")`;
 const SITES_PER_QUERY = 8;
 const MAX_TRADE_QUERIES = 3;
