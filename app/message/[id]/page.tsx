@@ -6,6 +6,9 @@ import { resolve, pathFor } from "@/lib/slug";
 import { maskEmail } from "@/lib/ui";
 import { showSimulated } from "@/lib/floor";
 import { Logo, AgentChip } from "../../components/visuals";
+import { redirect } from "next/navigation";
+import { isAdmin } from "@/lib/admin";
+import { approveAndSend, preflight } from "@/lib/mail";
 
 // About a person, or a working document: visible on the floor, kept out of search results.
 export const metadata: Metadata = { title: "Message", robots: { index: false, follow: false } };
@@ -41,8 +44,18 @@ function Body({ text }: { text: string }) {
   return <>{text.split(/(https?:\/\/\S+[^\s.,)])/g).map((part, i) => (/^https?:\/\//.test(part) ? <a key={i} href={part} style={{ color: "var(--cyan)" }}>{part}</a> : part))}</>;
 }
 
-export default async function Message({ params }: { params: Promise<{ id: string }> }) {
+// The operator's tap: approve this one message and send it now if every gate passes. Re-checks admin on the server.
+async function approveSend(fd: FormData) {
+  "use server";
+  const id = String(fd.get("id")), back = String(fd.get("back"));
+  if (!(await isAdmin()) || !/^[0-9a-f-]{36}$/.test(id) || !/^\/message\/[A-Za-z0-9-]+$/.test(back)) redirect("/admin");
+  const r = await approveAndSend(id);
+  redirect(`${back}?r=${encodeURIComponent(r.ok ? "sent" : r.why ?? "not sent")}`);
+}
+
+export default async function Message({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ r?: string }> }) {
   const { id: key } = await params;
+  const flash = (await searchParams).r?.slice(0, 400);
   const hit = await resolve("touches", key);
   if (!hit) notFound();
   if (hit.redirect) permanentRedirect(hit.redirect);
@@ -65,6 +78,9 @@ export default async function Message({ params }: { params: Promise<{ id: string
     : new Date(d).toISOString().slice(0, 16).replace("T", " ") + " UTC";
   const checks = Object.entries(t.detail.checks ?? {});
   const dry = t.status === "dry_run" || t.status === "draft";
+  const admin = await isAdmin();
+  const operator = admin && !t.workspace_id && t.channel === "email" && ["dry_run", "queued"].includes(t.status);
+  const pre = operator ? await preflight(t.id) : [];
 
   return (
     <main className="wrap">
@@ -100,6 +116,27 @@ export default async function Message({ params }: { params: Promise<{ id: string
         </article>
 
         <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
+          {admin && flash && (
+            <div className="panel fade-up" style={{ padding: 18, fontSize: 14, borderColor: flash === "sent" ? "#2fd39a88" : "#ffb31f88", color: flash === "sent" ? "#2fd39a" : "#ffb31f" }}>
+              {flash === "sent" ? `Sent to ${t.to_address}. Every reply now goes to the Inbox agent.` : flash}
+            </div>
+          )}
+          {operator && (
+            <div className="panel fade-up" style={{ padding: 24, display: "grid", gap: 10, fontSize: 14, borderColor: "#2fd39a66" }}>
+              <p className="eyebrow" style={{ marginBottom: 2 }}>Operator · checked just now</p>
+              {pre.map(g => (
+                <span key={g.gate}><span style={{ color: g.pass ? "#2fd39a" : "#ffb31f", fontFamily: "var(--mono)" }}>{g.pass ? "✓" : "•"}</span> {g.note}</span>
+              ))}
+              <form action={approveSend}>
+                <input type="hidden" name="id" value={t.id} />
+                <input type="hidden" name="back" value={`/message/${t.slug ?? t.id}`} />
+                <button type="submit" className="band" style={{ cursor: "pointer", padding: "10px 18px", fontSize: 14, background: "#2fd39a22", color: "#2fd39a", border: "1px solid #2fd39a88" }}>
+                  {t.status === "queued" ? "Send now" : pre.every(g => g.pass) ? "Approve and send" : "Approve (sends in its window)"}
+                </button>
+              </form>
+              <span style={{ color: "var(--mute)", fontSize: 12.5 }}>To {t.to_address}. One message only; its follow-ups each need their own approval.</span>
+            </div>
+          )}
           <div className="panel fade-up" style={{ padding: 24, animationDelay: "80ms" }}>
             <p className="eyebrow">Hard rules, checked in code</p>
             <div style={{ display: "grid", gap: 8, fontSize: 14 }}>

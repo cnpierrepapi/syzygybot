@@ -48,7 +48,7 @@ export async function gates(t: Row, timing = true): Promise<Gate[]> {
   const g: Gate[] = [];
   const push = (gate: string, pass: boolean, note: string) => g.push({ gate, pass, note });
   push("channel", t.channel === "email" && !!t.to_address, t.to_address ? "Email with an address." : "No email address on this message.");
-  push("status", ["dry_run", "queued"].includes(t.status), `Message is ${t.status}.`);
+  push("status", ["dry_run", "queued"].includes(t.status), t.status === "dry_run" ? "Drafted, not sent yet." : t.status === "queued" ? "Approved, waiting to send." : `This message is ${t.status}.`);
   const dnc = await blocked(t.to_address, t.site);
   push("do_not_contact", !dnc, dnc ? `On the do-not-contact list: ${dnc.reason}.` : "Not on the do-not-contact list.");
   push("in_role", t.role_status !== "departed", t.role_status === "departed" ? "This person has left the role." : "Still in the role as of the last check.");
@@ -151,4 +151,24 @@ export async function sendDueEmails(limit = SEND_CAP) {
 export async function notifyPerson(to: string, subject: string, text: string) {
   const info = await transport().sendMail({ from: `"SYZYGY" <${fromAddress()}>`, to, subject, text });
   return info.accepted?.length ? "sent" : `refused: ${info.response?.slice(0, 80)}`;
+}
+
+/** The gates as they stand right now, for the operator's panel. */
+export async function preflight(touchId: string) {
+  const t = await load(touchId);
+  return t ? gates(t) : [];
+}
+
+/** The operator's one tap: approve this message, then send it now if every gate passes (else it waits for its window). */
+export async function approveAndSend(touchId: string) {
+  const t = await load(touchId);
+  if (!t) return { ok: false, why: "no such message" };
+  if (t.status === "dry_run") {
+    const a = await approve(touchId, "operator");
+    if (!a.ok) return a;
+  }
+  const r = await sendEmail(touchId);
+  if (r.ok) return { ok: true, why: "sent" };
+  const held = r.gates?.filter(g => !g.pass) ?? [];
+  return { ok: false, why: held.length ? held.map(g => g.note).join(" ") : !r.live ? "Approved. Sending is switched off (MAIL_LIVE), so it was logged, not sent." : r.why ?? "not sent" };
 }
