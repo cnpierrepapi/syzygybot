@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Figtree, Inter, Fira_Code } from "next/font/google";
 import "./globals.css";
+import "./theme.css";
 import { SITE } from "@/lib/slug";
-import Sky from "./components/Sky";
 
-const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-display", weight: ["400", "500", "700"] });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "700"] });
+// Qloo's type, as close as free fonts get: a geometric display face (Circular-like), Inter for text, Fira Code for data.
+const display = Figtree({ subsets: ["latin"], variable: "--font-display", weight: ["400", "500", "600", "700"] });
+const body = Inter({ subsets: ["latin"], variable: "--font-body" });
+const mono = Fira_Code({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500"] });
 
 const DESCRIPTION =
   "Your audience data, finally doing the work. SYZYGY is a complete, fully automated commercial team for entertainment: 17 agents turn what an audience loves into booked rooms, sold sponsorships, signed ambassadors and filled ad slots. All in one place. You approve every send.";
@@ -27,9 +29,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // next/font variables go on <html> so every element can use them.
   return (
-    <html lang="en" className={`${display.variable} ${mono.variable}`}>
+    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
-        <Sky />
         {children}
       </body>
     </html>

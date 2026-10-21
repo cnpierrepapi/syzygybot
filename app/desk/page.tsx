@@ -38,7 +38,7 @@ export default async function DeskStart({ searchParams }: { searchParams: Promis
           agents do the research, the scoring, the contacts, the writing and the follow-up, around the clock. Anything that would
           leave the building comes to you first, and you approve, edit, reject or park it.
         </p>
-        {full && <p className="chip" style={{ color: "#ff8080", marginTop: 12 }}>Today&apos;s demo desks are all taken. Try again tomorrow.</p>}
+        {full && <p className="chip" style={{ color: "#b4432f", marginTop: 12 }}>Today&apos;s demo desks are all taken. Try again tomorrow.</p>}
       </section>
       <DeskPicker personas={personas}
         deskLabels={Object.fromEntries(Object.entries(DESKS).map(([k, d]) => [k, d.label]))} action={open} />

@@ -94,7 +94,7 @@ export default async function Message({ params, searchParams }: { params: Promis
           <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--line)", display: "grid", gap: 6, fontSize: 13.5, fontFamily: "var(--mono)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
               <AgentChip agent={t.step > 1 ? "sequencer" : "writer"} label={t.step > 1 ? "Follow-up by Sequencer" : "Written by Writer"} />
-              <span className="band" style={{ background: dry ? "#ffb31f22" : "#2fd39a22", color: dry ? "#ffb31f" : "#2fd39a", border: `1px solid ${dry ? "#ffb31f88" : "#2fd39a88"}` }}>
+              <span className="band" style={{ background: dry ? "#a8640022" : "#1f8a5b22", color: dry ? "#a86400" : "#1f8a5b", border: `1px solid ${dry ? "#a8640088" : "#1f8a5b88"}` }}>
                 {t.status === "cancelled" ? "CANCELLED" : dry ? "DRY RUN · NOT SENT"
                   : t.status === "queued" ? (t.detail.postgrid && !t.detail.postgrid.live ? "APPROVED · TEST LETTER" : "APPROVED · WAITING TO SEND") : t.status.toUpperCase()}
               </span>
@@ -118,20 +118,20 @@ export default async function Message({ params, searchParams }: { params: Promis
 
         <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
           {admin && flash && (
-            <div className="panel fade-up" style={{ padding: 18, fontSize: 14, borderColor: flash === "sent" ? "#2fd39a88" : "#ffb31f88", color: flash === "sent" ? "#2fd39a" : "#ffb31f" }}>
+            <div className="panel fade-up" style={{ padding: 18, fontSize: 14, borderColor: flash === "sent" ? "#1f8a5b88" : "#a8640088", color: flash === "sent" ? "#1f8a5b" : "#a86400" }}>
               {flash === "sent" ? `Sent to ${t.to_address}. Every reply now goes to the Inbox agent.` : flash}
             </div>
           )}
           {operator && (
-            <div className="panel fade-up" style={{ padding: 24, display: "grid", gap: 10, fontSize: 14, borderColor: "#2fd39a66" }}>
+            <div className="panel fade-up" style={{ padding: 24, display: "grid", gap: 10, fontSize: 14, borderColor: "#1f8a5b66" }}>
               <p className="eyebrow" style={{ marginBottom: 2 }}>Operator · checked just now</p>
               {pre.map(g => (
-                <span key={g.gate}><span style={{ color: g.pass ? "#2fd39a" : "#ffb31f", fontFamily: "var(--mono)" }}>{g.pass ? "✓" : "•"}</span> {g.note}</span>
+                <span key={g.gate}><span style={{ color: g.pass ? "#1f8a5b" : "#a86400", fontFamily: "var(--mono)" }}>{g.pass ? "✓" : "•"}</span> {g.note}</span>
               ))}
               <form action={approveSend}>
                 <input type="hidden" name="id" value={t.id} />
                 <input type="hidden" name="back" value={`/message/${t.slug ?? t.id}`} />
-                <button type="submit" className="band" style={{ cursor: "pointer", padding: "10px 18px", fontSize: 14, background: "#2fd39a22", color: "#2fd39a", border: "1px solid #2fd39a88" }}>
+                <button type="submit" className="band" style={{ cursor: "pointer", padding: "10px 18px", fontSize: 14, background: "#1f8a5b22", color: "#1f8a5b", border: "1px solid #1f8a5b88" }}>
                   {t.status === "queued" ? "Send now" : pre.every(g => g.pass) ? "Approve and send" : "Approve (sends in its window)"}
                 </button>
               </form>
@@ -142,7 +142,7 @@ export default async function Message({ params, searchParams }: { params: Promis
             <p className="eyebrow">Hard rules, checked in code</p>
             <div style={{ display: "grid", gap: 8, fontSize: 14 }}>
               {checks.map(([k, ok]) => (
-                <span key={k}><span style={{ color: ok ? "#2fd39a" : "#ff8080", fontFamily: "var(--mono)" }}>{ok ? "✓" : "✗"}</span> {CHECK_LABEL[k] ?? k}</span>
+                <span key={k}><span style={{ color: ok ? "#1f8a5b" : "#b4432f", fontFamily: "var(--mono)" }}>{ok ? "✓" : "✗"}</span> {CHECK_LABEL[k] ?? k}</span>
               ))}
             </div>
             <p style={{ color: "var(--mute)", fontSize: 12.5, margin: "14px 0 0" }}>A draft that fails any rule is rewritten once, then discarded.</p>
@@ -161,7 +161,7 @@ export default async function Message({ params, searchParams }: { params: Promis
                 <a key={s.id} href={pathFor("touches", s.slug, s.id)} style={{ display: "grid", gridTemplateColumns: "64px 1fr", gap: 8, opacity: s.id === t.id ? 1 : 0.8 }}>
                   <span style={{ fontFamily: "var(--mono)", color: s.id === t.id ? "var(--cyan)" : "var(--mute)" }}>step {s.step}</span>
                   <span>
-                    {s.status === "cancelled" ? <span style={{ color: "#ff8080" }}>cancelled{s.cancelled ? `: ${s.cancelled}` : ""}</span>
+                    {s.status === "cancelled" ? <span style={{ color: "#b4432f" }}>cancelled{s.cancelled ? `: ${s.cancelled}` : ""}</span>
                       : s.scheduled_for ? `${when(s.scheduled_for)}` : <span style={{ color: "var(--mute)" }}>not scheduled yet</span>}
                   </span>
                 </a>
@@ -189,7 +189,7 @@ export default async function Message({ params, searchParams }: { params: Promis
                   {t.detail.postgrid.to_status ? `, address ${t.detail.postgrid.to_status}` : ""}{t.detail.postgrid.imb ? `, USPS: ${t.detail.postgrid.imb}` : ""}
                 </span>
               )}
-              {t.detail.letter_held && <span style={{ color: "#ffb31f" }}>Held: {t.detail.letter_held}</span>}
+              {t.detail.letter_held && <span style={{ color: "#a86400" }}>Held: {t.detail.letter_held}</span>}
             </div>
           )}
           {dry && (

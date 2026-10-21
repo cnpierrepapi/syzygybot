@@ -48,7 +48,7 @@ export default async function Plan({ params }: { params: Promise<{ id: string }>
         <AgentChip agent="strategist" label="Set by Strategist" />
         <p className="eyebrow" style={{ marginTop: 22 }}>The angle for <a href={pathFor("accounts", p.account_slug, p.account_id)} style={{ color: "var(--cyan)" }}>{p.account_name}</a></p>
         <p style={{ fontSize: "clamp(20px, 2.4vw, 28px)", lineHeight: 1.35, margin: 0 }}>{p.angle}</p>
-        {p.detail.timing && <p style={{ color: "var(--dim)", marginTop: 16 }}><strong style={{ color: "#ffb31f" }}>When:</strong> {p.detail.timing}</p>}
+        {p.detail.timing && <p style={{ color: "var(--dim)", marginTop: 16 }}><strong style={{ color: "#a86400" }}>When:</strong> {p.detail.timing}</p>}
       </section>
 
       <section className="split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 16, marginTop: 16 }}>
@@ -77,7 +77,7 @@ export default async function Plan({ params }: { params: Promise<{ id: string }>
             {[...kept, ...dropped].map((t, i) => (
               <div key={i} style={{ opacity: t.verified ? 1 : 0.55 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                  <span style={{ color: t.verified ? "#2fd39a" : "var(--mute)", fontFamily: "var(--mono)", fontSize: 12 }}>{t.verified ? "USED" : "DROPPED"}</span>
+                  <span style={{ color: t.verified ? "#1f8a5b" : "var(--mute)", fontFamily: "var(--mono)", fontSize: 12 }}>{t.verified ? "USED" : "DROPPED"}</span>
                   {t.date && <span style={{ color: "var(--mute)", fontFamily: "var(--mono)", fontSize: 12 }}>{t.date}</span>}
                 </div>
                 <p style={{ margin: "2px 0 0", fontSize: 14.5 }}>{t.what}</p>

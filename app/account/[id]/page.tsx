@@ -83,13 +83,13 @@ export default async function Account({ params }: { params: Promise<{ id: string
       <nav className="nav"><Logo /><span className="crumb">ACCOUNT · qualified {new Date(a.created_at).toISOString().slice(0, 10)}</span></nav>
 
       {a.deal_status === "active" && (
-        <p className="panel" style={{ padding: "12px 16px", marginTop: 8, borderColor: "#ff808066", color: "#ffb3aa" }}>
+        <p className="panel" style={{ padding: "12px 16px", marginTop: 8, borderColor: "#b4432f66", color: "#ffb3aa" }}>
           Deal check found that {a.name} and {a.passed_name} already work together, so nothing goes out on this thesis.{" "}
           {a.pair_slug && <a href={`/thesis/${a.pair_slug}`} style={{ textDecoration: "underline" }}>See what it found</a>}
         </p>
       )}
       {a.claimed_send_as != null && (
-        <p className="panel" style={{ padding: "12px 16px", marginTop: 8, borderColor: "#22d3ee55", color: "var(--dim)" }}>
+        <p className="panel" style={{ padding: "12px 16px", marginTop: 8, borderColor: "#5a5aa655", color: "var(--dim)" }}>
           {a.passed_name} claimed its page, so SYZYGY no longer pitches {a.name} about them.{" "}
           {a.claimed_send_as ? `Messages to ${a.name} now go out for ${a.passed_name}, signed as them, and stay private to them.` : `${a.name} is in ${a.passed_name}'s playbook now.`}
         </p>

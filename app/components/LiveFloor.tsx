@@ -53,7 +53,7 @@ export function FunnelBar({ initial, live }: { initial: Funnel; live?: Funnel })
         const c = agentColor(f.agent), on = f.value > 0;
         return (
           <a key={f.label} href={f.href} className="panel fade-up funnel-tile" style={{ padding: "14px 16px", animationDelay: `${i * 60}ms`, borderColor: on ? `${c}55` : undefined, opacity: on ? 1 : 0.55 }}>
-            <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1, color: on ? "#efeaff" : "var(--dim)", textShadow: on ? `0 0 18px ${c}88` : "none" }}>
+            <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1, color: on ? "var(--fg)" : "var(--dim)" }}>
               <CountUp value={f.value} />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 12, color: "var(--dim)" }}>
@@ -142,8 +142,8 @@ export default function LiveFloor({ initialItems, initialFunnel, middle }: { ini
           return (
             <div key={r.id} className={`feed-row${r.fresh ? " fresh" : ""}`} style={{ boxShadow: r.fresh && !done ? `inset 3px 0 0 ${c}` : `inset 3px 0 0 ${c}55` }}>
               <span className="feed-time">{hhmmss(r.created_at)}</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "var(--mono)", fontSize: 12, color: "#efeaff" }}>
-                <i style={{ width: 8, height: 8, borderRadius: "50%", background: c, boxShadow: `0 0 8px ${c}`, display: "block" }} />
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "var(--mono)", fontSize: 12, color: "var(--fg)" }}>
+                <i style={{ width: 8, height: 8, borderRadius: "50%", background: c, display: "block" }} />
                 {AGENT_LABEL[r.agent] ?? r.agent}
               </span>
               <span>

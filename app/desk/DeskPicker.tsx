@@ -38,7 +38,7 @@ export default function DeskPicker({ personas, deskLabels, action }: {
             <strong style={{ display: "block", fontSize: 18 }}>{p.title}</strong>
             <p style={{ margin: "6px 0 0", color: "var(--dim)" }}>{p.who} {p.forWhom}</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
-              {p.desks.map(d => <span key={d} className="chip"><i style={{ background: d === "watch" ? "#22d3ee" : "#ffb020" }} />{deskLabels[d]}</span>)}
+              {p.desks.map(d => <span key={d} className="chip"><i style={{ background: d === "watch" ? "#5a5aa6" : "#a86400" }} />{deskLabels[d]}</span>)}
             </div>
           </div>
           <div ref={card} style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", scrollMarginBottom: 24 }}>

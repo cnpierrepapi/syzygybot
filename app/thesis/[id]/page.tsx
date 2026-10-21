@@ -138,7 +138,7 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
 
       {p.band !== "PASS" && <DealPanel p={p} />}
       {strong && (
-        <a href={`/claim/${strong.slug}`} className="panel fade-up" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap", padding: "18px 26px", marginTop: 16, borderColor: "#22d3ee55" }}>
+        <a href={`/claim/${strong.slug}`} className="panel fade-up" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap", padding: "18px 26px", marginTop: 16, borderColor: "#5a5aa655" }}>
           <span><strong>Are you {strong.name}?</strong> <span style={{ color: "var(--dim)" }}>{p.account_name} needs you more than you need them. Claim your page and the outreach is yours.</span></span>
           <span style={{ color: "var(--cyan)", whiteSpace: "nowrap" }}>Claim it →</span>
         </a>
@@ -199,9 +199,9 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
 }
 
 const DEAL: Record<string, { label: string; color: string; say: (a: string, b: string) => string }> = {
-  clear: { label: "NO DEAL FOUND", color: "#2fd39a", say: (a, b) => `No sign that ${a} and ${b} have ever worked together. Clear to pitch.` },
-  past: { label: "WORKED TOGETHER BEFORE", color: "#ffb31f", say: (a, b) => `${a} and ${b} partnered before, but nothing recent. The pitch can go, and it says so up front.` },
-  active: { label: "ALREADY PARTNERS", color: "#ff8080", say: (a, b) => `${a} and ${b} already work together, so SYZYGY won't pitch this one.` },
+  clear: { label: "NO DEAL FOUND", color: "#1f8a5b", say: (a, b) => `No sign that ${a} and ${b} have ever worked together. Clear to pitch.` },
+  past: { label: "WORKED TOGETHER BEFORE", color: "#a86400", say: (a, b) => `${a} and ${b} partnered before, but nothing recent. The pitch can go, and it says so up front.` },
+  active: { label: "ALREADY PARTNERS", color: "#b4432f", say: (a, b) => `${a} and ${b} already work together, so SYZYGY won't pitch this one.` },
 };
 
 function DealPanel({ p }: { p: Row }) {

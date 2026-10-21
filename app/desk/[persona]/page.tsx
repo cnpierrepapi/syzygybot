@@ -8,6 +8,9 @@ import { DESK_COOKIE, decide, requests, rulesOf, saveRules, underRules, watchIte
 import { RULE_LABEL, type Rules } from "@/lib/clearance";
 import { sql } from "@/lib/db";
 import { maskEmail } from "@/lib/ui";
+import { board, COLUMNS, type Step } from "@/lib/board";
+import SkyCard from "../../components/SkyCard";
+import Board from "./Board";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -52,7 +55,13 @@ async function rules(fd: FormData) {
 
 const initials = (n?: string | null) => n ? n.split(/\s+/).map(x => x[0]).join(". ") + "." : null;
 
-function Card({ r, personaId, rulesOn, showPersona, desk, first }: { r: Request; personaId: string; rulesOn: Rules; showPersona: boolean; desk?: string; first: boolean }) {
+const STEP_AGENT: Record<string, string> = {
+  scout: "Scout", checker: "Deal check", qualifier: "Qualifier", numbers: "Numbers", contact_finder: "Contact finder", verifier: "Verifier",
+  strategist: "Strategist", writer: "Writer", sequencer: "Sequencer", inbox: "Inbox agent", clearance: "Clearance", router: "Router",
+  sponsor: "Sponsor", talent: "Talent", venue: "Venue", podcast: "Podcast",
+};
+
+function Card({ r, personaId, rulesOn, showPersona, desk, first, steps }: { r: Request; personaId: string; rulesOn: Rules; showPersona: boolean; desk?: string; first: boolean; steps: Step[] }) {
   const c = underRules(r.clearance, rulesOn);
   const m = r.evidence.match;
   const msg = r.edited ?? r.preview;
@@ -65,10 +74,10 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first }: { r: Request;
   return (
     <article id={`r-${r.id}`} className={`panel req${held ? " req-held" : ""}${decided ? " req-done" : ""}`}>
       <header className="req-top">
-        <span className="chip"><i style={{ background: "#ffb020" }} />{DESKS[r.desk]?.label ?? r.desk}</span>
+        <span className="chip"><i style={{ background: "#a86400" }} />{DESKS[r.desk]?.label ?? r.desk}</span>
         <span className="chip">{(() => { const a = ACTION_LABEL[r.action] ?? r.action, ch = r.target.channel === "email" ? "email" : "letter"; return a.toLowerCase() === ch ? a : `${a} · ${ch}`; })()}</span>
         {showPersona && <span className="chip">{persona(r.persona)?.title ?? r.persona}</span>}
-        {real && <span className="chip" style={{ borderColor: "#2fd39a88", color: "#2fd39a" }}>REAL EMAIL</span>}
+        {real && <span className="chip" style={{ borderColor: "#1f8a5b88", color: "#1f8a5b" }}>REAL EMAIL</span>}
         <span className={`clear-badge ${held ? "hold" : "pass"}`}>{held ? "HELD BY CLEARANCE" : "CLEARED"}</span>
       </header>
       <div className="req-main">
@@ -93,6 +102,17 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first }: { r: Request;
         <summary>{msg.subject || "(no subject)"}</summary>
         <pre>{msg.body}</pre>
       </details>
+      {steps.length > 0 && (
+        <details className="req-msg">
+          <summary>How the agents got here · {steps.length} steps</summary>
+          <ul className="req-steps" style={{ padding: "0 14px 14px" }}>
+            {steps.map((s, i) => (
+              <li key={i}><span>{new Date(s.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} {new Date(s.at).toISOString().slice(11, 16)}</span>
+                <span><b>{STEP_AGENT[s.agent] ?? s.agent}</b> {s.summary}</span></li>
+            ))}
+          </ul>
+        </details>
+      )}
       <div className="req-cols">
         <div>
           <p className="eyebrow" style={{ marginBottom: 6 }}>Why</p>
@@ -189,38 +209,36 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
     where a.detail->>'persona' = ${p.id} or (a.detail->>'workspace' = ${w.id})
     order by a.created_at desc limit 14`) as { summary: string; agent: string; created_at: string }[];
   const counts = Object.fromEntries(desks.map(d => [d, all.filter(r => r.desk === d && (!r.decision || r.decision === "held")).length]));
+  const cards = await board(sorted);
+  const stepsOf = new Map(cards.map(c => [c.id, c.steps]));
+  const sentCount = cards.filter(c => c.col >= 7).length;
 
   return (
     <main className="wrap desk desk-mode">
       <nav className="nav">
         <Logo />
-        <span style={{ display: "flex", gap: 14, alignItems: "center" }}>
+        <span style={{ display: "flex", gap: 18, alignItems: "center" }}>
           <a className="crumb" href="/desk">Switch desk</a>
           <a className="crumb" href="/">Live floor</a>
         </span>
       </nav>
 
-      <a href="#queue" className="notif panel" aria-label={`${pending.length} permission requests waiting`}>
-        <span className="bell" aria-hidden>
-          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.3 16h15.4L18 12.6V9a6 6 0 0 0-6-6Zm-2 15a2 2 0 0 0 4 0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
-          {pending.length > 0 && <i>{pending.length}</i>}
-        </span>
-        <span>
-          <b>{pending.length} {pending.length === 1 ? "request" : "requests"} waiting for you</b>
-          <span className="notif-sub">{heldCount ? `${heldCount} held by Clearance, ` : ""}{pending.length - heldCount} ready to approve</span>
-        </span>
-        <span className="notif-go">Review →</span>
-      </a>
-
-      {flash && <p className="panel" style={{ padding: "10px 14px", borderColor: "#ff808088", color: "#ffb4b4" }}>{flash}</p>}
-
-      <header className="desk-head">
-        <div>
-          <p className="eyebrow">{p.demo ? "Demo desk" : p.judge ? `Written for ${p.judge}` : "Desk"} · simulated persona</p>
-          <h1 style={{ fontSize: "clamp(26px, 3.4vw, 38px)", lineHeight: 1.08 }}>{p.title}</h1>
-          <p style={{ color: "var(--dim)", margin: "8px 0 0", maxWidth: 720 }}>{p.who} {p.forWhom}</p>
+      <SkyCard>
+        <div className="desk-hero">
+          <div>
+            <p className="eyebrow">{p.demo ? "Demo desk" : p.judge ? `Written for ${p.judge}` : "Desk"} · simulated persona</p>
+            <h1>{p.title}</h1>
+            <p>{p.who} {p.forWhom}</p>
+          </div>
+          <div className="desk-kpis">
+            <a href="#queue"><b>{pending.length - heldCount}</b><small>waiting for you</small></a>
+            <span><b>{heldCount}</b><small>held by Clearance</small></span>
+            <span><b>{sentCount}</b><small>sent</small></span>
+          </div>
         </div>
-      </header>
+      </SkyCard>
+
+      {flash && <p className="panel" style={{ padding: "10px 14px", borderColor: "#e5b8ae", color: "#b4432f" }}>{flash}</p>}
 
       <div className="desk-tabs" role="tablist">
         <a role="tab" aria-selected={!desk} className={!desk ? "on" : ""} href={`/desk/${p.id}`}>All <span>{pending.length}</span></a>
@@ -228,11 +246,14 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
         {isClearance && <a href="#rules">Rules</a>}
       </div>
 
+      {desk && <p className="hint" style={{ margin: "0 0 12px" }}>{DESKS[desk as DeskId]?.blurb}</p>}
+      <Board cards={cards} columns={COLUMNS} persona={`${p.id}:${desk ?? "all"}`} />
+
       <div className="desk-grid">
         <section id="queue" style={{ display: "grid", gap: 14, alignContent: "start" }}>
-          {desk && <p className="hint" style={{ margin: 0 }}>{DESKS[desk as DeskId]?.blurb}</p>}
+          <h2 style={{ fontSize: 20 }}>Requests</h2>
           {!sorted.length && <div className="panel" style={{ padding: 22, color: "var(--dim)" }}>Nothing here yet. The desks run every hour; new requests land at the top.</div>}
-          {sorted.map((r, i) => <Card key={r.id} r={r} personaId={p.id} rulesOn={rulesOn} showPersona={isClearance} desk={desk} first={i === 0} />)}
+          {sorted.map((r, i) => <Card key={r.id} r={r} personaId={p.id} rulesOn={rulesOn} showPersona={isClearance} desk={desk} first={i === 0} steps={stepsOf.get(r.id) ?? []} />)}
         </section>
 
         <aside style={{ display: "grid", gap: 14, alignContent: "start" }}>
@@ -272,7 +293,8 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
         </aside>
       </div>
       <p className="hint" style={{ marginTop: 26 }}>
-        Demo desks are simulated personas. Addresses are masked. Approving runs the action as a simulation and nothing is sent.
+        Demo desks are simulated personas. Addresses are masked. Approving runs the action as a simulation and nothing is sent,
+        except on the Bad Bunny desk&apos;s SYZYGY pitches, where an approved email really goes out.
         Our match score is SYZYGY&apos;s own number out of 100; where Qloo has measured the pair, its taste data confirms it.
       </p>
       <p className="hint" style={{ marginTop: 6 }}>Other desks: {PERSONAS.filter(x => x.id !== p.id).map((x, i) => <span key={x.id}>{i ? " · " : ""}<a href={`/desk/${x.id}`}>{x.title}</a></span>)}</p>

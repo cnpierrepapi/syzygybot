@@ -80,16 +80,16 @@ export default async function Connect({ params, searchParams }: { params: Promis
       <nav className="nav"><Logo /><span className="crumb">Private · {w.name}{w.demo ? " · DEMO" : ""}</span></nav>
 
       {w.demo && (
-        <p className="band" style={{ display: "inline-block", background: "#ffb31f22", color: "#ffb31f", border: "1px solid #ffb31f88", marginTop: 8, whiteSpace: "normal", lineHeight: 1.5 }}>
+        <p className="band" style={{ display: "inline-block", background: "#a8640022", color: "#a86400", border: "1px solid #a8640088", marginTop: 8, whiteSpace: "normal", lineHeight: 1.5 }}>
           DEMO CLAIM · nobody posted from {w.name}&apos;s X account. Nothing here gets sent, and SYZYGY&apos;s own pitches carry on as normal.
         </p>
       )}
       {q.claimed && (
-        <p className="panel" style={{ padding: "12px 16px", marginTop: 16, borderColor: "#34f5a066", color: "#9ff5cf" }}>
+        <p className="panel" style={{ padding: "12px 16px", marginTop: 16, borderColor: "#1f8a5b66", color: "#9ff5cf" }}>
           You&apos;re in. This link is your workspace now, so bookmark it. It&apos;s the only way back.
         </p>
       )}
-      {q.connected && <p className="panel" style={{ padding: "12px 16px", marginTop: 16, borderColor: "#34f5a066", color: "#9ff5cf" }}>Connected to {PROVIDERS[q.connected]?.label ?? q.connected}. The first sync has run.</p>}
+      {q.connected && <p className="panel" style={{ padding: "12px 16px", marginTop: 16, borderColor: "#1f8a5b66", color: "#9ff5cf" }}>Connected to {PROVIDERS[q.connected]?.label ?? q.connected}. The first sync has run.</p>}
       {q.error && <p className="panel" style={{ padding: "12px 16px", marginTop: 16, borderColor: "#ff6b5e66", color: "#ffb3aa" }}>That didn&apos;t work: {q.error}</p>}
 
       <section className="fade-up clear-hero">
@@ -130,8 +130,8 @@ export default async function Connect({ params, searchParams }: { params: Promis
                       <div key={p.id} style={{ borderTop: "1px solid var(--line)", padding: "10px 0", display: "grid", gap: 8 }}>
                         <span>{p.kind === "person" ? <strong>{p.name}</strong> : <strong>Company inbox</strong>} <span style={{ color: "var(--dim)" }}>· {p.role}</span></span>
                         {d && (
-                          <div style={{ borderLeft: "2px solid #22d3ee66", paddingLeft: 12 }}>
-                            <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "#ffb31f" }}>
+                          <div style={{ borderLeft: "2px solid #5a5aa666", paddingLeft: 12 }}>
+                            <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "#a86400" }}>
                               {w.demo ? "DEMO DRAFT · NOT SENT" : "DRAFT · waiting for approval"}{"scheduled_for" in d && d.scheduled_for ? ` · scheduled ${when(d.scheduled_for)}` : ""}
                             </span>
                             <strong style={{ display: "block", margin: "6px 0" }}>{d.subject}</strong>
@@ -152,7 +152,7 @@ export default async function Connect({ params, searchParams }: { params: Promis
       <section id="sending" className="panel fade-up" style={{ padding: 26, marginTop: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <h2 style={{ fontSize: 20 }}>Want SYZYGY to write to them for you?</h2>
-          <span className="band" style={w.send_as ? { color: "#34f5a0", borderColor: "#34f5a066" } : { color: "var(--mute)", borderColor: "var(--line)" }}>{w.send_as ? "ON" : "OFF"}</span>
+          <span className="band" style={w.send_as ? { color: "#1f8a5b", borderColor: "#1f8a5b66" } : { color: "var(--mute)", borderColor: "var(--line)" }}>{w.send_as ? "ON" : "OFF"}</span>
         </div>
         <p style={{ color: "var(--dim)", fontSize: 14.5, maxWidth: 680, margin: "10px 0 16px" }}>
           It writes to the people above in your name and signs as you. The first line still says it&apos;s an AI agent working for {w.name}, and the numbers
@@ -201,7 +201,7 @@ export default async function Connect({ params, searchParams }: { params: Promis
             <div key={crm.id} className="panel" style={{ padding: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <h3 style={{ fontSize: 18 }}>{crm.label}</h3>
-                {c ? <span className="band" style={{ color: "#34f5a0", borderColor: "#34f5a066" }}>CONNECTED</span>
+                {c ? <span className="band" style={{ color: "#1f8a5b", borderColor: "#1f8a5b66" }}>CONNECTED</span>
                   : !crm.configured() ? <span className="band band-PASS">SOON</span> : null}
               </div>
               {c ? (
@@ -216,7 +216,7 @@ export default async function Connect({ params, searchParams }: { params: Promis
                 </p>
               )}
               {!c && crm.configured() && (
-                <a className="chip" href={`/api/crm/${crm.id}/connect?w=${token}`} style={{ padding: "8px 14px", fontSize: 13, borderColor: "#22d3ee88" }}>Connect {crm.label} →</a>
+                <a className="chip" href={`/api/crm/${crm.id}/connect?w=${token}`} style={{ padding: "8px 14px", fontSize: 13, borderColor: "#5a5aa688" }}>Connect {crm.label} →</a>
               )}
             </div>
           );

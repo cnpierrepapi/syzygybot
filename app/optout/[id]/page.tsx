@@ -58,7 +58,7 @@ export default async function OptOut({ params, searchParams }: { params: Promise
               {t.to_address ? maskEmail(t.to_address) : t.company}, for good.
             </p>
             <input type="hidden" name="id" value={id} />
-            <button type="submit" className="band" style={{ cursor: "pointer", padding: "10px 18px", fontSize: 14, background: "#ff808022", color: "#ff8080", border: "1px solid #ff808088" }}>
+            <button type="submit" className="band" style={{ cursor: "pointer", padding: "10px 18px", fontSize: 14, background: "#b4432f22", color: "#b4432f", border: "1px solid #b4432f88" }}>
               Stop all messages
             </button>
           </form>

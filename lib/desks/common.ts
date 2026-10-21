@@ -206,12 +206,14 @@ JSON only: {"people": [{"name": "", "title": "", "source_url": "", "date": "YYYY
 export async function makeRequest(x: RequestInput) {
   const [dup] = (await sql()`select id from permission_requests where dedupe = ${x.dedupe}`) as { id: string }[];
   if (dup) return null;
+  const tMatch = new Date();
   // Address order: the named buyer's Hunter-verified address, else an inbox the org published (marked for their
   // attention), else a letter to them.
   const published = x.preset ? { email: x.preset.address, url: null, postal: null, cost: 0 } : await findInbox(x.target.org, x.target.site ?? null, x.target.purpose);
   // No site on file: the domain of the inbox the org published is the next best place to ask Hunter about.
   const site = x.target.site ?? (published.email ? `https://${published.email.split("@")[1]}` : null);
   const buyer = x.preset ? null : await findBuyer(x.target.org, site, x.target.purpose, x.target.country);
+  const tBuyer = new Date();
   const inbox = buyer?.email ? { ...published, email: buyer.email, url: buyer.page } : published;
   const viaInbox = !!buyer && !buyer.email && !!published.email;
   const { draft: d, cost } = x.preset ? { draft: { subject: x.preset.subject, body: x.preset.body }, cost: 0 }
@@ -240,6 +242,14 @@ export async function makeRequest(x: RequestInput) {
             ${JSON.stringify(clearance)}, ${x.dedupe}, ${x.ref?.table ?? null}, ${x.ref?.id ?? null}, ${`${slugify(x.title, 50)}-${token(4).toLowerCase()}`})
     on conflict (dedupe) do nothing returning id`) as { id: string }[];
   if (!row) return null;
+  // The card's own steps, at the times they happened, so its board replays the real run.
+  if (!x.preset) {
+    const dom = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
+    await logAction({ agent: x.agent, kind: "step.matched", summary: `${x.title}. ${x.evidence.facts[0] ?? ""}`.trim(), refTable: "permission_requests", refId: row.id, at: tMatch, detail: { persona: x.persona.id, desk: x.desk } });
+    await logAction({ agent: "contact_finder", kind: "step.buyer", refTable: "permission_requests", refId: row.id, at: tBuyer, detail: { persona: x.persona.id, desk: x.desk },
+      summary: buyer ? `Found who decides: ${buyer.name}, ${buyer.role}, confirmed on ${dom(buyer.page)}${buyer.email ? ". Hunter verified their work address" : ""}.`
+        : `No named person could be confirmed at ${x.target.org}, so it goes to ${published.email ? "their published inbox" : "their office by post"}.` });
+  }
   const held = clearance.checks.filter(c => !c.pass);
   await logAction({
     agent: x.agent, kind: "request.drafted",

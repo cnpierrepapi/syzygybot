@@ -26,7 +26,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           <p style={{ color: "var(--mute)", margin: 0, fontSize: 14 }}>For the person who approves real sends. Everyone else can read every page without it.</p>
           <input name="key" type="password" autoComplete="current-password" aria-label="Operator key"
             style={{ padding: "10px 12px", background: "transparent", color: "inherit", border: "1px solid var(--line)", borderRadius: 8, fontFamily: "var(--mono)" }} />
-          {bad && <span style={{ color: "#ff8080", fontSize: 13 }}>That key didn't match.</span>}
+          {bad && <span style={{ color: "#b4432f", fontSize: 13 }}>That key didn't match.</span>}
           <button type="submit" className="band" style={{ cursor: "pointer", padding: "10px 18px", fontSize: 14, justifySelf: "start" }}>Sign in</button>
         </form>
       </section>

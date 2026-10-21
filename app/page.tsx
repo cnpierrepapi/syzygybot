@@ -1,6 +1,7 @@
 import { sql } from "@/lib/db";
 import { feed, funnel, type FeedItem, type Funnel } from "@/lib/floor";
 import LiveFloor from "./components/LiveFloor";
+import SkyCard from "./components/SkyCard";
 import { jsonLd, siteJsonLd } from "@/lib/seo";
 import type { Metadata } from "next";
 
@@ -130,11 +131,11 @@ export default async function Floor() {
       <nav className="nav">
         <Logo />
         <span style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <span className="crumb nav-hide-sm">LIVE FLOOR · syzygybot.com</span>
+          <span className="crumb nav-hide-sm">Live floor</span>
           <a className="btn" href="/desk" style={{ padding: "7px 16px", fontSize: 13.5 }}>Open a desk →</a>
         </span>
       </nav>
-      <Hero types={types} stack={stack} />
+      <SkyCard tall><Hero types={types} stack={stack} /></SkyCard>
       <div id="floor" />
       <LiveFloor initialItems={items} initialFunnel={counts} middle={<Featured cards={cards} />} />
       <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 28, maxWidth: 760 }}>

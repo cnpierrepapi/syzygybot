@@ -41,7 +41,7 @@ export default async function Handoff({ params }: { params: Promise<{ token: str
       <FocusStars stars={[h.entity_id]} />
       <nav className="nav"><Logo /><span className="crumb">Private · handoff · {p.company}</span></nav>
       {h.simulated && (
-        <p className="band" style={{ display: "inline-block", background: "#ffb31f22", color: "#ffb31f", border: "1px solid #ffb31f88", marginTop: 8 }}>
+        <p className="band" style={{ display: "inline-block", background: "#a8640022", color: "#a86400", border: "1px solid #a8640088", marginTop: 8 }}>
           SIMULATED REPLY · a test of the Inbox agent, not a real person at {p.company}
         </p>
       )}

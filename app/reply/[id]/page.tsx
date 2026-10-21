@@ -19,10 +19,10 @@ type Row = {
 };
 
 const CLASS: Record<string, { label: string; color: string; meaning: string }> = {
-  interested: { label: "INTERESTED", color: "#2fd39a", meaning: "Answered with fresh Qloo data, then handed to a person. The agents don't book meetings." },
-  not_now: { label: "NOT NOW", color: "#ffb31f", meaning: "Sequence stopped. A date is set to look again." },
+  interested: { label: "INTERESTED", color: "#1f8a5b", meaning: "Answered with fresh Qloo data, then handed to a person. The agents don't book meetings." },
+  not_now: { label: "NOT NOW", color: "#a86400", meaning: "Sequence stopped. A date is set to look again." },
   referral: { label: "REFERRAL", color: "#5aa2ff", meaning: "Sequence stopped. The person they named became a new contact and the Writer drafted to them." },
-  opt_out: { label: "OPT-OUT", color: "#ff8080", meaning: "Do-not-contact added and every unsent message cancelled. No reply sent." },
+  opt_out: { label: "OPT-OUT", color: "#b4432f", meaning: "Do-not-contact added and every unsent message cancelled. No reply sent." },
   ooo: { label: "OUT OF OFFICE", color: "#a99cff", meaning: "Follow-ups moved past the return date. No reply sent." },
   other: { label: "OTHER", color: "#9b93c9", meaning: "Sequence stopped; questions answered if there were any." },
 };
@@ -49,7 +49,7 @@ export default async function Reply({ params }: { params: Promise<{ id: string }
       <FocusStars stars={[r.entity_id]} />
       <nav className="nav"><Logo /><span className="crumb">REPLY · {r.account_name}</span></nav>
       {r.simulated && (
-        <p className="band" style={{ display: "inline-block", background: "#ffb31f22", color: "#ffb31f", border: "1px solid #ffb31f88", marginTop: 8 }}>
+        <p className="band" style={{ display: "inline-block", background: "#a8640022", color: "#a86400", border: "1px solid #a8640088", marginTop: 8 }}>
           SIMULATED REPLY · a test written to exercise the Inbox agent, not from {r.account_name}
         </p>
       )}
@@ -67,7 +67,7 @@ export default async function Reply({ params }: { params: Promise<{ id: string }
             <article className="panel fade-up" style={{ padding: 24, animationDelay: "80ms" }}>
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
                 <AgentChip agent="inbox" label="Answer by Inbox" />
-                <span className="band" style={{ background: "#ffb31f22", color: "#ffb31f", border: "1px solid #ffb31f88" }}>DRY RUN · NOT SENT</span>
+                <span className="band" style={{ background: "#a8640022", color: "#a86400", border: "1px solid #a8640088" }}>DRY RUN · NOT SENT</span>
               </div>
               <div style={{ whiteSpace: "pre-wrap", fontSize: 15.5, lineHeight: 1.65 }}>{r.answer}</div>
             </article>

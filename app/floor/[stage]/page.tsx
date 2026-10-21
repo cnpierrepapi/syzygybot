@@ -22,7 +22,7 @@ export default async function StagePage({ params }: { params: Promise<{ stage: s
 
       <div className="stage-tabs fade-up">
         {STAGES.map(x => (
-          <a key={x.slug} href={`/floor/${x.slug}`} className="chip" style={x.slug === s.slug ? { borderColor: c, color: "#efeaff", background: `${c}33`, boxShadow: `0 0 12px ${c}55` } : undefined}>{x.label}</a>
+          <a key={x.slug} href={`/floor/${x.slug}`} className="chip" style={x.slug === s.slug ? { borderColor: c, color: "var(--fg)", background: `${c}22` } : undefined}>{x.label}</a>
         ))}
       </div>
 

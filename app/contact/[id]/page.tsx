@@ -20,7 +20,7 @@ type Row = {
 };
 
 const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
-const Tick = ({ ok }: { ok: boolean }) => <span style={{ color: ok ? "#2fd39a" : "var(--mute)", fontFamily: "var(--mono)" }}>{ok ? "✓" : "·"}</span>;
+const Tick = ({ ok }: { ok: boolean }) => <span style={{ color: ok ? "#1f8a5b" : "var(--mute)", fontFamily: "var(--mono)" }}>{ok ? "✓" : "·"}</span>;
 
 export default async function Contact({ params }: { params: Promise<{ id: string }> }) {
   const { id: key } = await params;
@@ -80,7 +80,7 @@ export default async function Contact({ params }: { params: Promise<{ id: string
                   </div>
                   {checked.map(x => (
                     <div key={x.url} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 56px 64px 44px", gap: 10, fontSize: 13.5, alignItems: "center" }}>
-                      <a href={x.url} rel="nofollow noopener" target="_blank" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: x.url === v.page ? "#efeaff" : "var(--dim)" }}>
+                      <a href={x.url} rel="nofollow noopener" target="_blank" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: x.url === v.page ? "var(--fg)" : "var(--dim)" }}>
                         {x.url === v.page ? "★ " : ""}{host(x.url)}
                       </a>
                       <Tick ok={x.name} /><Tick ok={x.company} /><Tick ok={x.role} />
