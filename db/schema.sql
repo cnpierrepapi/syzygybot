@@ -424,3 +424,20 @@ create table if not exists hunter_calls (
   result      jsonb not null default '{}',
   created_at  timestamptz not null default now()
 )
+;
+
+-- Desk buyers (21 Oct): every desk card goes to a named person, found and verified like the Sales chain's contacts.
+create table if not exists org_people (
+  org         text not null,
+  purpose     text not null,
+  name        text,
+  role        text,
+  page        text,
+  page_date   text,
+  status      text not null check (status in ('confirmed','not_found')),
+  email       text,
+  email_source text,
+  detail      jsonb not null default '{}',
+  checked_at  timestamptz not null default now(),
+  primary key (org, purpose)
+)

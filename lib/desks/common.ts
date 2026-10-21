@@ -5,7 +5,10 @@ import { logAction, type Agent } from "../actions";
 import { ask, askWeb, parseJson } from "../llm";
 import { hasMx, readAll } from "../web";
 import { slugify, token } from "../slug";
-import { clear, countryFromRole, countryOf, type Deal, type Outbound } from "../clearance";
+import { clear, countryFromRole, countryOf, emailAllowed, type Deal, type Outbound } from "../clearance";
+import { cleanTitle, judgePerson } from "../contacts";
+import { sweep } from "../sweep";
+import { findEmail, usable } from "../hunter";
 import type { Match } from "../match";
 import { rejectionNotes } from "../desk";
 import { MEETING_ASK, UNMEASURED } from "../outreach";
@@ -68,6 +71,7 @@ Hard rules:
   Qloo affinity numbers are 0 to 1 scores from Qloo's taste data: credit them as Qloo's, never as percentages. Never claim to be Qloo.
 - Talent appears only as audience data ("Bad Bunny's fans lean toward..."), never as liking, using or backing anything.
 - One clear ask, answered by a reply. Never ask for a call, a meeting or a time slot; a person takes over after a reply. Under 140 words. No em dashes, no exclamation marks, no hype words.
+- If recipient_person is given, write to that person by name (and if delivered_via says it's a shared inbox, say it's for their attention).
 - Sign as the sender in the brief.
 Reply with JSON only: {"subject": "", "body": ""}`;
 
@@ -133,13 +137,86 @@ export async function reclear(where: { persona?: string } = {}) {
   return { checked: rows.length, held };
 }
 
+const BUYER: Record<Purpose, string> = {
+  booking: "books the room: head of booking, director of events or event sales, programming director or general manager",
+  sponsorship: "sells or buys sponsorship: head of partnerships, sponsorship director, VP brand partnerships or CMO",
+  partnerships: "runs brand partnerships or marketing: head of brand partnerships, CMO, VP marketing or brand director",
+  advertising: "sells advertising or partnerships: head of ad sales, partnerships director or VP sales",
+};
+
+const BUYER_TITLE: Record<Purpose, RegExp> = {
+  booking: /book|event|programm|general manager|\bgm\b|venue|director of sales|sales director/i,
+  sponsorship: /sponsor|partner|marketing|brand|\bcmo\b|commercial|revenue/i,
+  partnerships: /partner|marketing|brand|\bcmo\b|\bcbo\b|licens/i,
+  advertising: /advertis|ad sales|partner|sponsor|revenue|sales/i,
+};
+
+export type Buyer = { name: string; role: string; page: string; date: string | null; email: string | null; emailSource: "verified" | null };
+
+/** The named person at this org who handles this purpose, verified on a public page by the Verifier's own rules, with
+ *  a Hunter-verified work address where the country allows one. Cached per org and purpose: 30 days when found, 3 when not. */
+export async function findBuyer(org: string, site: string | null, purpose: Purpose, country: string): Promise<Buyer | null> {
+  const [hit] = (await sql()`select name, role, page, page_date, status, email, email_source from org_people
+    where org = ${org} and purpose = ${purpose}
+      and checked_at > now() - (case when status = 'confirmed' then interval '30 days' else interval '3 days' end)`) as any[];
+  if (hit) return hit.status === "confirmed" ? { name: hit.name, role: hit.role, page: hit.page, date: hit.page_date, email: hit.email, emailSource: hit.email_source } : null;
+  const domain = site ? site.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] : null;
+  // A refused search (rate limit) isn't a "not found": nothing is cached, so the next run asks again.
+  const r = await askWeb(`Who at "${org}"${site ? ` (${site})` : ""} ${BUYER[purpose]} today? Name up to three people currently in that kind of
+role, each with the public page that says so (the organisation's own site, a press release or trade press; never LinkedIn) and its date.
+JSON only: {"people": [{"name": "", "title": "", "source_url": "", "date": "YYYY-MM-DD"}]}`, "You find the named person who makes a business decision. Reply with JSON only. Leave out anyone you can't source.", 700).catch(() => null);
+  if (!r) return null;
+  const people = (parseJson<{ people: { name: string; title: string; source_url?: string }[] }>(r.text)?.people ?? []).filter(p => p.name && p.title).slice(0, 3);
+  let found: Buyer | null = null;
+  for (const p of people) {
+    const t = cleanTitle(p.title);
+    if (t.gone) continue;
+    const pages = await readAll([p.source_url ?? "", ...r.sources.map(s => s.url)].filter(Boolean), 6);
+    const v = judgePerson(pages, p.name, t.title, org, domain);
+    if (v.status === "confirmed" && v.page) { found = { name: p.name, role: t.title, page: v.page, date: v.date, email: null, emailSource: null }; break; }
+  }
+  // One search came back empty: sweep the trade press, Google News and the org's site the way the Contact finder does,
+  // and judge every named person on the page they came from.
+  if (!found) {
+    const sw = await sweep({ name: org, type: purpose === "booking" ? "place" : "brand" }).catch(() => null);
+    for (const p of (sw?.people ?? []).filter(p => BUYER_TITLE[purpose].test(p.title))) {
+      const t = cleanTitle(p.title);
+      if (t.gone) continue;
+      const v = judgePerson(sw!.pages, p.name, t.title, org, domain);
+      if (v.status === "confirmed" && v.page) { found = { name: p.name, role: t.title, page: v.page, date: v.date, email: null, emailSource: null }; break; }
+    }
+  }
+  if (found && domain && emailAllowed(countryFromRole(found.role) ?? country, "verified")) {
+    const [first, ...rest] = found.name.replace(/^(dr|mr|mrs|ms)\.?\s+/i, "").split(/\s+/);
+    const h = rest.length ? await findEmail(domain, first, rest.join(" "), { spent: 0, cap: 1 }).catch(() => ({ refused: "error" as const })) : { refused: "no surname" as const };
+    if (!("refused" in h) && usable(h.found)) { found.email = h.found.email; found.emailSource = "verified"; }
+  }
+  await sql()`insert into org_people (org, purpose, name, role, page, page_date, status, email, email_source, detail)
+    values (${org}, ${purpose}, ${found?.name ?? null}, ${found?.role ?? null}, ${found?.page ?? null}, ${found?.date ?? null}, ${found ? "confirmed" : "not_found"},
+      ${found?.email ?? null}, ${found?.emailSource ?? null}, ${JSON.stringify({ candidates: people })})
+    on conflict (org, purpose) do update set name = excluded.name, role = excluded.role, page = excluded.page, page_date = excluded.page_date,
+      status = excluded.status, email = excluded.email, email_source = excluded.email_source, detail = excluded.detail, checked_at = now()`;
+  await logAction({ agent: "contact_finder", kind: found ? "buyer.found" : "buyer.not_found",
+    summary: found ? `Found who decides at ${org}: ${found.name}, ${found.role}, confirmed on a public page${found.email ? "; Hunter verified their work address" : ""}.`
+      : `Couldn't confirm a named person at ${org} for ${purpose} yet; it gets searched again in 3 days.`, llmCostUsd: r.costUsd });
+  return found;
+}
+
 /** Find the address, write, clear, file. Returns null when the request already exists or the writer couldn't keep the rules. */
 export async function makeRequest(x: RequestInput) {
   const [dup] = (await sql()`select id from permission_requests where dedupe = ${x.dedupe}`) as { id: string }[];
   if (dup) return null;
-  const inbox = x.preset ? { email: x.preset.address, url: null, postal: null, cost: 0 } : await findInbox(x.target.org, x.target.site ?? null, x.target.purpose);
+  // Address order: the named buyer's Hunter-verified address, else an inbox the org published (marked for their
+  // attention), else a letter to them.
+  const published = x.preset ? { email: x.preset.address, url: null, postal: null, cost: 0 } : await findInbox(x.target.org, x.target.site ?? null, x.target.purpose);
+  // No site on file: the domain of the inbox the org published is the next best place to ask Hunter about.
+  const site = x.target.site ?? (published.email ? `https://${published.email.split("@")[1]}` : null);
+  const buyer = x.preset ? null : await findBuyer(x.target.org, site, x.target.purpose, x.target.country);
+  const inbox = buyer?.email ? { ...published, email: buyer.email, url: buyer.page } : published;
+  const viaInbox = !!buyer && !buyer.email && !!published.email;
   const { draft: d, cost } = x.preset ? { draft: { subject: x.preset.subject, body: x.preset.body }, cost: 0 }
     : await draft({ ...x.brief, sender: x.brief.sender ?? x.persona.title, recipient: x.target.org,
+        ...(buyer ? { recipient_person: { name: buyer.name, role: buyer.role }, ...(viaInbox ? { delivered_via: `the organisation's published inbox, marked for ${buyer.name}'s attention` } : {}) } : {}),
         // Reasons people gave when they rejected this desk's earlier drafts: the writer takes them as standing notes.
         notes_from_rejections: await rejectionNotes(x.persona.id, x.desk) });
   if (!d) {
@@ -148,14 +225,15 @@ export async function makeRequest(x: RequestInput) {
   }
   const channel = inbox.email ? "email" : "letter";
   const o: Outbound = {
-    channel, subject: d.subject, body: d.body, address: inbox.email, addressSource: inbox.email ? (x.preset?.addressSource ?? "published") : null,
-    roleStatus: x.preset?.roleStatus ?? null,
-    country: countryFromRole(x.target.role) ?? countryOf(inbox.email, x.target.country), talent: x.talent ?? [], targetBrand: x.targetBrand ?? null,
+    channel, subject: d.subject, body: d.body, address: inbox.email, addressSource: inbox.email ? (buyer?.email ? "verified" : x.preset?.addressSource ?? "published") : null,
+    roleStatus: x.preset?.roleStatus ?? (buyer ? "confirmed" : null),
+    country: countryFromRole(buyer?.role ?? x.target.role) ?? countryOf(inbox.email, x.target.country), talent: x.talent ?? [], targetBrand: x.targetBrand ?? null,
     talentDeals: x.talentDeals, usesQloo: !!x.evidence.match?.qloo || x.evidence.facts.some(f => /qloo's taste data/i.test(f)),
   };
   const clearance = await clear(o);
   // Talent and brand ride on the target so Clearance can be re-run later with the same inputs.
-  const target = { ...x.target, talent: x.talent ?? [], brand: x.targetBrand ?? null, person: x.preset?.person ?? x.target.person ?? null, roleStatus: x.preset?.roleStatus ?? null, address: inbox.email, source: inbox.url, postal: inbox.postal, channel, country: o.country };
+  const target = { ...x.target, talent: x.talent ?? [], brand: x.targetBrand ?? null, person: x.preset?.person ?? buyer?.name ?? x.target.person ?? null, role: buyer?.role ?? x.target.role ?? null,
+    roleStatus: x.preset?.roleStatus ?? (buyer ? "confirmed" : null), personSource: buyer?.page ?? null, address: inbox.email, source: inbox.url, postal: inbox.postal, channel, country: o.country };
   const [row] = (await sql()`
     insert into permission_requests (persona, desk, action, title, target, preview, evidence, clearance, dedupe, ref_table, ref_id, slug)
     values (${x.persona.id}, ${x.desk}, ${x.action}, ${x.title}, ${JSON.stringify(target)}, ${JSON.stringify(d)}, ${JSON.stringify(x.evidence)},
@@ -165,7 +243,7 @@ export async function makeRequest(x: RequestInput) {
   const held = clearance.checks.filter(c => !c.pass);
   await logAction({
     agent: x.agent, kind: "request.drafted",
-    summary: `${x.title}: drafted ${channel === "email" ? "an email" : "a letter"} to ${x.target.org} and asked for permission to send.`,
+    summary: `${x.title}: drafted ${channel === "email" ? "an email" : "a letter"} to ${buyer ? `${buyer.name} at ` : ""}${x.target.org} and asked for permission to send.`,
     refTable: "permission_requests", refId: row.id, llmCostUsd: cost + inbox.cost, detail: { persona: x.persona.id, desk: x.desk },
   });
   await logAction({

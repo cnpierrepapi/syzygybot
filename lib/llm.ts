@@ -65,14 +65,20 @@ export type WebSource = { url: string; title: string };
 
 /** A model call that can search Google. Returns the text plus the search results it read. */
 export async function askWeb(prompt: string, system: string, maxOutputTokens = 1500) {
-  const model = MODELS.write;
   const v = provider();
-  const r = await generateText({
-    model: v(model), system, prompt,
+  // Each model has its own search-grounding quota: when the writer's is used up (429), the fast model searches instead.
+  const run = (model: string, retries: number) => generateText({
+    model: v(model), system, prompt, maxRetries: retries,
     // Cast: the Vertex package and ai resolve different provider-utils versions; fine at runtime.
     tools: { google_search: v.tools.googleSearch({}) } as unknown as ToolSet,
     maxOutputTokens: maxOutputTokens + 1024,
-    providerOptions: { google: { thinkingConfig: { thinkingLevel: "low" } } },
+    providerOptions: model === MODELS.write ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
+  });
+  let model: string = MODELS.write;
+  const r = await run(model, 1).catch(e => {
+    if (!/resource exhausted|429/i.test(String((e as Error).message))) throw e;
+    model = MODELS.fast;
+    return run(model, 2);
   });
   const sources: WebSource[] = (r.sources ?? [])
     .filter((s): s is typeof s & { url: string } => s.sourceType === "url")
