@@ -8,6 +8,7 @@ import { slugify, token } from "../slug";
 import { clear, countryFromRole, countryOf, emailAllowed, type Deal, type Outbound } from "../clearance";
 import { cleanTitle, judgePerson } from "../contacts";
 import { sweep } from "../sweep";
+import { googleNews } from "../gnews";
 import { findEmail, usable } from "../hunter";
 import type { Match } from "../match";
 import { rejectionNotes } from "../desk";
@@ -171,8 +172,20 @@ JSON only: {"people": [{"name": "", "title": "", "source_url": "", "date": "YYYY
   for (const p of people) {
     const t = cleanTitle(p.title);
     if (t.gone) continue;
-    const pages = await readAll([p.source_url ?? "", ...r.sources.map(s => s.url)].filter(Boolean), 6);
-    const v = judgePerson(pages, p.name, t.title, org, domain);
+    // Model-written URLs are often invented, so the person is also looked up in Google News ourselves and judged only
+    // on pages we actually read.
+    let pages = await readAll([p.source_url ?? "", ...r.sources.map(s => s.url)].filter(Boolean), 6);
+    let v = judgePerson(pages, p.name, t.title, org, domain);
+    if (v.status !== "confirmed") {
+      const news = await googleNews(`"${p.name}" "${org.replace(/"/g, "")}"`, { max: 4 });
+      pages = await readAll(news.map(n => n.url), 4);
+      v = judgePerson(pages, p.name, t.title, org, domain);
+    }
+    // Venues and small companies name their people on their own site more often than in the press.
+    if (v.status !== "confirmed" && domain) {
+      pages = await readAll(["", "/contact", "/contact-us", "/about", "/about-us", "/team", "/staff", "/press"].map(x => `https://${domain}${x}`), 8);
+      v = judgePerson(pages, p.name, t.title, org, domain);
+    }
     if (v.status === "confirmed" && v.page) { found = { name: p.name, role: t.title, page: v.page, date: v.date, email: null, emailSource: null }; break; }
   }
   // One search came back empty: sweep the trade press, Google News and the org's site the way the Contact finder does,
