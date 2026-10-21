@@ -36,13 +36,19 @@ function provider() {
 
 /** One model call; returns the text plus what it cost, so actions can log spend. */
 export async function ask(tier: keyof typeof MODELS, system: string, prompt: string, maxOutputTokens = 400) {
-  const model = MODELS[tier];
   // Gemini 3.x counts hidden reasoning against maxOutputTokens, so the cap gets headroom on top
   // (only tokens actually used are billed), and the writer reasons at "low".
-  const r = await generateText({
-    model: provider()(model), system, prompt,
+  const run = (m: string, retries: number) => generateText({
+    model: provider()(m), system, prompt, maxRetries: retries,
     maxOutputTokens: maxOutputTokens + 1024,
-    providerOptions: tier === "write" ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
+    providerOptions: m === MODELS.write ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
+  });
+  let model: string = MODELS[tier];
+  // When the writer's quota is used up (429), the fast model takes the call instead of the run failing.
+  const r = await run(model, tier === "write" ? 1 : 2).catch(e => {
+    if (tier !== "write" || !/resource exhausted|429/i.test(String((e as Error).message))) throw e;
+    model = MODELS.fast;
+    return run(model, 2);
   });
   return { text: r.text.trim(), model, costUsd: costUsd(model, r.usage.inputTokens, r.usage.outputTokens) };
 }
