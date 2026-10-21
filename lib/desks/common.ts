@@ -5,7 +5,7 @@ import { logAction, type Agent } from "../actions";
 import { ask, askWeb, parseJson } from "../llm";
 import { hasMx, readAll } from "../web";
 import { slugify, token } from "../slug";
-import { clear, countryOf, type Deal, type Outbound } from "../clearance";
+import { clear, countryFromRole, countryOf, type Deal, type Outbound } from "../clearance";
 import type { Match } from "../match";
 import { rejectionNotes } from "../desk";
 import { MEETING_ASK, UNMEASURED } from "../outreach";
@@ -109,7 +109,7 @@ export type RequestInput = {
   talent?: string[]; targetBrand?: string | null; talentDeals?: Deal[];
   ref?: { table: string; id: string };
   // A message another agent already wrote (the Sales chain's Writer): filed as-is, no new draft or address search.
-  preset?: { subject: string; body: string; address: string | null; roleStatus?: string | null; person?: string | null };
+  preset?: { subject: string; body: string; address: string | null; roleStatus?: string | null; person?: string | null; addressSource?: "published" | "verified" };
 };
 
 /** Re-run Clearance on stored requests (after a rule changes). Edited copies are re-cleared when they're decided. */
@@ -148,9 +148,9 @@ export async function makeRequest(x: RequestInput) {
   }
   const channel = inbox.email ? "email" : "letter";
   const o: Outbound = {
-    channel, subject: d.subject, body: d.body, address: inbox.email, addressSource: inbox.email ? "published" : null,
+    channel, subject: d.subject, body: d.body, address: inbox.email, addressSource: inbox.email ? (x.preset?.addressSource ?? "published") : null,
     roleStatus: x.preset?.roleStatus ?? null,
-    country: countryOf(inbox.email, x.target.country), talent: x.talent ?? [], targetBrand: x.targetBrand ?? null,
+    country: countryFromRole(x.target.role) ?? countryOf(inbox.email, x.target.country), talent: x.talent ?? [], targetBrand: x.targetBrand ?? null,
     talentDeals: x.talentDeals, usesQloo: !!x.evidence.match?.qloo || x.evidence.facts.some(f => /qloo's taste data/i.test(f)),
   };
   const clearance = await clear(o);

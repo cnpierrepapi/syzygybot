@@ -5,6 +5,7 @@ import { logAction, type Agent } from "./actions";
 import { token } from "./slug";
 import { clear, DEFAULT_RULES, type Check, type Clearance, type Rules } from "./clearance";
 import { persona, type DeskId, type Persona } from "./personas";
+import { approveAndSend } from "./mail";
 
 export const DESK_COOKIE = "syz_desk";
 const DAILY_DEMOS = 400;
@@ -65,7 +66,7 @@ export async function watchItems(personaId: string, limit = 12) {
     { id: string; headline: string; url: string; source: string; published: string | null; why: string; move: string | null; desk: string | null; created_at: string }[];
 }
 
-const AGENT_OF: Record<string, Agent> = { tour: "router", sponsorship: "sponsor", talent: "talent", venue: "venue", podcast: "podcast", sales: "sequencer" };
+const AGENT_OF: Record<string, Agent> = { pitches: "sequencer", tour: "router", sponsorship: "sponsor", talent: "talent", venue: "venue", podcast: "podcast", sales: "sequencer" };
 
 /** Approve, reject (a reason the agent keeps) or hold. Approving runs the action, simulated in a demo workspace. */
 export async function decide(w: Workspace, requestId: string, decision: "approved" | "rejected" | "held", reason: string | null, edit: { subject: string; body: string } | null) {
@@ -83,11 +84,38 @@ export async function decide(w: Workspace, requestId: string, decision: "approve
   const effective = underRules(clearance, rulesOf(w));
   if (decision === "approved" && effective.status === "hold")
     return { ok: false as const, why: `Clearance is holding this: ${effective.checks.filter(c => !c.pass).map(c => c.label.toLowerCase()).join(", ")}. Fix it or clear the rule first.` };
-  const outcome = decision === "approved" ? {
+  const p0 = persona(r.persona);
+  // The pitches desk of a real-send persona: an approved email really goes out, through every send gate with Clearance's
+  // full default rules (a workspace's switched-off rules don't apply to a real send). Letters stay simulated.
+  const real = !!p0?.realSends && r.desk === "pitches" && (r as { ref_table?: string }).ref_table === "touches" && r.target.channel === "email";
+  if (real && edit) return { ok: false as const, why: "This one sends for real, so it goes out exactly as SYZYGY wrote it. Approve it as is, or hold it." };
+  let realOutcome: Record<string, unknown> | null = null;
+  if (real) {
+    const touchId = (r as { ref_id?: string }).ref_id!;
+    const [t] = (await sql()`select status, sent_at, scheduled_for, detail->>'tz' tz from touches where id = ${touchId}`) as { status: string; sent_at: string | null; scheduled_for: string | null; tz: string | null }[];
+    if (decision === "approved") {
+      if (t?.status === "sent") realOutcome = { simulated: false, at: t.sent_at, did: `Already sent to ${r.target.org} on an earlier approval.` };
+      else {
+        const res = await approveAndSend(touchId, `desk:${w.id}`);
+        const [after] = (await sql()`select status, sent_at, scheduled_for from touches where id = ${touchId}`) as { status: string; sent_at: string | null; scheduled_for: string | null }[];
+        if (after?.status === "sent") realOutcome = { simulated: false, at: after.sent_at, did: `Sent to ${r.target.org}${r.target.person ? ` for ${r.target.person}` : ""}. A real email, now in their inbox.` };
+        else if (after?.status === "queued") {
+          const when = after.scheduled_for ? new Intl.DateTimeFormat("en-GB", { timeZone: t?.tz ?? "America/New_York", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(after.scheduled_for)) : "the next window";
+          realOutcome = { simulated: false, queued: true, did: `Approved for real. It sends ${when} their time, when their sending window opens.` };
+        } else return { ok: false as const, why: res.why ?? "It couldn't be sent." };
+      }
+    } else if (t?.status === "queued") {
+      // Taking an approval back before it went out.
+      // Only the workspace that approved it can take it back.
+      await sql()`update touches set status = 'dry_run', detail = detail - 'approved'
+        where id = ${touchId} and status = 'queued' and detail->'approved'->>'by' = ${`desk:${w.id}`}`;
+    }
+  }
+  const outcome = realOutcome ?? (decision === "approved" ? {
     simulated: true, at: new Date().toISOString(),
     did: r.target.channel === "email" ? `Queued the email to ${r.target.org}'s published inbox for the next sending window.` : `Queued a printed letter to ${r.target.org}${r.target.postal ? ` (${r.target.postal})` : ""}.`,
     note: "Demo workspace: nothing was sent.",
-  } : {};
+  } : {});
   await sql()`insert into request_decisions (workspace_id, request_id, decision, reason, edited, outcome)
     values (${w.id}, ${requestId}, ${decision}, ${reason}, ${edit ? JSON.stringify(edit) : null}, ${JSON.stringify(outcome)})
     on conflict (workspace_id, request_id) do update set decision = excluded.decision, reason = excluded.reason,
@@ -95,10 +123,10 @@ export async function decide(w: Workspace, requestId: string, decision: "approve
   const p = persona(r.persona);
   await logAction({
     agent: AGENT_OF[r.desk] ?? "sequencer", kind: `request.${decision}`,
-    summary: decision === "approved" ? `${p?.title ?? "A desk"} approved "${r.title}"; ran it as a simulation.`
+    summary: decision === "approved" ? `${p?.title ?? "A desk"} approved "${r.title}"; ${realOutcome ? (realOutcome.did as string) : "ran it as a simulation."}`
       : decision === "rejected" ? `${p?.title ?? "A desk"} rejected "${r.title}"${reason ? `: ${reason}` : ""}. The agent keeps the reason.`
       : `${p?.title ?? "A desk"} put "${r.title}" on hold.`,
-    refTable: "permission_requests", refId: requestId, detail: { simulated: true, workspace: w.id, reason },
+    refTable: "permission_requests", refId: requestId, detail: { simulated: !realOutcome, workspace: w.id, reason },
   });
   return { ok: true as const };
 }

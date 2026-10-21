@@ -16,6 +16,7 @@ import type { DealCheck } from "./dealcheck";
 import { claimedEntities } from "./claim";
 import { draftForWorkspace } from "./inward";
 import { AUTO_CAP, hunterFor } from "./hunter";
+import { countryFromRole, emailAllowed } from "./clearance";
 
 
 type Evidence = {
@@ -232,7 +233,10 @@ export async function runOutreach(limit = 1, accountId?: string) {
       const targets = people.length ? people : usable.slice(0, 1);
       // Address order (his rule): Hunter's verified address first, then an inbox the company published, then a letter.
       const hb = { spent: 0, cap: AUTO_CAP };
-      for (const c of targets) if (c.kind === "person" && !c.email) { const e = await hunterFor(c, a.official_site, hb); if (e) c.email = e; }
+      // A Hunter address only helps where the country's rule accepts one (not Canada, the UK, the EU, Australia...).
+      for (const c of targets) if (c.kind === "person" && !c.email && emailAllowed(countryFromRole(c.role) ?? "US", "verified")) {
+        const e = await hunterFor(c, a.official_site, hb); if (e) c.email = e;
+      }
       const route = bestInbox(contacts);
       const plan = await planAccount(a, targets, !!route);
       let touches = 0;

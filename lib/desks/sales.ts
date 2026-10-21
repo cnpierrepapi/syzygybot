@@ -4,19 +4,23 @@ import { sql } from "../db";
 import { loadCorpus } from "../corpus";
 import { sideOf, syzygyMatch } from "../match";
 import { makeRequest } from "./common";
+import { countryFromRole } from "../clearance";
 import type { Persona } from "../personas";
 
-type Row = { touch_id: string; subject: string | null; body: string; to_address: string | null; channel: string; contact_name: string | null; role: string;
+type Row = { touch_id: string; addr_src: string | null; contact_email: string | null; subject: string | null; body: string; to_address: string | null; channel: string; contact_name: string | null; role: string;
   role_status: string; entity_id: string; org: string; site: string | null; passed_on: string | null; passed_name: string | null; account_slug: string | null };
 
-export async function runSales(p: Persona, n = 6) {
+// `partner` narrows it to one partner's theses (the Bad Bunny demo's pitches desk); those cards can really send.
+export async function runSales(p: Persona, n = 6, opts: { partner?: string; desk?: "sales" | "pitches" } = {}) {
+  const desk = opts.desk ?? "sales";
   const rows = (await sql()`
-    select t.id touch_id, t.subject, t.body, t.to_address, t.channel, c.name contact_name, c.role, c.role_status, a.entity_id, e.name org, e.official_site site,
+    select t.id touch_id, c.verification->>'address_source' addr_src, c.email contact_email, t.subject, t.body, t.to_address, t.channel, c.name contact_name, c.role, c.role_status, a.entity_id, e.name org, e.official_site site,
       a.passed_on, pe.name passed_name, a.slug account_slug
     from touches t join contacts c on c.id = t.contact_id join accounts a on a.id = c.account_id join entities e on e.qloo_id = a.entity_id
     left join entities pe on pe.qloo_id = a.passed_on
-    where t.step = 1 and t.status = 'dry_run' and t.workspace_id is null
-      and not exists (select 1 from permission_requests r where r.ref_table = 'touches' and r.ref_id = t.id::text)
+    where t.step = 1 and t.status in ('dry_run', 'queued') and t.workspace_id is null
+      and (${opts.partner ?? null}::text is null or pe.name = ${opts.partner ?? null})
+      and not exists (select 1 from permission_requests r where r.ref_table = 'touches' and r.ref_id = t.id::text and r.persona = ${p.id})
     order by t.created_at desc limit ${n}`) as Row[];
   const { profiles } = await loadCorpus();
   const made: string[] = [];
@@ -30,18 +34,19 @@ export async function runSales(p: Persona, n = 6) {
       `${r.contact_name ?? r.role}: ${r.role_status === "confirmed" ? "verified on a public page" : r.role_status}.`,
     ];
     const id = await makeRequest({
-      persona: p, desk: "sales", agent: "writer", action: r.channel === "letter" ? "letter" : "email",
-      title: `${r.org}: pitch Qloo's taste data to ${r.contact_name ?? r.role}`, dedupe: `${p.id}|sales|${r.touch_id}`,
-      target: { org: r.org, site: r.site, person: r.contact_name, role: r.role, country: "US", purpose: "partnerships" },
+      persona: p, desk, agent: "writer", action: r.channel === "letter" ? "letter" : "email",
+      title: desk === "pitches" ? `${r.org} × ${r.passed_name}: SYZYGY's ${r.channel === "letter" ? "letter" : "email"} to ${r.contact_name ?? r.role}` : `${r.org}: pitch Qloo's taste data to ${r.contact_name ?? r.role}`,
+      dedupe: `${p.id}|${desk}|${r.touch_id}`,
+      target: { org: r.org, site: r.site, person: r.contact_name, role: r.role, country: countryFromRole(r.role) ?? "US", purpose: "partnerships" },
       brief: {}, evidence: { match: m, facts },
-      preset: { subject: r.subject ?? "", body: r.body, address: r.to_address, roleStatus: r.role_status, person: r.contact_name },
+      preset: { subject: r.subject ?? "", body: r.body, address: r.to_address, roleStatus: r.role_status, person: r.contact_name, addressSource: r.addr_src === "hunter" && r.to_address === r.contact_email ? "verified" : "published" },
       ref: { table: "touches", id: r.touch_id },
     });
     if (id) made.push(id);
   }
   // One CRM export per run: the accounts this desk drafted for, with their verified people, as a single push.
   const accounts = [...new Set(rows.map(r => r.org))];
-  if (accounts.length) {
+  if (accounts.length && desk === "sales") {
     const key = `${p.id}|crm|${accounts.sort().join(",")}`;
     const [dup] = (await sql()`select id from permission_requests where dedupe = ${key}`) as { id: string }[];
     if (!dup) {

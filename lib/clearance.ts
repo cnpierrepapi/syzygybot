@@ -56,6 +56,15 @@ export function countryOf(address: string | null, fallback: string) {
   return (tld && TLD_COUNTRY[tld]) || fallback;
 }
 
+// A role written for a region ("Head of Marketing, Australia and New Zealand") says where the person works, whatever
+// the address's domain says (@hm.com reads as US).
+const ROLE_COUNTRY: [RegExp, string][] = [
+  [/\baustralia\b|\banz\b/i, "AU"], [/\bnew zealand\b/i, "NZ"], [/\bcanada\b/i, "CA"], [/\b(united kingdom|uk)\b/i, "GB"],
+  [/\bgermany\b|\bdach\b/i, "DE"], [/\bfrance\b/i, "FR"], [/\bitaly\b/i, "IT"], [/\bspain\b/i, "ES"], [/\bmexico\b/i, "MX"],
+  [/\bjapan\b/i, "JP"], [/\bbrazil\b/i, "BR"], [/\bireland\b/i, "IE"], [/\bnetherlands\b|\bbenelux\b/i, "NL"],
+];
+export const countryFromRole = (role: string | null | undefined) => (role ? ROLE_COUNTRY.find(([re]) => re.test(role))?.[1] ?? null : null);
+
 /** What each country's rule asks of a cold B2B message, and whether this one meets it. */
 function countryRule(o: Outbound, rules: Rules): Check {
   const label = RULE_LABEL.country;
@@ -67,6 +76,10 @@ function countryRule(o: Outbound, rules: Rules): Check {
     return { rule: "country", label, pass: false, note: "Germany (UWG §7): cold B2B email needs prior consent. Send it as a letter instead." };
   if (c === "CA")
     return { rule: "country", label, pass: published, note: published ? "Canada (CASL): implied consent, because the address is published and the message fits the role. Unsubscribe and sender ID included." : "Canada (CASL): only a conspicuously published business address gives implied consent." };
+  if (c === "AU" || c === "NZ")
+    return { rule: "country", label, pass: published, note: published
+      ? `${c === "AU" ? "Australia (Spam Act 2003)" : "New Zealand (Unsolicited Electronic Messages Act 2007)"}: inferred consent, because the company published the address and the message fits the role. Unsubscribe and sender ID included.`
+      : `${c === "AU" ? "Australia (Spam Act 2003)" : "New Zealand (UEMA 2007)"}: cold email needs consent or an address the company published. Send it as a letter instead.` };
   if (c === "GB" || EU.has(c))
     return { rule: "country", label, pass: published, note: published ? `${c === "GB" ? "UK (PECR, UK GDPR)" : "EU (GDPR, ePrivacy)"}: a published corporate address, legitimate interest, opt-out in every message.` : "UK/EU: only a published corporate address may be emailed cold." };
   if (c === "MX")
@@ -92,6 +105,10 @@ function endorsementRule(o: Outbound): Check {
   }
   return { rule: "endorsement", label, pass: true, note: o.talent.length ? `${o.talent.join(", ")} named only as audience data.` : "No talent named." };
 }
+
+/** Would the recipient's country rule let an email to an address from this source through? (Default rules.) */
+export const emailAllowed = (country: string, source: "published" | "verified") =>
+  countryRule({ channel: "email", subject: "", body: "", address: null, addressSource: source, country, talent: [], usesQloo: false }, DEFAULT_RULES).pass;
 
 /** Does the brand compete in the category of one of the talent's exclusive deals? Flash-Lite judges the category. */
 async function exclusivityRule(o: Outbound): Promise<Check> {

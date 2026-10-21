@@ -5,7 +5,7 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { sql } from "./db";
 import { logAction } from "./actions";
-import { clear, countryOf } from "./clearance";
+import { clear, countryFromRole, countryOf } from "./clearance";
 import { blocked, footer, inWindow, local } from "./sequencer";
 import { SITE } from "./slug";
 
@@ -29,13 +29,13 @@ export function transport() {
 type Row = {
   id: string; contact_id: string; channel: string; step: number; subject: string | null; body: string; status: string;
   to_address: string | null; optout_token: string | null; detail: Record<string, any>; scheduled_for: string | null;
-  contact_name: string | null; role_status: string; verification: Record<string, any>; entity_id: string; company: string; site: string | null; tz: string | null;
+  contact_name: string | null; contact_email: string | null; role: string | null; role_status: string; verification: Record<string, any>; entity_id: string; company: string; site: string | null; tz: string | null;
 };
 
 async function load(touchId: string) {
   const [t] = (await sql()`
     select t.id, t.contact_id, t.channel, t.step, t.subject, t.body, t.status, t.to_address, t.optout_token, t.detail, t.scheduled_for,
-      c.name contact_name, c.role_status, c.verification, ac.entity_id, e.name company, e.official_site site, ac.tz
+      c.name contact_name, c.email contact_email, c.role, c.role_status, c.verification, ac.entity_id, e.name company, e.official_site site, ac.tz
     from touches t join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
     where t.id = ${touchId}`) as Row[];
   return t ?? null;
@@ -55,8 +55,8 @@ export async function gates(t: Row, timing = true): Promise<Gate[]> {
   push("postal_footer", !!process.env.SYZYGY_POSTAL_ADDRESS?.trim() && !!t.optout_token, "Footer carries the opt-out link and a postal address.");
   const c = await clear({
     channel: "email", subject: t.subject ?? "", body: t.body, address: t.to_address,
-    addressSource: t.verification?.address_source === "hunter" ? "verified" : "published", roleStatus: t.role_status,
-    country: countryOf(t.to_address, "US"), talent: [], usesQloo: /qloo/i.test(t.body),
+    addressSource: t.verification?.address_source === "hunter" && t.to_address?.toLowerCase() === t.contact_email?.toLowerCase() ? "verified" : "published", roleStatus: t.role_status,
+    country: countryFromRole(t.role) ?? countryOf(t.to_address, "US"), talent: [], usesQloo: /qloo/i.test(t.body),
   });
   const held = c.checks.filter(x => !x.pass);
   push("clearance", c.status === "pass", held.length ? `Clearance holds it: ${held.map(x => x.note).join(" ")}` : `Clearance passed ${c.checks.length} rules.`);
@@ -172,11 +172,11 @@ export async function preflight(touchId: string) {
 }
 
 /** The operator's one tap: approve this message, then send it now if every gate passes (else it waits for its window). */
-export async function approveAndSend(touchId: string) {
+export async function approveAndSend(touchId: string, by = "operator") {
   const t = await load(touchId);
   if (!t) return { ok: false, why: "no such message" };
   if (t.status === "dry_run") {
-    const a = await approve(touchId, "operator");
+    const a = await approve(touchId, by);
     if (!a.ok) return a;
   }
   const r = await sendEmail(touchId);

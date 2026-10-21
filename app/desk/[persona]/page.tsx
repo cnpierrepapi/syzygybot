@@ -58,12 +58,17 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first }: { r: Request;
   const msg = r.edited ?? r.preview;
   const held = c.status === "hold";
   const decided = r.decision;
+  // The Bad Bunny demo's pitches desk: an approved email really goes out (letters stay simulated).
+  const real = !!persona(r.persona)?.realSends && r.desk === "pitches" && r.target.channel === "email";
+  const out = (r.outcome ?? {}) as { did?: string; simulated?: boolean; queued?: boolean };
+  const sentForReal = out.simulated === false && !out.queued;
   return (
     <article id={`r-${r.id}`} className={`panel req${held ? " req-held" : ""}${decided ? " req-done" : ""}`}>
       <header className="req-top">
         <span className="chip"><i style={{ background: "#ffb020" }} />{DESKS[r.desk]?.label ?? r.desk}</span>
-        <span className="chip">{ACTION_LABEL[r.action] ?? r.action} · {r.target.channel === "email" ? "email" : "letter"}</span>
+        <span className="chip">{(() => { const a = ACTION_LABEL[r.action] ?? r.action, ch = r.target.channel === "email" ? "email" : "letter"; return a.toLowerCase() === ch ? a : `${a} · ${ch}`; })()}</span>
         {showPersona && <span className="chip">{persona(r.persona)?.title ?? r.persona}</span>}
+        {real && <span className="chip" style={{ borderColor: "#2fd39a88", color: "#2fd39a" }}>REAL EMAIL</span>}
         <span className={`clear-badge ${held ? "hold" : "pass"}`}>{held ? "HELD BY CLEARANCE" : "CLEARED"}</span>
       </header>
       <div className="req-main">
@@ -112,11 +117,11 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first }: { r: Request;
         <footer className="req-done-line">
           <b>{decided === "approved" ? "Approved" : decided === "rejected" ? "Rejected" : "On hold"}</b>
           {r.reason ? ` · "${r.reason}"` : ""}
-          {r.outcome && (r.outcome as { did?: string }).did ? ` · ${(r.outcome as { did: string }).did} Simulated: nothing was sent.` : ""}
+          {out.did ? ` · ${out.did}${out.simulated === false ? "" : " Simulated: nothing was sent."}` : ""}
           <form action={act} style={{ display: "inline" }}>
             <input type="hidden" name="id" value={r.id} /><input type="hidden" name="persona" value={personaId} /><input type="hidden" name="decision" value="held" />
             {desk && <input type="hidden" name="desk" value={desk} />}
-            {decided !== "held" && <button className="linkish" type="submit">Undo, put it back on hold</button>}
+            {decided !== "held" && !sentForReal && <button className="linkish" type="submit">Undo, put it back on hold</button>}
           </form>
         </footer>
       ) : (
@@ -126,14 +131,14 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first }: { r: Request;
             {desk && <input type="hidden" name="desk" value={desk} />}
             {r.action === "crm_push"
               ? <button className="btn" type="button" disabled title="No CRM is connected to this workspace yet">Connect HubSpot or Salesforce to enable</button>
-              : <button className="btn" type="submit" disabled={held} title={held ? "Clearance is holding this one" : undefined}>Approve</button>}
+              : <button className="btn" type="submit" disabled={held} title={held ? "Clearance is holding this one" : real ? "This sends a real email" : undefined}>{real ? "Approve and send" : "Approve"}</button>}
           </form>
           <form action={act}>
             <input type="hidden" name="id" value={r.id} /><input type="hidden" name="persona" value={personaId} /><input type="hidden" name="decision" value="held" />
             {desk && <input type="hidden" name="desk" value={desk} />}
             <button className="btn quiet" type="submit">Hold</button>
           </form>
-          <details className="inline-form">
+          {!real && <details className="inline-form">
             <summary className="btn quiet">Edit</summary>
             <form action={act} className="edit-form">
               <input type="hidden" name="id" value={r.id} /><input type="hidden" name="persona" value={personaId} /><input type="hidden" name="decision" value="held" />
@@ -142,7 +147,7 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first }: { r: Request;
               <label className="field">Message<textarea name="body" rows={9} defaultValue={msg.body} /></label>
               <button className="btn" type="submit">Save and re-check</button>
             </form>
-          </details>
+          </details>}
           <details className="inline-form">
             <summary className="btn quiet warn">Reject</summary>
             <form action={act} className="edit-form">
@@ -174,7 +179,8 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
   const desks = desksFor(p).filter(d => d !== "watch" && d !== "clearance");
   const shown = all.filter(r => !desk || r.desk === desk);
   const status = (r: Request) => underRules(r.clearance, rulesOn).status;
-  const pending = shown.filter(r => !r.decision || r.decision === "held");
+  // The banner and the All tab count the whole desk, whichever tab is open.
+  const pending = all.filter(r => !r.decision || r.decision === "held");
   const order = (r: Request) => (r.decision && r.decision !== "held" ? 2 : isClearance ? (status(r) === "hold" ? 0 : 1) : status(r) === "hold" ? 1 : 0);
   const sorted = [...shown].sort((a, b) => order(a) - order(b) || +new Date(b.created_at) - +new Date(a.created_at));
   const heldCount = pending.filter(r => status(r) === "hold").length;

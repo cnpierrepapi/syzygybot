@@ -14,6 +14,7 @@ type Job = () => Promise<string[]>;
 function jobs(p: Persona): Record<string, Job> {
   switch (p.id) {
     case "bad-bunny-touring": return {
+      pitches: () => runSales(p, 8, { partner: "Bad Bunny", desk: "pitches" }),
       tour: () => runTour(p, "Bad Bunny"),
       sponsorship: () => runSponsorForTalent(p, "Bad Bunny", 3),
       talent: () => runAmbassador(p, "Bad Bunny", 3),

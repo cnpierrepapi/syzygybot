@@ -2,9 +2,10 @@
 // for (the subject the desks work on). The demo persona is Bad Bunny's touring lead; there is one more per judge, named.
 // Market Watch is on for everyone, tuned to what that person would act on.
 
-export type DeskId = "sales" | "tour" | "sponsorship" | "talent" | "venue" | "podcast" | "watch" | "clearance";
+export type DeskId = "pitches" | "sales" | "tour" | "sponsorship" | "talent" | "venue" | "podcast" | "watch" | "clearance";
 
 export const DESKS: Record<DeskId, { label: string; agent: string; blurb: string }> = {
+  pitches: { label: "SYZYGY pitches", agent: "Scout → Writer", blurb: "SYZYGY's own emails about this audience, signed by SYZYGY. Approve one and it really goes out, to an address that was published or verified." },
   sales: { label: "Brand Partnerships", agent: "Scout → Writer", blurb: "Finds the brand that needs this audience, the person who buys, and writes the pitch." },
   tour: { label: "Tour & Venues", agent: "Router", blurb: "Routes the tour where the fans are, picks rooms by what they book and their size, drafts hold requests." },
   sponsorship: { label: "Event Sponsorship", agent: "Sponsor", blurb: "Adds up the lineup's audiences and pitches the brands that audience leans toward." },
@@ -42,11 +43,13 @@ export type Persona = {
   lineup?: { name: string; members: string[] };
   brands?: string[];        // the persona's own brands (look-alike profiles)
   demo?: boolean;
+  extraDesks?: DeskId[];    // desks on top of the role's, shown first
+  realSends?: boolean;      // approving an email on its pitches desk sends it for real (letters stay simulated)
 };
 
 export const PERSONAS: Persona[] = [
   {
-    id: "bad-bunny-touring", demo: true, judge: null,
+    id: "bad-bunny-touring", demo: true, judge: null, extraDesks: ["pitches"], realSends: true,
     title: "Head of touring and partnerships, Bad Bunny",
     who: "Runs the tour and the brand deals that ride on it.",
     forWhom: "Bad Bunny, whose fans concentrate in Puerto Rico, the Dominican Republic, the Texas border and Miami.",
@@ -162,4 +165,4 @@ export const PERSONAS: Persona[] = [
 ];
 
 export const persona = (id: string) => PERSONAS.find(p => p.id === id);
-export const desksFor = (p: Persona) => ROLES[p.role].desks;
+export const desksFor = (p: Persona) => [...(p.extraDesks ?? []), ...ROLES[p.role].desks];
