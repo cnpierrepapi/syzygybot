@@ -93,11 +93,19 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps }: { r: R
           </p>
         </div>
         {m && (
-          <div className="req-score" title="SYZYGY's own match score, out of 100. Qloo's numbers run 0 to 1.">
-            <b>{m.score}<small>/100</small></b><span>our match · {m.strength}</span>
-            {m.qloo ? <em className="qloo-yes">Qloo {m.qloo.toward.toFixed(2)}/1 toward · {m.qloo.back.toFixed(2)}/1 back</em>
-              : <em className="qloo-no">SYZYGY estimate only</em>}
-          </div>
+          // Qloo's two-way number is the score. Ours is a rough estimate, shown small, and leads only when Qloo hasn't measured the pair.
+          m.qloo ? (
+            <div className="req-score" title="Qloo's taste data, measured both ways. The score is the weaker of the two.">
+              <b>{Math.min(m.qloo.toward, m.qloo.back).toFixed(2)}<small>/1</small></b><span>Qloo, both ways</span>
+              <em className="qloo-yes">{m.qloo.toward.toFixed(2)} toward · {m.qloo.back.toFixed(2)} back</em>
+              <em className="qloo-no">Our rough estimate {m.score}/100</em>
+            </div>
+          ) : (
+            <div className="req-score" title="SYZYGY's own estimate. Rough: it often disagrees with Qloo.">
+              <b>{m.score}<small>/100</small></b><span>our estimate</span>
+              <em className="qloo-no">Rough. Qloo hasn&apos;t measured this pair yet.</em>
+            </div>
+          )
         )}
       </div>
       <details className="req-msg" open={first && !decided}>
@@ -299,7 +307,8 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
       <p className="hint" style={{ marginTop: 26 }}>
         Demo desks are simulated personas. Addresses are masked. Approving runs the action as a simulation and nothing is sent,
         except on the Bad Bunny desk&apos;s SYZYGY pitches, where an approved email really goes out.
-        Our match score is SYZYGY&apos;s own number, out of 100. Qloo&apos;s numbers are Qloo&apos;s, out of 1, measured both ways.
+        The score is Qloo&apos;s, out of 1: how much each audience leans toward the other, and the weaker of the two counts.
+        Our own number, out of 100, is a rough estimate. It only leads when Qloo hasn&apos;t measured the pair.
       </p>
       <p className="hint" style={{ marginTop: 6 }}>Other desks: {PERSONAS.filter(x => x.id !== p.id).map((x, i) => <span key={x.id}>{i ? " · " : ""}<a href={`/desk/${x.id}`}>{x.title}</a></span>)}</p>
     </main>

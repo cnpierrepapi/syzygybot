@@ -125,7 +125,7 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
           <ScoreRing score={p.score} band={p.band} />
           {est ? (
             <p style={{ color: "var(--dim)", fontSize: 13.5, textAlign: "center", margin: 0 }}>
-              SYZYGY estimate: our match score {est.score} out of 100 ({est.strength}). Qloo hasn&apos;t measured this pair yet.
+              Rough SYZYGY estimate: {est.score}/100 ({est.strength}). Qloo hasn&apos;t measured this pair yet, so treat it as a guess.
             </p>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%" }}>
@@ -148,9 +148,10 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
         <section className="panel fade-up" style={{ padding: 26, marginTop: 16, animationDelay: "200ms" }}>
           <h2 style={{ fontSize: 20 }}>How SYZYGY scored a pair Qloo hasn&apos;t measured</h2>
           <p style={{ color: "var(--dim)", marginTop: 10, maxWidth: 760 }}>
-            Our match score compares the two audiences Qloo has profiled: taste tags weighted by how rare they are (60%), age profile (20%)
-            and where the audiences live (20%), each ranked against random pairs in the corpus. On pairs Qloo did grade, a score of 90 or more
-            was Qloo WATCH or better 97% of the time.
+            Our estimate compares the two audiences Qloo has profiled: taste tags weighted by how rare they are (60%), age profile (20%)
+            and where the audiences live (20%), each ranked against random pairs in the corpus. It&apos;s rough. Checked against 1,874 pairs
+            Qloo measured both ways, it ranks them only loosely like Qloo does (0.32 rank correlation), and a pair it calls strong lands in
+            Qloo&apos;s top quarter about half the time. Qloo&apos;s own measurement replaces it as soon as there is one.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
             <span className="chip">Taste {Math.round(est.parts.taste * 100)}th percentile</span>

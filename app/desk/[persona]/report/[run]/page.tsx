@@ -85,16 +85,16 @@ export default async function Report({ params }: { params: Promise<{ persona: st
       </section> : null}
 
       {checks.length > 0 && <section className="report-sec">
-        <h2>Our score next to Qloo&apos;s</h2>
-        <p>Every brand the agents looked at was scored twice: by SYZYGY&apos;s own match score (out of 100, from patterns in Qloo&apos;s taste data) and by Qloo, measured live both ways. The weaker of Qloo&apos;s two numbers is the pair&apos;s two-way score, and that picked the cards.</p>
+        <h2>Qloo&apos;s score, and how close our estimate came</h2>
+        <p>Qloo measured every brand the agents looked at, live and both ways: how much this audience leans toward the brand, and how much the brand&apos;s audience leans back. The weaker of the two is the score, out of 1, and it picked the cards. Our own number, out of 100, is a rough estimate from patterns in older Qloo data. It sits next to Qloo&apos;s so you can see how far off it is.</p>
         <ul className="report-facts">
-          {lanes.map(l => <li key={l.a}><b>{l.a}</b>: {l.n} brands, rank correlation {l.rho ?? "n/a"}, and {l.top5} of Qloo&apos;s top 5 are in our top 5.</li>)}
+          {lanes.map(l => <li key={l.a}><b>{l.a}</b>: {l.n} brands. Our estimate&apos;s rank correlation with Qloo is {l.rho ?? "n/a"}, and it got {l.top5} of Qloo&apos;s top 5.</li>)}
           <li>Every brand any live run has measured so far ({runs.length}): rank correlation {runRho ?? "n/a"}.</li>
           <li>Every pair Qloo has measured for us, runs and the earlier corpus together ({all.length.toLocaleString("en-US")}): rank correlation {allRho ?? "n/a"}. 1 means we rank exactly like Qloo, 0 means no relation.</li>
         </ul>
         <table className="report-table">
-          <thead><tr><th>Audience</th><th>Brand</th><th>Our score</th><th>Qloo toward, of 1</th><th>Qloo back, of 1</th><th>Two-way, of 1</th></tr></thead>
-          <tbody>{checks.map(c => <tr key={c.a_name + c.b_name}><td>{c.a_name}</td><td>{c.b_name}</td><td>{c.ours}/100</td><td>{f2(c.qloo_toward)}</td><td>{f2(c.qloo_back)}</td><td>{f2(two(c))}</td></tr>)}</tbody>
+          <thead><tr><th>Audience</th><th>Brand</th><th>Qloo score, of 1</th><th>Toward</th><th>Back</th><th>Our rough estimate</th></tr></thead>
+          <tbody>{[...checks].sort((x, y) => x.a_name.localeCompare(y.a_name) || (two(y) ?? -1) - (two(x) ?? -1)).map(c => <tr key={c.a_name + c.b_name}><td>{c.a_name}</td><td>{c.b_name}</td><td><b>{f2(two(c))}</b></td><td>{f2(c.qloo_toward)}</td><td>{f2(c.qloo_back)}</td><td>{c.ours}/100</td></tr>)}</tbody>
         </table>
       </section>}
 
@@ -120,7 +120,7 @@ export default async function Report({ params }: { params: Promise<{ persona: st
       <section className="report-sec">
         <h2>Run log</h2>
         <ol className="report-steps">{s.log.map((st, i) => <li key={i}><span>{t(st.at)}</span><b>{AGENT[st.agent] ?? st.agent}</b> {st.summary}</li>)}</ol>
-        <p className="hint">Times are UTC. Nothing in this run was sent: {review ? "every card went back to its own desk for the owner's sign-off." : "every card waits in Your approval on the desk."} Our match score is SYZYGY&apos;s own estimate; Qloo&apos;s numbers are Qloo&apos;s, 0 to 1.</p>
+        <p className="hint">Times are UTC. Nothing in this run was sent: {review ? "every card went back to its own desk for the owner's sign-off." : "every card waits in Your approval on the desk."} Scores are Qloo&apos;s, 0 to 1. Numbers out of 100 are SYZYGY&apos;s rough estimate.</p>
       </section>
     </main>
   );

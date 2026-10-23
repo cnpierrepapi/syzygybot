@@ -183,9 +183,9 @@ async function measureLane(runId: string, p: Persona, lane: Lane, taken: Set<str
   const both = scored.filter(s => s.twoWay != null);
   const rho = spearman(both.map(s => s.m.score), both.map(s => s.twoWay!));
   await step(runId, p, null, null, "numbers", "run.compared",
-    `Measured ${both.length} brands both ways for ${who}. Our score vs Qloo's ranking: ${rho == null ? "too few to compare" : `${rho} rank correlation`}.`,
+    `Measured ${both.length} brands both ways for ${who}. How close our rough estimate came to Qloo's ranking: ${rho == null ? "too few to compare" : `${rho} rank correlation (1 is a perfect match)`}.`,
     { lane: `${lane.desk}:${lane.speaker}`, rho, n: both.length });
-  // Qloo's two-way measurement picks; our score breaks ties and rides along on the card.
+  // Qloo's two-way measurement picks; our rough estimate only breaks ties and rides along on the card.
   const ranked = [...scored].sort((a, b) => (b.twoWay ?? -1) - (a.twoWay ?? -1) || b.m.score - a.m.score);
   const picks = ranked.slice(0, lane.n);
   for (const { c } of picks) taken.add(c.name.toLowerCase());
@@ -216,7 +216,7 @@ async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: S
   await step(runId, p, card, COL.spotted, lane.agent, "card.spotted",
     `Spotted in Qloo, live: ${who} lean toward ${c.name} at ${f2(c.affinity)} (out of 1). Number ${rank + 1} of ${of} once Qloo measured both ways.`);
 
-  // Checked: our score next to Qloo's two-way numbers, and the talent's known deals.
+  // Checked: Qloo's two-way score with our rough estimate beside it, and the talent's known deals.
   const deals = lane.talent ? await talentDeals(lane.talent) : [];
   const clash = deals.find(d => d.brand.toLowerCase() === c.name.toLowerCase());
   if (clash) {
@@ -227,7 +227,7 @@ async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: S
   // Place keywords ("Los angeles california") are where a show is set, not a taste; the cities line covers geography.
   const shared = m.sharedTags.filter(t => !PLACE_TAG.test(t)).slice(0, 3).map(tagLabel);
   await step(runId, p, card, COL.checked, "numbers", "card.checked",
-    `Our match score ${m.score}/100 (${m.strength}). Qloo, out of 1: ${f2(c.affinity)} toward ${c.name}, ${f2(back)} back.` +
+    `Qloo score ${f2(s.twoWay)}/1: ${f2(c.affinity)} toward ${c.name}, ${f2(back)} back. Our rough estimate: ${m.score}/100.` +
     `${shared.length ? ` Shared tastes: ${shared.join(", ")}.` : ""}${deals.length ? " No clash with known deals." : ""}`,
     { ours: m.score, toward: c.affinity, back });
 
@@ -242,10 +242,9 @@ async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: S
       : `No named person confirmed in time. It goes to ${inbox.email ? `${c.name}'s published inbox` : `${c.name}'s office by post`}.`,
     { person: buyer?.name ?? null, page: buyer?.page ?? null });
 
-  // Drafted. The pitch leads with Qloo's measurement; our score only goes in when it agrees (a weak score stays on the board).
+  // Drafted. Qloo's measurement is the number in the pitch; our rough estimate stays on the board and out of the message.
   const facts = [
     ...(lane.facts ?? []),
-    ...(m.strength !== "weak" ? [`Our match score between ${who} and ${c.name}'s audience: ${m.score} out of 100 (${m.strength}).`] : []),
     `Qloo's taste data, read today: ${who} lean toward ${c.name} at ${f2(c.affinity)}${back != null ? `, and ${c.name}'s audience leans back at ${back.toFixed(2)}` : ""} (0 to 1).`,
     ...(shared.length ? [`Shared audience tastes: ${shared.join(", ")}.`] : []),
     ...(m.sharedCities.length ? [`Both audiences concentrate in ${listOf(m.sharedCities.slice(0, 3))}.`] : []),

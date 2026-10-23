@@ -139,8 +139,8 @@ export default async function Floor() {
       <div id="floor" />
       <LiveFloor initialItems={items} initialFunnel={counts} middle={<Featured cards={cards} />} />
       <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 28, maxWidth: 760 }}>
-        Match scores describe aggregate audiences, not individuals, and say nothing about what a deal would cause. Our match
-        score is SYZYGY&apos;s own; where Qloo has measured a pair, Qloo&apos;s taste data confirms it. Contact details are masked on this public page.
+        Match scores describe aggregate audiences, not individuals, and say nothing about what a deal would cause. The score
+        is Qloo&apos;s, measured both ways. SYZYGY&apos;s own number is a rough estimate, used only where Qloo hasn&apos;t measured a pair. Contact details are masked on this public page.
       </p>
     </main>
   );
