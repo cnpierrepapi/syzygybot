@@ -33,7 +33,8 @@
     "verifier:recheck": "tsx --env-file-if-exists=.env.local scripts/recheck-departed.mts",
     "mail": "tsx --env-file-if-exists=.env.local scripts/mail.mts",
     "live": "tsx --env-file-if-exists=.env.local scripts/live.mts",
-    "calibrate": "tsx --env-file-if-exists=.env.local scripts/calibrate.mts"
+    "calibrate": "tsx --env-file-if-exists=.env.local scripts/calibrate.mts",
+    "qloo:backfill": "tsx --env-file-if-exists=.env.local scripts/qloo-backfill.mts"
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "^5.0.110",
