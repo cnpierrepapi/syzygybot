@@ -72,7 +72,6 @@ export async function funnel(): Promise<Funnel> {
     { label: "Live desk runs", value: c.runs, agent: "scout", href: "/desk" },
     { label: "Brands measured both ways", value: c.measured, agent: "numbers", href: "/desk" },
     { label: "Cards filed by runs", value: c.filed, agent: "clearance", href: "/desk" },
-    { label: "Pairs researched", value: c.pairs, agent: "scout", href: "/floor/pairs" },
     { label: "Theses published", value: c.theses, agent: "scout", href: "/floor/theses" },
     { label: "PITCH grade", value: c.pitch, agent: "scout", href: "/floor/pitch" },
     { label: "Accounts qualified", value: c.accounts, agent: "qualifier", href: "/floor/accounts" },
