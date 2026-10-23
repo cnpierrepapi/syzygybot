@@ -28,6 +28,21 @@ export const COL = { spotted: 0, checked: 1, person: 2, drafted: 3, clearance: 4
 
 const within = <T,>(p: Promise<T>, ms: number, fallback: T) =>
   Promise.race([p.catch(() => fallback), new Promise<T>(r => setTimeout(() => r(fallback), ms))]);
+
+// A talent's signed deals come from a web search that can take minutes the first time (a desk someone just set up for
+// Becky G sat two minutes on it, then lost its brand lane, 23 Oct). One lookup per talent, started when the run starts,
+// and nothing waits on it for long: the lane picks without it, and each card's deal check waits a little more.
+type Deals = Awaited<ReturnType<typeof talentDeals>>;
+const dealsLookups = new Map<string, Promise<Deals>>();
+function dealsOf(talent: string) {
+  let d = dealsLookups.get(talent);
+  if (!d) {
+    d = talentDeals(talent).catch(() => [] as Deals).finally(() => dealsLookups.delete(talent));
+    dealsLookups.set(talent, d);
+  }
+  return d;
+}
+const PICK_DEALS_MS = 20_000, CARD_DEALS_MS = 60_000;
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 const host = (u: string | null | undefined) => { try { return u ? new URL(u).hostname.replace(/^www\./, "") : ""; } catch { return u ?? ""; } };
 const f2 = (x: number | null | undefined) => x?.toFixed(2) ?? "n/a";
@@ -107,6 +122,11 @@ async function pitch(runId: string, p: Persona, plan: PitchPlan) {
   const subject = await resolveAll(first.signal);
   if (!subject.length) throw new Error(`Qloo has no record for ${first.signal[0].name}`);
   await step(runId, p, null, null, "scout", "run.started", `Live run for ${p.title}. Reading ${crowd(first, subject)} in Qloo now.`);
+  const talents = [...new Set(lanes.filter(l => l.talent && (l.target ?? "brand") === "brand").map(l => l.talent!))];
+  for (const t of talents) {
+    dealsOf(t);
+    await step(runId, p, null, null, "checker", "run.deals", `Looking up the brand deals ${t} already has, so the desk doesn't pitch one of them.`);
+  }
 
   // What Qloo says about the audience (its network, shows, podcasts, interests) is read once the first lane is measured,
   // alongside the cards, so the first card doesn't queue behind it for Qloo calls.
@@ -161,7 +181,7 @@ async function measureLane(runId: string, p: Persona, lane: Lane, taken: Set<str
   const who = crowd(lane, sig);
   const kind = lane.target ?? "brand";
   // Brands the talent already has a deal with are skipped up front, so the lane picks the next one instead of dropping a card.
-  const known = lane.talent && kind === "brand" ? (await talentDeals(lane.talent)).map(d => d.brand) : [];
+  const known = lane.talent && kind === "brand" ? (await within(dealsOf(lane.talent), PICK_DEALS_MS, [] as Deals)).map(d => d.brand) : [];
   const skip = new Set([...(lane.exclude ?? []), ...sig.map(s => s.name), ...known].map(x => x.toLowerCase()));
   const [lo, hi] = lane.popularity ?? [0, 1];
   const fresh = (xs: Awaited<ReturnType<typeof top>>) => xs
@@ -231,7 +251,7 @@ async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: S
 
   // Checked: Qloo's two-way score with our rough estimate beside it, and the talent's known deals (brand pitches only).
   const isBrand = (lane.target ?? "brand") === "brand";
-  const deals = lane.talent && isBrand ? await talentDeals(lane.talent) : [];
+  const deals = lane.talent && isBrand ? await within(dealsOf(lane.talent), CARD_DEALS_MS, [] as Deals) : [];
   // Everyone named in the message as talent, so Clearance checks none of them reads as endorsing anything.
   const named = [...(lane.talent ? [lane.talent] : []), ...(lane.target === "artist" || lane.target === "person" ? [c.name] : [])];
   const clash = deals.find(d => d.brand.toLowerCase() === c.name.toLowerCase());
@@ -337,7 +357,7 @@ async function reviewCard(runId: string, p: Persona, card: Card, r: Filed) {
 
   // Deals: the talent named in it, against what they've signed (read fresh when the record is over a fortnight old).
   const talent: string[] = t.talent ?? [];
-  const deals = talent.length ? await talentDeals(talent[0]) : [];
+  const deals = talent.length ? await within(dealsOf(talent[0]), CARD_DEALS_MS, [] as Deals) : [];
   const recent = deals.filter(d => (d.year ?? 0) >= new Date().getFullYear() - 1).slice(0, 3);
   await step(runId, p, card, 1, "checker", "review.deals", talent.length
     ? `${talent[0]} has ${deals.length} brand deals on record${recent.length ? `, the latest with ${listOf(recent.map(d => `${d.brand} (${d.category})`))}` : ""}. Checking ${t.brand ?? t.org} against them.`
