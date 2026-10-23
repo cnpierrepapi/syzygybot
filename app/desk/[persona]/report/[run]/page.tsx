@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
 import { persona } from "@/lib/personas";
 import { snapshot, spearman } from "@/lib/live/run";
+import { colsFor } from "@/lib/live/plans";
 import type { Insights } from "@/lib/live/qx";
 import { maskEmail } from "@/lib/ui";
 import { Logo } from "../../../../components/visuals";
@@ -13,10 +14,10 @@ import SaveButton from "./SaveButton";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Run report · SYZYGY", robots: { index: false, follow: false } };
 
-const COLS = ["Spotted", "Checked", "Person found", "Drafted", "Clearance", "Your approval"];
+
 const AGENT: Record<string, string> = {
   scout: "Scout", checker: "Deal check", numbers: "Numbers", contact_finder: "Contact finder", writer: "Writer", clearance: "Clearance",
-  sponsor: "Sponsor", talent: "Talent", podcast: "Podcast", sequencer: "Sequencer",
+  sponsor: "Sponsor", talent: "Talent", podcast: "Podcast", venue: "Venue", sequencer: "Sequencer", verifier: "Verifier",
 };
 const t = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "UTC" });
 const f2 = (x: number | null) => (x == null ? "n/a" : x.toFixed(2));
@@ -30,10 +31,11 @@ export default async function Report({ params }: { params: Promise<{ persona: st
   const p = persona(pid);
   if (!p || !/^[0-9a-f-]{36}$/i.test(run)) notFound();
   const s = await snapshot(run);
+  const COLS = colsFor(p.id), review = COLS[0] !== "Spotted";
   if (!s || s.persona !== p.id) notFound();
   const [{ insights }] = (await sql()`select insights from runs where id = ${run}`) as { insights: Partial<Insights> }[];
   const checks = (await sql()`select a_name, b_name, ours, qloo_toward, qloo_back from estimate_checks where run_id = ${run} and source = 'run' order by a_name, ours desc`) as Check[];
-  const reqs = (await sql()`select id, title, target, preview, clearance from permission_requests where run_id = ${run}`) as Req[];
+  const reqs = (await sql()`select id, title, target, preview, clearance from permission_requests where id = any(${s.cards.map(c => c.request_id).filter(Boolean)})`) as Req[];
   const reqOf = new Map(reqs.map(r => [r.id, r]));
   // How close our score is to Qloo, on this run's brands and on every brand any run has measured so far.
   const two = (c: Check) => (c.qloo_toward != null && c.qloo_back != null ? Math.min(c.qloo_toward, c.qloo_back) : null);
@@ -62,7 +64,7 @@ export default async function Report({ params }: { params: Promise<{ persona: st
         <h1>{p.title}</h1>
         <p className="report-sub">{p.who} {p.forWhom}</p>
         <div className="report-kpis">
-          <span><b>{done}</b> waiting for approval</span>
+          <span><b>{done}</b> {review ? "checked again" : "waiting for approval"}</span>
           <span><b>{s.cards.length - done}</b> dropped or unfinished</span>
           <span><b>{s.qloo_calls}</b> Qloo calls</span>
           <span><b>{secs == null ? "running" : `${Math.floor(secs / 60)}m ${secs % 60}s`}</b> run time</span>
@@ -70,7 +72,7 @@ export default async function Report({ params }: { params: Promise<{ persona: st
         {s.status !== "done" && <p className="report-warn">{s.status === "running" ? "This run is still going. Reload for the rest." : `This run stopped early${s.error ? `: ${s.error}` : ""}.`}</p>}
       </header>
 
-      <section className="report-sec">
+      {(insights.people?.length || insights.audiences?.length) ? <section className="report-sec">
         <h2>What Qloo said about this audience today</h2>
         <ul className="report-facts">
           {insights.people?.length ? <li>Their fans also follow <b>{insights.people.slice(0, 6).join(", ")}</b>.</li> : null}
@@ -80,9 +82,9 @@ export default async function Report({ params }: { params: Promise<{ persona: st
           {insights.local?.length ? <li>In {insights.city}, they lean toward {insights.local.map(l => l.name).join(", ")}.</li> : null}
         </ul>
         <p className="hint">Read live from Qloo&apos;s taste data during this run. Interest groups are Qloo audiences; groups that describe who people are (communities, beliefs, politics) are left out on purpose.</p>
-      </section>
+      </section> : null}
 
-      <section className="report-sec">
+      {checks.length > 0 && <section className="report-sec">
         <h2>Our score next to Qloo&apos;s</h2>
         <p>Every brand the agents looked at was scored twice: by SYZYGY&apos;s own match score (out of 100, from patterns in Qloo&apos;s taste data) and by Qloo, measured live both ways. The weaker of Qloo&apos;s two numbers is the pair&apos;s two-way score, and that picked the cards.</p>
         <ul className="report-facts">
@@ -91,10 +93,10 @@ export default async function Report({ params }: { params: Promise<{ persona: st
           <li>Every pair Qloo has measured for us, runs and the earlier corpus together ({all.length.toLocaleString("en-US")}): rank correlation {allRho ?? "n/a"}. 1 means we rank exactly like Qloo, 0 means no relation.</li>
         </ul>
         <table className="report-table">
-          <thead><tr><th>Audience</th><th>Brand</th><th>Our score</th><th>Qloo toward</th><th>Qloo back</th><th>Two-way</th></tr></thead>
-          <tbody>{checks.map(c => <tr key={c.a_name + c.b_name}><td>{c.a_name}</td><td>{c.b_name}</td><td>{c.ours}</td><td>{f2(c.qloo_toward)}</td><td>{f2(c.qloo_back)}</td><td>{f2(two(c))}</td></tr>)}</tbody>
+          <thead><tr><th>Audience</th><th>Brand</th><th>Our score</th><th>Qloo toward, of 1</th><th>Qloo back, of 1</th><th>Two-way, of 1</th></tr></thead>
+          <tbody>{checks.map(c => <tr key={c.a_name + c.b_name}><td>{c.a_name}</td><td>{c.b_name}</td><td>{c.ours}/100</td><td>{f2(c.qloo_toward)}</td><td>{f2(c.qloo_back)}</td><td>{f2(two(c))}</td></tr>)}</tbody>
         </table>
-      </section>
+      </section>}
 
       <section className="report-sec">
         <h2>The cards</h2>
@@ -103,7 +105,7 @@ export default async function Report({ params }: { params: Promise<{ persona: st
           return (
             <article key={c.id} className="report-card">
               <h3>{c.title}</h3>
-              <p className="report-sub">{c.status === "done" ? "Waiting for approval" : c.status === "dropped" ? "Dropped" : "Unfinished"}{r ? ` · ${r.target.channel === "email" ? `email to ${r.target.person ? `${r.target.person} via ` : ""}${maskEmail(r.target.address ?? null)}` : `letter${r.target.person ? ` to ${r.target.person}` : ""}`} · Clearance ${r.clearance.status === "pass" ? "cleared" : "held"}` : ""}</p>
+              <p className="report-sub">{c.status === "done" ? (review ? "Checked again" : "Waiting for approval") : c.status === "dropped" ? "Dropped" : "Unfinished"}{r ? ` · ${r.target.channel === "email" ? `email to ${r.target.person ? `${r.target.person} via ` : ""}${maskEmail(r.target.address ?? null)}` : `letter${r.target.person ? ` to ${r.target.person}` : ""}`} · Clearance ${r.clearance.status === "pass" ? "cleared" : "held"}` : ""}</p>
               <ol className="report-steps">
                 {c.steps.map((st, i) => <li key={i}><span>{t(st.at)}</span><em>{st.col != null ? COLS[st.col] : ""}</em><b>{AGENT[st.agent] ?? st.agent}</b> {st.summary}</li>)}
               </ol>
@@ -118,7 +120,7 @@ export default async function Report({ params }: { params: Promise<{ persona: st
       <section className="report-sec">
         <h2>Run log</h2>
         <ol className="report-steps">{s.log.map((st, i) => <li key={i}><span>{t(st.at)}</span><b>{AGENT[st.agent] ?? st.agent}</b> {st.summary}</li>)}</ol>
-        <p className="hint">Times are UTC. Nothing in this run was sent: every card waits in Your approval on the desk. Our match score is SYZYGY&apos;s own estimate; Qloo&apos;s numbers are Qloo&apos;s, 0 to 1.</p>
+        <p className="hint">Times are UTC. Nothing in this run was sent: {review ? "every card went back to its own desk for the owner's sign-off." : "every card waits in Your approval on the desk."} Our match score is SYZYGY&apos;s own estimate; Qloo&apos;s numbers are Qloo&apos;s, 0 to 1.</p>
       </section>
     </main>
   );

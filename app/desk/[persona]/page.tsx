@@ -8,12 +8,11 @@ import { DESK_COOKIE, decide, requests, rulesOf, saveRules, underRules, watchIte
 import { RULE_LABEL, type Rules } from "@/lib/clearance";
 import { sql } from "@/lib/db";
 import { maskEmail } from "@/lib/ui";
-import { board, COLUMNS, type Step } from "@/lib/board";
+import { board, type Step } from "@/lib/board";
 import SkyCard from "../../components/SkyCard";
-import Board from "./Board";
 import LiveBoard from "./LiveBoard";
 import Carousel from "./Carousel";
-import { isLive } from "@/lib/live/plans";
+import { isLive, PLANS } from "@/lib/live/plans";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -94,10 +93,10 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps }: { r: R
           </p>
         </div>
         {m && (
-          <div className="req-score" title="SYZYGY's own match score, out of 100">
-            <b>{m.score}</b><span>our match</span>
-            {m.qloo ? <em className="qloo-yes">Qloo confirms {m.qloo.toward.toFixed(2)} / {m.qloo.back.toFixed(2)}</em>
-              : <em className="qloo-no">{m.strength} · SYZYGY estimate</em>}
+          <div className="req-score" title="SYZYGY's own match score, out of 100. Qloo's numbers run 0 to 1.">
+            <b>{m.score}<small>/100</small></b><span>our match · {m.strength}</span>
+            {m.qloo ? <em className="qloo-yes">Qloo {m.qloo.toward.toFixed(2)}/1 toward · {m.qloo.back.toFixed(2)}/1 back</em>
+              : <em className="qloo-no">SYZYGY estimate only</em>}
           </div>
         )}
       </div>
@@ -250,7 +249,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
       </div>
 
       {desk && <p className="hint" style={{ margin: "0 0 12px" }}>{DESKS[desk as DeskId]?.blurb}</p>}
-      {isLive(p.id) ? <LiveBoard persona={p.id} /> : <Board cards={cards} columns={COLUMNS} persona={`${p.id}:${desk ?? "all"}`} />}
+      {isLive(p.id) && <LiveBoard persona={p.id} review={PLANS[p.id].kind === "review"} />}
 
       <section id="queue" style={{ display: "grid", gap: 10, marginBottom: 22 }}>
         <h2 style={{ fontSize: 20 }}>Requests</h2>
@@ -300,7 +299,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
       <p className="hint" style={{ marginTop: 26 }}>
         Demo desks are simulated personas. Addresses are masked. Approving runs the action as a simulation and nothing is sent,
         except on the Bad Bunny desk&apos;s SYZYGY pitches, where an approved email really goes out.
-        Our match score is SYZYGY&apos;s own number out of 100; where Qloo has measured the pair, its taste data confirms it.
+        Our match score is SYZYGY&apos;s own number, out of 100. Qloo&apos;s numbers are Qloo&apos;s, out of 1, measured both ways.
       </p>
       <p className="hint" style={{ marginTop: 6 }}>Other desks: {PERSONAS.filter(x => x.id !== p.id).map((x, i) => <span key={x.id}>{i ? " · " : ""}<a href={`/desk/${x.id}`}>{x.title}</a></span>)}</p>
     </main>

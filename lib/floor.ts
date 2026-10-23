@@ -52,7 +52,9 @@ export async function feed(limit = 40, after?: string): Promise<FeedItem[]> {
 export async function funnel(): Promise<Funnel> {
   const [c] = (await sql()`
     select
-      (select count(*) from pair_queue where status = 'queued')::int queue,
+      (select count(*) from runs where status = 'done')::int runs,
+      (select count(*) from estimate_checks where source = 'run')::int measured,
+      (select count(*) from permission_requests where run_id is not null)::int filed,
       (select count(*) from pairs)::int pairs,
       (select count(*) from pairs where band in ('WATCH','PITCH'))::int theses,
       (select count(*) from pairs where band = 'PITCH')::int pitch,
@@ -66,7 +68,10 @@ export async function funnel(): Promise<Funnel> {
       (select count(*) from handoffs where ${showSimulated()} or not simulated)::int handoffs,
       (select count(*) from workspaces where claimed_at is not null and not demo)::int claimed`) as Record<string, number>[];
   return [
-    { label: "Pairs in queue", value: c.queue, agent: "scout", href: "/floor/queue" },
+    // The desks' live runs lead; the queue chain behind the older tiles stopped on 23 Oct, so its backlog isn't shown.
+    { label: "Live desk runs", value: c.runs, agent: "scout", href: "/desk" },
+    { label: "Brands measured both ways", value: c.measured, agent: "numbers", href: "/desk" },
+    { label: "Cards filed by runs", value: c.filed, agent: "clearance", href: "/desk" },
     { label: "Pairs researched", value: c.pairs, agent: "scout", href: "/floor/pairs" },
     { label: "Theses published", value: c.theses, agent: "scout", href: "/floor/theses" },
     { label: "PITCH grade", value: c.pitch, agent: "scout", href: "/floor/pitch" },

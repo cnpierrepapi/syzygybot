@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { RunCard, RunSnapshot, RunStep } from "@/lib/live/run";
 
-const COLS = [
+const PITCH = [
   { label: "Spotted", agents: "Scout, desk agents" },
   { label: "Checked", agents: "Numbers, Deal check" },
   { label: "Person found", agents: "Contact finder" },
@@ -14,9 +14,18 @@ const COLS = [
   { label: "Clearance", agents: "Clearance" },
   { label: "Your approval", agents: "You" },
 ];
+// Studio clearance's review run walks filed cards back through Clearance's own checks.
+const REVIEW = [
+  { label: "Picked up", agents: "Clearance" },
+  { label: "Deals checked", agents: "Deal check" },
+  { label: "Person re-checked", agents: "Verifier" },
+  { label: "Wording checked", agents: "Clearance" },
+  { label: "Ruled", agents: "Clearance" },
+  { label: "Your sign-off", agents: "The desk owner" },
+];
 const AGENT: Record<string, string> = {
   scout: "Scout", checker: "Deal check", numbers: "Numbers", contact_finder: "Contact finder", writer: "Writer", clearance: "Clearance",
-  sponsor: "Sponsor", talent: "Talent", podcast: "Podcast", venue: "Venue", router: "Router", sequencer: "Sequencer",
+  sponsor: "Sponsor", talent: "Talent", podcast: "Podcast", venue: "Venue", router: "Router", sequencer: "Sequencer", verifier: "Verifier",
 };
 const HOLD_MS = 5_000, POLL_MS = 2_500;
 
@@ -26,7 +35,8 @@ type Line = { key: string; who: string; agent: string; col: number | null; summa
 const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const mins = (a: string, b: string | null) => { const s = Math.round(((b ? +new Date(b) : Date.now()) - +new Date(a)) / 1000); return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; };
 
-export default function LiveBoard({ persona }: { persona: string }) {
+export default function LiveBoard({ persona, review = false }: { persona: string; review?: boolean }) {
+  const COLS = review ? REVIEW : PITCH;
   const [snap, setSnap] = useState<RunSnapshot | null>(null);
   const [why, setWhy] = useState<string | null>(null);
   const [shown, setShown] = useState<Record<string, Shown>>({});
@@ -109,7 +119,7 @@ export default function LiveBoard({ persona }: { persona: string }) {
       <div className="board-bar">
         <div>
           <h2>The loop</h2>
-          <p>The agents carry each card across as they work. You only act in <b>Your approval</b>.</p>
+          <p>The agents carry each card across as they work. {review ? <>The desk owner acts in <b>Your sign-off</b>.</> : <>You only act in <b>Your approval</b>.</>}</p>
         </div>
         <div className="board-bar-right">
           {!snap && !why && <span className="replay-tag"><i />Starting the agents</span>}
@@ -132,6 +142,14 @@ export default function LiveBoard({ persona }: { persona: string }) {
               <header><b>{col.label}</b><span>{here.length}</span></header>
               <p className="board-col-agents">{col.agents}</p>
               <div className="board-stack">
+                {/* Before the first card lands: what the agents are doing, from the run's own log. */}
+                {ci === 0 && !placed.length && running && (
+                  <div className="kcard live" aria-live="polite">
+                    <span className="kcard-top"><span className="kcard-org">{review ? "Pulling cards" : "Reading Qloo"}</span></span>
+                    <span className="kcard-step">{snap?.log.length ? snap.log[snap.log.length - 1].summary : "Starting the agents."}</span>
+                    <span className="kcard-foot"><span className="working">{COLS[0].agents} working…</span></span>
+                  </div>
+                )}
                 {here.map(({ c, st }) => {
                   const fresh = Date.now() - (shown[c.id]?.at ?? 0) < HOLD_MS;
                   return (

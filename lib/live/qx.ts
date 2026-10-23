@@ -37,10 +37,12 @@ export const resolve = (name: string, type: EntityType) =>
 
 /** What the signal's audience over-indexes on, with Qloo's affinity for each (the affinity comes free with the list). */
 // `tags` narrows the list to a category: brand genre tags like urn:tag:genre:brand:wine_and_spirits (filter.tags).
-export const top = (signal: string[], type: EntityType, take = 40, tags: string[] = []) =>
-  cached(`top:${type}:${signal.join("+")}:${take}${tags.length ? `:${tags.join("|")}` : ""}`, 7, async () => {
-    const r = tags.length
-      ? list(await qloo<Envelope>("/v2/insights", { "filter.type": `urn:entity:${type}`, "signal.interests.entities": signal, "filter.tags": tags, take }))
+// `location` reads one city's taste (signal.location.query), e.g. a venue's crowd in its own metro.
+export const top = (signal: string[], type: EntityType, take = 40, tags: string[] = [], location?: string) =>
+  cached(`top:${type}:${signal.join("+")}:${take}${tags.length ? `:${tags.join("|")}` : ""}${location ? `@${location.toLowerCase()}` : ""}`, 7, async () => {
+    const r = tags.length || location
+      ? list(await qloo<Envelope>("/v2/insights", { "filter.type": `urn:entity:${type}`, "signal.interests.entities": signal,
+          ...(tags.length ? { "filter.tags": tags } : {}), ...(location ? { "signal.location.query": location } : {}), take }))
       : await topFor(signal, type, take);
     return r.map(e => ({ ...ent(e, type), affinity: e.query?.affinity ?? null }));
   });
@@ -91,6 +93,18 @@ export async function sideOf(e: { id: string; name: string }): Promise<Side> {
   return { id: e.id, name: e.name, tags: new Set(p.tags), age: p.age, metros };
 }
 
+/** Several audiences read as one (a lineup, a room's acts): tastes at least two of them share, ages averaged, cities summed. */
+export function mergeSides(name: string, sides: Side[]): Side {
+  if (sides.length === 1) return sides[0];
+  const count = new Map<string, number>();
+  for (const s of sides) for (const t of s.tags) count.set(t, (count.get(t) ?? 0) + 1);
+  const ages = sides.map(s => s.age).filter((a): a is Record<string, number> => !!a);
+  const age = ages.length ? Object.fromEntries(Object.keys(ages[0]).map(k => [k, ages.reduce((x, a) => x + (a[k] ?? 0), 0) / ages.length])) : null;
+  const metros = new Map<string, number>();
+  for (const s of sides) for (const [m, w] of s.metros) metros.set(m, (metros.get(m) ?? 0) + w / sides.length);
+  return { name, tags: new Set([...count].filter(([, n]) => n >= 2).map(([t]) => t)), age, metros };
+}
+
 // Audience families safe to name in a pitch. Communities, beliefs, politics and the like describe who people are, which
 // SYZYGY never puts in a message.
 const SAFE_AUDIENCE = /\((hobbies and interests|leisure|professional area)\)$/i;
@@ -120,8 +134,10 @@ export async function audienceInsights(signal: string[], city: string | null) {
     audiences(signal).catch(() => []),
     city ? localBrands(signal, city).catch(() => []) : Promise.resolve([]),
   ]);
+  // Qloo can hold two entries under one name (two "Adam Young"s), so names are listed once.
+  const names = (xs: { name: string }[]) => [...new Set(xs.map(x => x.name))];
   return {
-    people: people.map(p => p.name), podcasts: podcasts.map(p => p.name), shows: shows.map(s => s.name),
+    people: names(people), podcasts: names(podcasts), shows: names(shows),
     audiences: groups, city, local,
   };
 }

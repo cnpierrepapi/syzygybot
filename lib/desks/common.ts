@@ -1,27 +1,25 @@
-// Shared machinery for every desk: watch → match → find the buyer → draft → Clearance → permission request.
-// A desk only decides WHO to approach and WHY; finding the address, writing and clearing work the same everywhere.
+// Shared machinery for the desks: find the buyer, find the inbox, check the talent's deals, draft, and re-run Clearance.
+// A live run (lib/live/run.ts) decides WHO to approach and WHY; these steps work the same for every desk.
 import { sql } from "../db";
-import { logAction, type Agent } from "../actions";
+import { logAction } from "../actions";
 import { ask, askWeb, parseJson } from "../llm";
 import { hasMx, readAll } from "../web";
-import { slugify, token } from "../slug";
-import { clear, countryFromRole, countryOf, emailAllowed, type Deal, type Outbound } from "../clearance";
+import { clear, countryFromRole, emailAllowed, type Deal } from "../clearance";
 import { cleanTitle, judgePerson } from "../contacts";
 import { sweep } from "../sweep";
 import { googleNews } from "../gnews";
 import { findEmail, usable } from "../hunter";
 import type { Match } from "../match";
-import { rejectionNotes } from "../desk";
 import { MEETING_ASK, UNMEASURED } from "../outreach";
-import type { DeskId, Persona } from "../personas";
 
-export type Purpose = "booking" | "sponsorship" | "partnerships" | "advertising";
+export type Purpose = "booking" | "sponsorship" | "partnerships" | "advertising" | "insights";
 
 const PURPOSE_WORDS: Record<Purpose, string> = {
   booking: "booking, events, rentals or venue hire",
   sponsorship: "sponsorship, partnerships or marketing",
   partnerships: "brand partnerships, marketing, licensing or press",
   advertising: "advertising sales, sponsorship or partnerships",
+  insights: "consumer insights, data partnerships or marketing",
 };
 
 const USEFUL = /book|event|rent|hire|sponsor|partner|market|licens|press|media|advert|sales|business|info|contact|hello/i;
@@ -104,19 +102,6 @@ export type Evidence = {
   facts: string[];
 };
 
-export type RequestInput = {
-  persona: Persona; desk: DeskId; agent: Agent;
-  action: "email" | "letter" | "hold_request" | "sponsor_pitch" | "ambassador_pitch" | "podcast_pitch" | "crm_push";
-  title: string; dedupe: string;
-  target: { org: string; site?: string | null; person?: string | null; role?: string | null; country: string; purpose: Purpose };
-  brief: Record<string, unknown>;
-  evidence: Evidence;
-  talent?: string[]; targetBrand?: string | null; talentDeals?: Deal[];
-  ref?: { table: string; id: string };
-  // A message another agent already wrote (the Sales chain's Writer): filed as-is, no new draft or address search.
-  preset?: { subject: string; body: string; address: string | null; roleStatus?: string | null; person?: string | null; addressSource?: "published" | "verified" };
-};
-
 /** Re-run Clearance on stored requests (after a rule changes). Edited copies are re-cleared when they're decided. */
 export async function reclear(where: { persona?: string } = {}) {
   // A CRM push isn't a message to anyone, so the message rules don't apply to it.
@@ -143,6 +128,7 @@ const BUYER: Record<Purpose, string> = {
   sponsorship: "sells or buys sponsorship: head of partnerships, sponsorship director, VP brand partnerships or CMO",
   partnerships: "runs brand partnerships or marketing: head of brand partnerships, CMO, VP marketing or brand director",
   advertising: "sells advertising or partnerships: head of ad sales, partnerships director or VP sales",
+  insights: "buys audience data: head of consumer insights, VP insights and analytics, head of data partnerships or CMO",
 };
 
 const BUYER_TITLE: Record<Purpose, RegExp> = {
@@ -150,6 +136,7 @@ const BUYER_TITLE: Record<Purpose, RegExp> = {
   sponsorship: /sponsor|partner|marketing|brand|\bcmo\b|commercial|revenue/i,
   partnerships: /partner|marketing|brand|\bcmo\b|\bcbo\b|licens/i,
   advertising: /advertis|ad sales|partner|sponsor|revenue|sales/i,
+  insights: /insight|analytic|data|research|strateg|marketing|\bcmo\b/i,
 };
 
 export type Buyer = { name: string; role: string; page: string; date: string | null; email: string | null; emailSource: "verified" | null };
@@ -216,64 +203,3 @@ JSON only: {"people": [{"name": "", "title": "", "source_url": "", "date": "YYYY
   return found;
 }
 
-/** Find the address, write, clear, file. Returns null when the request already exists or the writer couldn't keep the rules. */
-export async function makeRequest(x: RequestInput) {
-  const [dup] = (await sql()`select id from permission_requests where dedupe = ${x.dedupe}`) as { id: string }[];
-  if (dup) return null;
-  const tMatch = new Date();
-  // Address order: the named buyer's Hunter-verified address, else an inbox the org published (marked for their
-  // attention), else a letter to them.
-  const published = x.preset ? { email: x.preset.address, url: null, postal: null, cost: 0 } : await findInbox(x.target.org, x.target.site ?? null, x.target.purpose);
-  // No site on file: the domain of the inbox the org published is the next best place to ask Hunter about.
-  const site = x.target.site ?? (published.email ? `https://${published.email.split("@")[1]}` : null);
-  const buyer = x.preset ? null : await findBuyer(x.target.org, site, x.target.purpose, x.target.country);
-  const tBuyer = new Date();
-  const inbox = buyer?.email ? { ...published, email: buyer.email, url: buyer.page } : published;
-  const viaInbox = !!buyer && !buyer.email && !!published.email;
-  const { draft: d, cost } = x.preset ? { draft: { subject: x.preset.subject, body: x.preset.body }, cost: 0 }
-    : await draft({ ...x.brief, sender: x.brief.sender ?? x.persona.title, recipient: x.target.org,
-        ...(buyer ? { recipient_person: { name: buyer.name, role: buyer.role }, ...(viaInbox ? { delivered_via: `the organisation's published inbox, marked for ${buyer.name}'s attention` } : {}) } : {}),
-        // Reasons people gave when they rejected this desk's earlier drafts: the writer takes them as standing notes.
-        notes_from_rejections: await rejectionNotes(x.persona.id, x.desk) });
-  if (!d) {
-    await logAction({ agent: x.agent, kind: "request.discarded", summary: `Dropped a draft to ${x.target.org}: it broke a writing rule twice.`, llmCostUsd: cost + inbox.cost, detail: { persona: x.persona.id, desk: x.desk } });
-    return null;
-  }
-  const channel = inbox.email ? "email" : "letter";
-  const o: Outbound = {
-    channel, subject: d.subject, body: d.body, address: inbox.email, addressSource: inbox.email ? (buyer?.email ? "verified" : x.preset?.addressSource ?? "published") : null,
-    roleStatus: x.preset?.roleStatus ?? (buyer ? "confirmed" : null),
-    country: countryFromRole(buyer?.role ?? x.target.role) ?? countryOf(inbox.email, x.target.country), talent: x.talent ?? [], targetBrand: x.targetBrand ?? null,
-    talentDeals: x.talentDeals, usesQloo: !!x.evidence.match?.qloo || x.evidence.facts.some(f => /qloo's taste data/i.test(f)),
-  };
-  const clearance = await clear(o);
-  // Talent and brand ride on the target so Clearance can be re-run later with the same inputs.
-  const target = { ...x.target, talent: x.talent ?? [], brand: x.targetBrand ?? null, person: x.preset?.person ?? buyer?.name ?? x.target.person ?? null, role: buyer?.role ?? x.target.role ?? null,
-    roleStatus: x.preset?.roleStatus ?? (buyer ? "confirmed" : null), personSource: buyer?.page ?? null, address: inbox.email, source: inbox.url, postal: inbox.postal, channel, country: o.country };
-  const [row] = (await sql()`
-    insert into permission_requests (persona, desk, action, title, target, preview, evidence, clearance, dedupe, ref_table, ref_id, slug)
-    values (${x.persona.id}, ${x.desk}, ${x.action}, ${x.title}, ${JSON.stringify(target)}, ${JSON.stringify(d)}, ${JSON.stringify(x.evidence)},
-            ${JSON.stringify(clearance)}, ${x.dedupe}, ${x.ref?.table ?? null}, ${x.ref?.id ?? null}, ${`${slugify(x.title, 50)}-${token(4).toLowerCase()}`})
-    on conflict (dedupe) do nothing returning id`) as { id: string }[];
-  if (!row) return null;
-  // The card's own steps, at the times they happened, so its board replays the real run.
-  if (!x.preset) {
-    const dom = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
-    await logAction({ agent: x.agent, kind: "step.matched", summary: `${x.title}. ${x.evidence.facts[0] ?? ""}`.trim(), refTable: "permission_requests", refId: row.id, at: tMatch, detail: { persona: x.persona.id, desk: x.desk } });
-    await logAction({ agent: "contact_finder", kind: "step.buyer", refTable: "permission_requests", refId: row.id, at: tBuyer, detail: { persona: x.persona.id, desk: x.desk },
-      summary: buyer ? `Found who decides: ${buyer.name}, ${buyer.role}, confirmed on ${dom(buyer.page)}${buyer.email ? ". Hunter verified their work address" : ""}.`
-        : `No named person could be confirmed at ${x.target.org}, so it goes to ${published.email ? "their published inbox" : "their office by post"}.` });
-  }
-  const held = clearance.checks.filter(c => !c.pass);
-  await logAction({
-    agent: x.agent, kind: "request.drafted",
-    summary: `${x.title}: drafted ${channel === "email" ? "an email" : "a letter"} to ${buyer ? `${buyer.name} at ` : ""}${x.target.org} and asked for permission to send.`,
-    refTable: "permission_requests", refId: row.id, llmCostUsd: cost + inbox.cost, detail: { persona: x.persona.id, desk: x.desk },
-  });
-  await logAction({
-    agent: "clearance", kind: held.length ? "request.held" : "request.cleared",
-    summary: held.length ? `Held the ${x.target.org} draft: ${held.map(h => h.label.toLowerCase()).join(", ")}.` : `Cleared the ${x.target.org} draft on ${clearance.checks.length} rules.`,
-    refTable: "permission_requests", refId: row.id, detail: { persona: x.persona.id, desk: x.desk },
-  });
-  return row.id;
-}

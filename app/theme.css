@@ -114,6 +114,7 @@ body { overflow-x: clip; }
 .clear-badge.pass { color: var(--ok); border-color: #a9d8c1; background: #eef8f2; }
 .clear-badge.hold { color: var(--bad); border-color: #e5b8ae; background: #fcf0ed; }
 .req-score span, .req-score em { font-family: var(--body); }
+.req-score b small { font-size: 14px; opacity: 0.75; margin-left: 1px; }
 .qloo-yes { color: #2f7d8f; }
 .req-msg { background: var(--bg2); border-color: var(--line); }
 .req-msg pre { color: var(--fg); font-family: var(--body); }

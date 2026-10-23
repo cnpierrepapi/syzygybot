@@ -149,10 +149,15 @@ export type Verdict = {
   gone?: { url: string | null; date: string | null; phrase: string };
 };
 
+// Gossip sites and lead databases name people loosely or from stale scrapes, so a page there never confirms anyone
+// (seen 23 Oct: an Infiniti "partnerships" person confirmed on okmagazine.com).
+export const WEAK_SOURCE = /(^|\.)(okmagazine\.com|tmz\.com|usmagazine\.com|radaronline\.com|dailymail\.co\.uk|thesun\.co\.uk|mirror\.co\.uk|pagesix\.com|perezhilton\.com|hollywoodlife\.com|intouchweekly\.com|lifeandstylemag\.com|starmagazine\.com|closerweekly\.com|nationalenquirer\.com|express\.co\.uk|celebritynetworth\.com|famousbirthdays\.com|zoominfo\.com|rocketreach\.co|signalhire\.com|contactout\.com|lusha\.com|apollo\.io|leadiq\.com|wikipedia\.org)$/i;
+
 export function judgePerson(pages: Page[], name: string, title: string, company: string, officialDomain: string | null): Verdict {
   const checked: Verdict["checked"] = [];
   let best: { p: Page; fresh: boolean } | null = null;
   for (const p of pages) {
+    if (WEAK_SOURCE.test(domainOf(p.url) ?? "")) { checked.push({ url: p.url, http: p.status, name: false, company: false, role: false }); continue; }
     const hasName = norm(p.text).includes(norm(name));
     const hasCo = hasName && companyOn(p.text, company);
     const hasRole = hasCo && roleNearName(p.text, name, title);

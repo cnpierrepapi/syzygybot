@@ -45,7 +45,7 @@ type Stack = { sources: number; measured: number; rooms: number; verified: numbe
 async function stackCounts(): Promise<Stack | null> {
   try {
     const [c] = (await sql()`select
-      (select count(*) from pair_queue)::int + (select count(*) from pairs)::int measured,
+      (select count(*) from pairs)::int + (select count(*) from estimate_checks where qloo_toward is not null and qloo_back is not null)::int measured,
       (select count(*) from venues)::int rooms,
       (select count(*) from contacts where role_status = 'confirmed')::int verified,
       (select count(*) from permission_requests r where not exists (select 1 from request_decisions d where d.request_id = r.id))::int waiting`) as Omit<Stack, "sources" | "rules">[];
