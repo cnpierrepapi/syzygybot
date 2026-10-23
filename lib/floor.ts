@@ -21,15 +21,16 @@ const SUBPAGE = ROUTE;
 // holds (a fixed title, a restored contact, a recheck finding someone left). The floor shows the team working.
 const OFF_FLOOR = ["queue.scored", "contact.relabelled", "contact.restored", "desk.run"];
 
+// Only what happens inside the persona desks reaches the floor (his call, 23 Oct): live runs and desk decisions.
 // Test replies stay off the public floor until he says they can be shown (SHOW_SIMULATED=1).
 export const showSimulated = () => process.env.SHOW_SIMULATED === "1";
 
 export async function feed(limit = 40, after?: string): Promise<FeedItem[]> {
   const rows = (after
     ? await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed from actions where date_trunc('milliseconds', created_at) > ${after}::timestamptz
-        and (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' order by created_at desc limit ${limit}`
+        and (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' and (detail ? 'run' or detail ? 'workspace') order by created_at desc limit ${limit}`
     : await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed from actions
-        where (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' order by created_at desc limit ${limit}`
+        where (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' and (detail ? 'run' or detail ? 'workspace') order by created_at desc limit ${limit}`
   ) as (FeedItem & { ref_table: string | null; ref_id: string | null; seed: string | null })[];
   // Feed lines link to the readable address of whatever they're about.
   const slugs = new Map<string, string>(), stars = new Map<string, string[]>();

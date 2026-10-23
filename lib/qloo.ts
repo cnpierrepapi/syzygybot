@@ -16,7 +16,12 @@ const ALLOWED = new Set([
   "signal.interests.entities", "signal.interests.tags",
   "a.signal.interests.entities", "b.signal.interests.entities",
   "feature.explainability",
+  "filter.audience.types", "filter.query", "signal.location.query",
 ]);
+
+// Calls this process has made, so a run can say what it spent.
+let callsMade = 0;
+export const qlooCallsMade = () => callsMade;
 
 export class QlooError extends Error {
   constructor(public status: number, public path: string, body: string, public quotaGone = false) {
@@ -50,6 +55,7 @@ export async function qloo<T = unknown>(path: string, params: Params): Promise<T
   }
   for (let attempt = 0; ; attempt++) {
     const { status, ok, text, retryAfter, monthLeft, monthReset } = await throttled(async () => {
+      callsMade++;
       const res = await fetch(`${BASE}${path}?${qs}`, {
         headers: { "X-Api-Key": key, accept: "application/json" },
         cache: "no-store",

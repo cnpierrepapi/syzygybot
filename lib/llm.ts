@@ -38,15 +38,16 @@ function provider() {
 export async function ask(tier: keyof typeof MODELS, system: string, prompt: string, maxOutputTokens = 400) {
   // Gemini 3.x counts hidden reasoning against maxOutputTokens, so the cap gets headroom on top
   // (only tokens actually used are billed), and the writer reasons at "low".
+  // A Vertex call can hang on its headers for minutes (seen 21 and 23 Oct), so every call has a hard limit.
   const run = (m: string, retries: number) => generateText({
-    model: provider()(m), system, prompt, maxRetries: retries,
+    model: provider()(m), system, prompt, maxRetries: retries, abortSignal: AbortSignal.timeout(90_000),
     maxOutputTokens: maxOutputTokens + 1024,
     providerOptions: m === MODELS.write ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
   });
   let model: string = MODELS[tier];
-  // When the writer's quota is used up (429), the fast model takes the call instead of the run failing.
+  // When the writer's quota is used up (429) or it hangs past the limit, the fast model takes the call instead of the run failing.
   const r = await run(model, tier === "write" ? 1 : 2).catch(e => {
-    if (tier !== "write" || !/resource exhausted|429/i.test(String((e as Error).message))) throw e;
+    if (tier !== "write" || !/resource exhausted|429|aborted|timeout/i.test(String((e as Error).message))) throw e;
     model = MODELS.fast;
     return run(model, 2);
   });
@@ -74,7 +75,7 @@ export async function askWeb(prompt: string, system: string, maxOutputTokens = 1
   const v = provider();
   // Each model has its own search-grounding quota: when the writer's is used up (429), the fast model searches instead.
   const run = (model: string, retries: number) => generateText({
-    model: v(model), system, prompt, maxRetries: retries,
+    model: v(model), system, prompt, maxRetries: retries, abortSignal: AbortSignal.timeout(120_000),
     // Cast: the Vertex package and ai resolve different provider-utils versions; fine at runtime.
     tools: { google_search: v.tools.googleSearch({}) } as unknown as ToolSet,
     maxOutputTokens: maxOutputTokens + 1024,

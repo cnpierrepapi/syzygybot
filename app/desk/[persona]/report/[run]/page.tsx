@@ -1,0 +1,125 @@
+// A live run's report: rebuilt from that run alone (its Qloo reads, the brands it measured, every card's steps), opened in
+// its own tab and downloadable as one HTML file. Addresses stay masked, as on the desk.
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { sql } from "@/lib/db";
+import { persona } from "@/lib/personas";
+import { snapshot, spearman } from "@/lib/live/run";
+import type { Insights } from "@/lib/live/qx";
+import { maskEmail } from "@/lib/ui";
+import { Logo } from "../../../../components/visuals";
+import SaveButton from "./SaveButton";
+
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Run report · SYZYGY", robots: { index: false, follow: false } };
+
+const COLS = ["Spotted", "Checked", "Person found", "Drafted", "Clearance", "Your approval"];
+const AGENT: Record<string, string> = {
+  scout: "Scout", checker: "Deal check", numbers: "Numbers", contact_finder: "Contact finder", writer: "Writer", clearance: "Clearance",
+  sponsor: "Sponsor", talent: "Talent", podcast: "Podcast", sequencer: "Sequencer",
+};
+const t = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "UTC" });
+const f2 = (x: number | null) => (x == null ? "n/a" : x.toFixed(2));
+
+type Check = { a_name: string; b_name: string; ours: number; qloo_toward: number | null; qloo_back: number | null };
+type Req = { id: string; title: string; target: { person?: string | null; role?: string | null; address?: string | null; channel: string; personSource?: string | null; postal?: string | null };
+  preview: { subject: string; body: string }; clearance: { status: string; checks: { label: string; pass: boolean; note: string }[] } };
+
+export default async function Report({ params }: { params: Promise<{ persona: string; run: string }> }) {
+  const { persona: pid, run } = await params;
+  const p = persona(pid);
+  if (!p || !/^[0-9a-f-]{36}$/i.test(run)) notFound();
+  const s = await snapshot(run);
+  if (!s || s.persona !== p.id) notFound();
+  const [{ insights }] = (await sql()`select insights from runs where id = ${run}`) as { insights: Partial<Insights> }[];
+  const checks = (await sql()`select a_name, b_name, ours, qloo_toward, qloo_back from estimate_checks where run_id = ${run} and source = 'run' order by a_name, ours desc`) as Check[];
+  const reqs = (await sql()`select id, title, target, preview, clearance from permission_requests where run_id = ${run}`) as Req[];
+  const reqOf = new Map(reqs.map(r => [r.id, r]));
+  // How close our score is to Qloo, on this run's brands and on every brand any run has measured so far.
+  const two = (c: Check) => (c.qloo_toward != null && c.qloo_back != null ? Math.min(c.qloo_toward, c.qloo_back) : null);
+  const lanes = [...new Set(checks.map(c => c.a_name))].map(a => {
+    const xs = checks.filter(c => c.a_name === a && two(c) != null);
+    const byQloo = [...xs].sort((x, y) => two(y)! - two(x)!).slice(0, 5).map(x => x.b_name);
+    const byUs = [...xs].sort((x, y) => y.ours - x.ours).slice(0, 5).map(x => x.b_name);
+    return { a, n: xs.length, rho: spearman(xs.map(x => x.ours), xs.map(x => two(x)!)), top5: byQloo.filter(b => byUs.includes(b)).length };
+  });
+  const measured = (await sql()`select source, ours, qloo_toward, qloo_back from estimate_checks where qloo_toward is not null and qloo_back is not null`) as (Check & { source: string })[];
+  const rhoOf = (xs: Check[]) => spearman(xs.map(c => c.ours), xs.map(c => Math.min(c.qloo_toward!, c.qloo_back!)));
+  const runs = measured.filter(c => c.source === "run"), all = measured;
+  const allRho = rhoOf(all), runRho = rhoOf(runs);
+  const done = s.cards.filter(c => c.status === "done").length;
+  const when = new Date(s.started_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  const secs = s.finished_at ? Math.round((+new Date(s.finished_at) - +new Date(s.started_at)) / 1000) : null;
+
+  return (
+    <main className="wrap report">
+      <nav className="nav no-print">
+        <Logo />
+        <SaveButton name={`syzygy-${p.id}-${s.started_at.slice(0, 16).replace(/[:T]/g, "-")}.html`} />
+      </nav>
+      <header className="report-head">
+        <p className="eyebrow">Live run report · {when} UTC</p>
+        <h1>{p.title}</h1>
+        <p className="report-sub">{p.who} {p.forWhom}</p>
+        <div className="report-kpis">
+          <span><b>{done}</b> waiting for approval</span>
+          <span><b>{s.cards.length - done}</b> dropped or unfinished</span>
+          <span><b>{s.qloo_calls}</b> Qloo calls</span>
+          <span><b>{secs == null ? "running" : `${Math.floor(secs / 60)}m ${secs % 60}s`}</b> run time</span>
+        </div>
+        {s.status !== "done" && <p className="report-warn">{s.status === "running" ? "This run is still going. Reload for the rest." : `This run stopped early${s.error ? `: ${s.error}` : ""}.`}</p>}
+      </header>
+
+      <section className="report-sec">
+        <h2>What Qloo said about this audience today</h2>
+        <ul className="report-facts">
+          {insights.people?.length ? <li>Their fans also follow <b>{insights.people.slice(0, 6).join(", ")}</b>.</li> : null}
+          {insights.shows?.length ? <li>Shows they over-index on: {insights.shows.slice(0, 5).join(", ")}.</li> : null}
+          {insights.podcasts?.length ? <li>Podcasts they over-index on: {insights.podcasts.slice(0, 5).join(", ")}.</li> : null}
+          {insights.audiences?.length ? <li>Interest groups: {insights.audiences.map(a => `${a.name} (${f2(a.affinity)})`).join(", ")}.</li> : null}
+          {insights.local?.length ? <li>In {insights.city}, they lean toward {insights.local.map(l => l.name).join(", ")}.</li> : null}
+        </ul>
+        <p className="hint">Read live from Qloo&apos;s taste data during this run. Interest groups are Qloo audiences; groups that describe who people are (communities, beliefs, politics) are left out on purpose.</p>
+      </section>
+
+      <section className="report-sec">
+        <h2>Our score next to Qloo&apos;s</h2>
+        <p>Every brand the agents looked at was scored twice: by SYZYGY&apos;s own match score (out of 100, from patterns in Qloo&apos;s taste data) and by Qloo, measured live both ways. The weaker of Qloo&apos;s two numbers is the pair&apos;s two-way score, and that picked the cards.</p>
+        <ul className="report-facts">
+          {lanes.map(l => <li key={l.a}><b>{l.a}</b>: {l.n} brands, rank correlation {l.rho ?? "n/a"}, and {l.top5} of Qloo&apos;s top 5 are in our top 5.</li>)}
+          <li>Every brand any live run has measured so far ({runs.length}): rank correlation {runRho ?? "n/a"}.</li>
+          <li>Every pair Qloo has measured for us, runs and the earlier corpus together ({all.length.toLocaleString("en-US")}): rank correlation {allRho ?? "n/a"}. 1 means we rank exactly like Qloo, 0 means no relation.</li>
+        </ul>
+        <table className="report-table">
+          <thead><tr><th>Audience</th><th>Brand</th><th>Our score</th><th>Qloo toward</th><th>Qloo back</th><th>Two-way</th></tr></thead>
+          <tbody>{checks.map(c => <tr key={c.a_name + c.b_name}><td>{c.a_name}</td><td>{c.b_name}</td><td>{c.ours}</td><td>{f2(c.qloo_toward)}</td><td>{f2(c.qloo_back)}</td><td>{f2(two(c))}</td></tr>)}</tbody>
+        </table>
+      </section>
+
+      <section className="report-sec">
+        <h2>The cards</h2>
+        {s.cards.map(c => {
+          const r = c.request_id ? reqOf.get(c.request_id) : undefined;
+          return (
+            <article key={c.id} className="report-card">
+              <h3>{c.title}</h3>
+              <p className="report-sub">{c.status === "done" ? "Waiting for approval" : c.status === "dropped" ? "Dropped" : "Unfinished"}{r ? ` · ${r.target.channel === "email" ? `email to ${r.target.person ? `${r.target.person} via ` : ""}${maskEmail(r.target.address ?? null)}` : `letter${r.target.person ? ` to ${r.target.person}` : ""}`} · Clearance ${r.clearance.status === "pass" ? "cleared" : "held"}` : ""}</p>
+              <ol className="report-steps">
+                {c.steps.map((st, i) => <li key={i}><span>{t(st.at)}</span><em>{st.col != null ? COLS[st.col] : ""}</em><b>{AGENT[st.agent] ?? st.agent}</b> {st.summary}</li>)}
+              </ol>
+              {r?.target.personSource && <p className="hint">Person confirmed on <a href={r.target.personSource} target="_blank" rel="noopener nofollow">{r.target.personSource}</a></p>}
+              {r && <details><summary>The draft: {r.preview.subject}</summary><pre>{r.preview.body}</pre></details>}
+              {r && r.clearance.checks.some(x => !x.pass) && <p className="report-warn">Held: {r.clearance.checks.filter(x => !x.pass).map(x => `${x.label} (${x.note})`).join("; ")}</p>}
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="report-sec">
+        <h2>Run log</h2>
+        <ol className="report-steps">{s.log.map((st, i) => <li key={i}><span>{t(st.at)}</span><b>{AGENT[st.agent] ?? st.agent}</b> {st.summary}</li>)}</ol>
+        <p className="hint">Times are UTC. Nothing in this run was sent: every card waits in Your approval on the desk. Our match score is SYZYGY&apos;s own estimate; Qloo&apos;s numbers are Qloo&apos;s, 0 to 1.</p>
+      </section>
+    </main>
+  );
+}

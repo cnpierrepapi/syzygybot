@@ -11,6 +11,9 @@ import { maskEmail } from "@/lib/ui";
 import { board, COLUMNS, type Step } from "@/lib/board";
 import SkyCard from "../../components/SkyCard";
 import Board from "./Board";
+import LiveBoard from "./LiveBoard";
+import Carousel from "./Carousel";
+import { isLive } from "@/lib/live/plans";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -247,16 +250,18 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
       </div>
 
       {desk && <p className="hint" style={{ margin: "0 0 12px" }}>{DESKS[desk as DeskId]?.blurb}</p>}
-      <Board cards={cards} columns={COLUMNS} persona={`${p.id}:${desk ?? "all"}`} />
+      {isLive(p.id) ? <LiveBoard persona={p.id} /> : <Board cards={cards} columns={COLUMNS} persona={`${p.id}:${desk ?? "all"}`} />}
 
-      <div className="desk-grid">
-        <section id="queue" style={{ display: "grid", gap: 14, alignContent: "start" }}>
-          <h2 style={{ fontSize: 20 }}>Requests</h2>
-          {!sorted.length && <div className="panel" style={{ padding: 22, color: "var(--dim)" }}>Nothing here yet. The desks run every hour; new requests land at the top.</div>}
+      <section id="queue" style={{ display: "grid", gap: 10, marginBottom: 22 }}>
+        <h2 style={{ fontSize: 20 }}>Requests</h2>
+        {!sorted.length && <div className="panel" style={{ padding: 22, color: "var(--dim)" }}>Nothing here yet. New requests land here first as the agents file them.</div>}
+        <Carousel>
           {sorted.map((r, i) => <Card key={r.id} r={r} personaId={p.id} rulesOn={rulesOn} showPersona={isClearance} desk={desk} first={i === 0} steps={stepsOf.get(r.id) ?? []} />)}
-        </section>
+        </Carousel>
+      </section>
 
-        <aside style={{ display: "grid", gap: 14, alignContent: "start" }}>
+      <div className="desk-side">
+        <aside style={{ display: "contents" }}>
           {isClearance && (
             <form id="rules" action={rules} className="panel" style={{ padding: 18 }}>
               <input type="hidden" name="persona" value={p.id} />

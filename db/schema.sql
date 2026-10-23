@@ -441,3 +441,56 @@ create table if not exists org_people (
   checked_at  timestamptz not null default now(),
   primary key (org, purpose)
 )
+;
+
+-- Live persona runs (23 Oct): opening a desk starts (or joins) a run; the agents work only on that persona's connections.
+-- A run's cards exist from the first step, so the board shows them moving; a card becomes a permission request at the end.
+create table if not exists runs (
+  id          uuid primary key default gen_random_uuid(),
+  persona     text not null,
+  trigger     text not null check (trigger in ('visit','warm','again')),
+  status      text not null default 'running' check (status in ('running','done','failed')),
+  started_at  timestamptz not null default now(),
+  finished_at timestamptz,
+  qloo_calls  int not null default 0,
+  cost_usd    double precision not null default 0,
+  insights    jsonb not null default '{}',      -- what Qloo said about the persona's audience this run
+  error       text
+);
+create index if not exists runs_persona on runs (persona, started_at desc);
+create table if not exists run_cards (
+  id          uuid primary key default gen_random_uuid(),
+  run_id      uuid not null references runs(id),
+  persona     text not null,
+  desk        text not null,
+  title       text not null,
+  org         text not null,
+  entity_id   text,
+  status      text not null default 'working' check (status in ('working','done','dropped')),
+  request_id  uuid,
+  detail      jsonb not null default '{}',
+  created_at  timestamptz not null default now()
+);
+create index if not exists run_cards_run on run_cards (run_id);
+alter table permission_requests add column if not exists run_id uuid;
+-- Qloo answers keyed by the exact question, so a run never pays twice for the same call.
+create table if not exists qloo_cache (
+  key         text primary key,
+  value       jsonb not null,
+  fetched_at  timestamptz not null default now()
+);
+-- Our match score next to Qloo's own measurement of the same pair: how close SYZYGY's estimates are.
+create table if not exists estimate_checks (
+  id          uuid primary key default gen_random_uuid(),
+  source      text not null check (source in ('run','backfill')),
+  run_id      uuid,
+  a_id        text not null,
+  b_id        text not null,
+  a_name      text not null,
+  b_name      text not null,
+  ours        int not null,
+  qloo_toward double precision,
+  qloo_back   double precision,
+  created_at  timestamptz not null default now(),
+  unique (source, a_id, b_id)
+)

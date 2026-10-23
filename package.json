@@ -31,7 +31,9 @@
     "lineup": "tsx --env-file-if-exists=.env.local scripts/lineup.mts",
     "lookalike": "tsx --env-file-if-exists=.env.local scripts/lookalike.mts",
     "verifier:recheck": "tsx --env-file-if-exists=.env.local scripts/recheck-departed.mts",
-    "mail": "tsx --env-file-if-exists=.env.local scripts/mail.mts"
+    "mail": "tsx --env-file-if-exists=.env.local scripts/mail.mts",
+    "live": "tsx --env-file-if-exists=.env.local scripts/live.mts",
+    "calibrate": "tsx --env-file-if-exists=.env.local scripts/calibrate.mts"
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "^5.0.110",

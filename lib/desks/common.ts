@@ -156,7 +156,8 @@ export type Buyer = { name: string; role: string; page: string; date: string | n
 
 /** The named person at this org who handles this purpose, verified on a public page by the Verifier's own rules, with
  *  a Hunter-verified work address where the country allows one. Cached per org and purpose: 30 days when found, 3 when not. */
-export async function findBuyer(org: string, site: string | null, purpose: Purpose, country: string): Promise<Buyer | null> {
+// Live runs pass { hunter: false, sweep: false }: Hunter credits are nearly gone, and the trade-press sweep is the slowest step.
+export async function findBuyer(org: string, site: string | null, purpose: Purpose, country: string, opts: { hunter?: boolean; sweep?: boolean } = {}): Promise<Buyer | null> {
   const [hit] = (await sql()`select name, role, page, page_date, status, email, email_source from org_people
     where org = ${org} and purpose = ${purpose}
       and checked_at > now() - (case when status = 'confirmed' then interval '30 days' else interval '3 days' end)`) as any[];
@@ -190,7 +191,7 @@ JSON only: {"people": [{"name": "", "title": "", "source_url": "", "date": "YYYY
   }
   // One search came back empty: sweep the trade press, Google News and the org's site the way the Contact finder does,
   // and judge every named person on the page they came from.
-  if (!found) {
+  if (!found && opts.sweep !== false) {
     const sw = await sweep({ name: org, type: purpose === "booking" ? "place" : "brand" }).catch(() => null);
     for (const p of (sw?.people ?? []).filter(p => BUYER_TITLE[purpose].test(p.title))) {
       const t = cleanTitle(p.title);
@@ -199,7 +200,7 @@ JSON only: {"people": [{"name": "", "title": "", "source_url": "", "date": "YYYY
       if (v.status === "confirmed" && v.page) { found = { name: p.name, role: t.title, page: v.page, date: v.date, email: null, emailSource: null }; break; }
     }
   }
-  if (found && domain && emailAllowed(countryFromRole(found.role) ?? country, "verified")) {
+  if (found && domain && opts.hunter !== false && emailAllowed(countryFromRole(found.role) ?? country, "verified")) {
     const [first, ...rest] = found.name.replace(/^(dr|mr|mrs|ms)\.?\s+/i, "").split(/\s+/);
     const h = rest.length ? await findEmail(domain, first, rest.join(" "), { spent: 0, cap: 1 }).catch(() => ({ refused: "error" as const })) : { refused: "no surname" as const };
     if (!("refused" in h) && usable(h.found)) { found.email = h.found.email; found.emailSource = "verified"; }
