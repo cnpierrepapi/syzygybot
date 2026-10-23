@@ -124,7 +124,8 @@ async function pitch(runId: string, p: Persona, plan: PitchPlan) {
   };
   let insights: Promise<void> = Promise.resolve();
 
-  const taken = new Set(((await sql()`select target->>'org' org from permission_requests where persona = ${p.id}`) as { org: string }[]).map(r => r.org.toLowerCase()));
+  // Names are compared with spaces collapsed: older cards kept Qloo's "JAJA  Tequila".
+  const taken = new Set(((await sql()`select target->>'org' org from permission_requests where persona = ${p.id}`) as { org: string }[]).map(r => r.org.replace(/\s+/g, " ").trim().toLowerCase()));
   for (const b of p.brands ?? []) taken.add(b.toLowerCase());
   // Cards start moving as soon as the first lane is measured; later lanes are measured while those cards travel.
   // Two cards in flight at a time: fast enough to finish in a few minutes, slow enough to stay inside the model quotas.

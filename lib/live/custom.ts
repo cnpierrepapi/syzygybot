@@ -34,14 +34,20 @@ export async function find(q: string): Promise<Found[] | null> {
   });
 }
 
+// Why a setup didn't happen, by code: the page shows only these, never text taken from its own address.
+export const SETUP_WHY = {
+  gone: "That record didn't come back from Qloo for this search. Search again.",
+  full: "Today's new desks are all set up. Try again tomorrow, or open one of the judges' desks.",
+} as const;
+
 /** The desk for one of those records: the existing one if someone set it up already, else a new one. */
-export async function setUp(q: string, entityId: string): Promise<{ ok: true; id: string } | { ok: false; why: string }> {
+export async function setUp(q: string, entityId: string): Promise<{ ok: true; id: string } | { ok: false; why: keyof typeof SETUP_WHY }> {
   const e = (await find(q))?.find(x => x.id === entityId);
-  if (!e) return { ok: false, why: "That record didn't come back from Qloo for this search. Search again." };
+  if (!e) return { ok: false, why: "gone" };
   const [have] = (await sql()`select id from custom_desks where entity_id = ${e.id}`) as { id: string }[];
   if (have) return { ok: true, id: have.id };
   const [{ n }] = (await sql()`select count(*)::int n from custom_desks where created_at > now() - interval '1 day'`) as { n: number }[];
-  if (n >= DESKS_PER_DAY) return { ok: false, why: "Today's new desks are all set up. Try again tomorrow, or open one of the judges' desks." };
+  if (n >= DESKS_PER_DAY) return { ok: false, why: "full" };
   const id = `my-${slugify(e.name, 40) || "desk"}-${token(3).toLowerCase()}`;
   await sql()`insert into custom_desks (id, entity_id, name, type) values (${id}, ${e.id}, ${e.name}, ${e.type}) on conflict (entity_id) do nothing`;
   const [row] = (await sql()`select id from custom_desks where entity_id = ${e.id}`) as { id: string }[];

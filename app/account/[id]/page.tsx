@@ -31,7 +31,7 @@ const AGE_ORDER = ["24_and_younger", "25_to_29", "30_to_34", "35_to_44", "45_to_
 const AGE_LABEL: Record<string, string> = { "24_and_younger": "Under 25", "25_to_29": "25–29", "30_to_34": "30–34", "35_to_44": "35–44", "45_to_54": "45–54", "55_and_older": "55+" };
 // Diverging: over-index warm, under-index cool, from the validated palette's orange and blue.
 const OVER = "#d95926", UNDER = "#3987e5";
-const n = (x: number | null | undefined) => (x == null ? "—" : x.toFixed(2));
+const n = (x: number | null | undefined) => (x == null ? "n/a" : x.toFixed(2));
 const TYPE_LABEL: Record<string, string> = { brand: "brand", artist: "artist", tv_show: "TV show", movie: "film" };
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {

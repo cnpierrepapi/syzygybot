@@ -155,7 +155,7 @@ export async function clear(o: Outbound, rules: Rules = DEFAULT_RULES): Promise<
   if (rules.departed && o.roleStatus) {
     // "weak_source": the only page naming them is a gossip site or a lead database, which never confirms a role.
     const ok = o.roleStatus !== "departed" && o.roleStatus !== "weak_source";
-    checks.push({ rule: "departed", label: RULE_LABEL.departed, pass: ok, note: ok ? "Still in the role as of the last check."
+    checks.push({ rule: "departed", label: o.roleStatus === "weak_source" ? "Named person confirmed on a page we trust" : RULE_LABEL.departed, pass: ok, note: ok ? "Still in the role as of the last check."
       : o.roleStatus === "weak_source" ? "The only page naming this person in the role is a gossip site or a lead database. Find a better source or drop the name." : "This person has left the role." });
   }
   if (rules.exclusivity) checks.push(await exclusivityRule(o));

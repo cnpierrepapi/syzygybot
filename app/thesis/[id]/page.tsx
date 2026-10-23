@@ -25,8 +25,8 @@ type Row = {
 };
 
 const fmt = (v: unknown): string =>
-  v == null ? "—" : typeof v === "number" ? (Number.isInteger(v) ? String(v) : v.toFixed(3))
-  : Array.isArray(v) ? v.join(", ") || "—"
+  v == null ? "n/a" : typeof v === "number" ? (Number.isInteger(v) ? String(v) : v.toFixed(3))
+  : Array.isArray(v) ? v.join(", ") || "n/a"
   : typeof v === "object" ? Object.entries(v).map(([k, x]) => `${k}: ${fmt(x)}`).join(" · ") : String(v);
 
 const TYPE_LABEL: Record<string, string> = { brand: "brand", artist: "artist", tv_show: "TV show", movie: "film" };
@@ -242,7 +242,7 @@ function DealPanel({ p }: { p: Row }) {
 function Pull({ from, to, v }: { from: string; to: string; v: number | null }) {
   return (
     <div style={{ border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px", background: "rgba(255,255,255,0.03)" }}>
-      <div style={{ fontSize: 24, fontWeight: 700 }}>{v == null ? "—" : v.toFixed(2)}</div>
+      <div style={{ fontSize: 24, fontWeight: 700 }}>{v == null ? "n/a" : v.toFixed(2)}</div>
       <div style={{ color: "var(--dim)", fontSize: 11.5, lineHeight: 1.35 }}>{from} fans → {to}</div>
     </div>
   );

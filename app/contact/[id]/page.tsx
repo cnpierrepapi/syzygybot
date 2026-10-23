@@ -104,7 +104,7 @@ export default async function Contact({ params }: { params: Promise<{ id: string
             <dt style={{ color: "var(--dim)" }}>Email</dt><dd style={{ margin: 0, fontFamily: "var(--mono)" }}>{maskEmail(c.email) ?? "none: no personal address is guessed"}</dd>
             {v.date && <><dt style={{ color: "var(--dim)" }}>Page date</dt><dd style={{ margin: 0 }}>{v.date}</dd></>}
             {v.claimed?.url && <><dt style={{ color: "var(--dim)" }}>Finder cited</dt><dd style={{ margin: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{host(v.claimed.url)}</dd></>}
-            <dt style={{ color: "var(--dim)" }}>Checked</dt><dd style={{ margin: 0 }}>{c.verified_at ? new Date(c.verified_at).toISOString().slice(0, 16).replace("T", " ") + " UTC" : "—"}</dd>
+            <dt style={{ color: "var(--dim)" }}>Checked</dt><dd style={{ margin: 0 }}>{c.verified_at ? new Date(c.verified_at).toISOString().slice(0, 16).replace("T", " ") + " UTC" : "n/a"}</dd>
           </dl>
           <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 18 }}>Sources are public pages only: company sites, press releases, trade press. Never LinkedIn.</p>
         </div>

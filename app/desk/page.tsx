@@ -5,7 +5,7 @@ import { Logo } from "../components/visuals";
 import DeskPicker from "./DeskPicker";
 import { DESKS, PERSONAS, desksFor, loadPersona } from "@/lib/personas";
 import { DESK_COOKIE, openDesk } from "@/lib/desk";
-import { find, setUp, type Found } from "@/lib/live/custom";
+import { find, setUp, SETUP_WHY, type Found } from "@/lib/live/custom";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -76,7 +76,7 @@ export default async function DeskStart({ searchParams }: { searchParams: Promis
             className="find-input" aria-label="Brand, artist, person, show or podcast" />
           <button className="btn" type="submit">Find it in Qloo</button>
         </form>
-        {why && <p className="chip" style={{ color: "#b4432f", margin: 0 }}>{why}</p>}
+        {why && why in SETUP_WHY && <p className="chip" style={{ color: "#b4432f", margin: 0 }}>{SETUP_WHY[why as keyof typeof SETUP_WHY]}</p>}
         {q && found === null && <p className="hint" style={{ margin: 0 }}>Today&apos;s searches are used up. Try again tomorrow, or open a judge&apos;s desk.</p>}
         {q && found && !found.length && <p className="hint" style={{ margin: 0 }}>Qloo has nothing under &quot;{q}&quot; that a desk can work for. Try the full name.</p>}
         {found && found.length > 0 && (
