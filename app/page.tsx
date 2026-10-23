@@ -13,10 +13,11 @@ import { typeColors } from "@/lib/ui";
 import { graph } from "@/lib/graph";
 import { SOURCES } from "@/lib/sources";
 import { RULE_LABEL } from "@/lib/clearance";
+import { persona } from "@/lib/personas";
 
 export const dynamic = "force-dynamic";
 
-type Card = { id: string; slug: string | null; score: number; band: string; thesis: string | null; a_name: string; a_type: string; b_name: string; b_type: string };
+type Card = { id: string; persona: string; title: string; created_at: string; score: number; why: string | null };
 
 async function load() {
   if (!process.env.DATABASE_URL) return { items: [] as FeedItem[], counts: [] as Funnel, cards: [] as Card[], types: [] as string[] };
@@ -24,11 +25,14 @@ async function load() {
     const [items, counts, cards, g] = await Promise.all([
       feed(40),
       funnel(),
+      // The newest cards the live desk runs filed, one per desk, each with Qloo's two-way score.
       sql()`
-        select p.id, p.slug, p.score, p.band, p.thesis, a.name a_name, a.type a_type, b.name b_name, b.type b_type
-        from pairs p join entities a on a.qloo_id = p.a_id join entities b on b.qloo_id = p.b_id
-        where p.band = 'PITCH' and p.thesis is not null
-        order by p.called_at desc, p.score desc limit 4`.then(r => r as Card[]),
+        select distinct on (r.persona) r.id, r.persona, r.title, r.created_at,
+          least((r.evidence->'match'->'qloo'->>'toward')::float, (r.evidence->'match'->'qloo'->>'back')::float) score,
+          (select f from jsonb_array_elements_text(r.evidence->'facts') f where f like 'Qloo''s taste data%' limit 1) why
+        from permission_requests r
+        where r.run_id is not null and r.evidence->'match'->'qloo'->>'toward' is not null
+        order by r.persona, r.created_at desc`.then(r => (r as Card[]).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 4)),
       graph(),
     ]);
     // The legend only offers types the sky actually has, so no filter ever isolates an empty sky.
@@ -55,29 +59,32 @@ async function stackCounts(): Promise<Stack | null> {
 
 function Hero({ types, stack }: { types: string[]; stack: Stack | null }) {
   const n = (x: number) => x.toLocaleString("en-US");
+  // What a desk does when you open it, in order, with what's behind each step today.
   const steps: [string, string | null][] = stack ? [
-    ["News watch", `${n(stack.sources)} sources`], ["Match scoring", `${n(stack.measured)} Qloo pairs + our own score`],
-    ["Tour routing", `${n(stack.rooms)} rooms`], ["Buyers", `${n(stack.verified)} verified`], ["Writing", null],
-    ["Clearance", `${stack.rules} rules`], ["Send + follow-up", null], ["Inbox", null], ["CRM", null],
+    ["Qloo reads", `${n(stack.measured)} pairs measured both ways`], ["Deal check", null], ["Buyers", `${n(stack.verified)} confirmed`],
+    ["Writing", null], ["Clearance", `${stack.rules} rules`], ["Your approval", `${n(stack.waiting)} waiting`],
   ] : [];
   return (
     <section className="hero">
       <div className="fade-up" style={{ maxWidth: 700 }}>
-        <p className="eyebrow"><span className="live-dot" style={{ marginRight: 10 }} />All-in-one · fully automated · entertainment</p>
+        <p className="eyebrow"><span className="live-dot" style={{ marginRight: 10 }} />Live now · built on Qloo&apos;s taste data</p>
         <h1 className="headline" style={{ fontSize: "clamp(36px, 5vw, 62px)", lineHeight: 1.02 }}>
-          <span>Your audience data,</span><span>finally doing</span><span className="grad-text">the work.</span>
+          <span>Taste data that</span><span className="grad-text">books the deal.</span>
         </h1>
         <p style={{ color: "var(--dim)", fontSize: 17, maxWidth: 580, marginTop: 18 }}>
-          Most taste data ends up in a slide deck. SYZYGY puts it on payroll. 17 agents take what an audience loves and turn it into
-          booked rooms, sold sponsorships, signed ambassadors and filled ad slots. All in one place. Fully automated. Running right
-          now, while you read this. You just say yes.
+          A deal is any time two sides work together and split what it makes. A sponsor on a tour. An ambassador. A co-branded drop.
+          A season partner for a room, or ads on a podcast.
+        </p>
+        <p style={{ color: "var(--dim)", fontSize: 17, maxWidth: 580, marginTop: 10 }}>
+          Qloo shows whose fans lean toward whom. The agents take it from there. They find the person who decides, write the pitch
+          and check it. Open a desk and watch one run. It takes about two minutes, and nothing goes out until you say yes.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
           <a className="btn btn-lg" href="/desk">Open a desk →</a>
         </div>
         {steps.length > 0 && (
           <div className="stack-strip" aria-label="The whole stack, running now">
-            <p className="eyebrow" style={{ margin: "0 0 8px" }}>The whole stack, running now</p>
+            <p className="eyebrow" style={{ margin: "0 0 8px" }}>What runs when you open a desk</p>
             <ol>{steps.map(([k, v]) => <li key={k}><b>{k}</b>{v && <span>{v}</span>}</li>)}</ol>
           </div>
         )}
@@ -86,7 +93,7 @@ function Hero({ types, stack }: { types: string[]; stack: Stack | null }) {
           { key: "PITCH", label: "PITCH line", color: "#ffb020", filter: { band: "PITCH" } },
           { key: "WATCH", label: "WATCH line", color: "#5b6fd6", filter: { band: "WATCH" } },
         ]} />
-        <p className="hint">Each star is a brand, artist or show. Each line is a match the agents are working. Click a label to show only those; hover a star for its name, click to open it.</p>
+        <p className="hint">Each star is a brand, artist or show. Each line is a pair the agents worked. Click a label to show only those. Hover a star for its name, click to open it.</p>
       </div>
     </section>
   );
@@ -97,27 +104,20 @@ function Featured({ cards }: { cards: Card[] }) {
   return (
     <section style={{ marginTop: 40 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-        <h2 style={{ fontSize: 20 }}>Latest PITCH theses</h2>
-        <span className="eyebrow" style={{ margin: 0 }}>scored by Scout</span>
+        <h2 style={{ fontSize: 20 }}>Fresh off the desks</h2>
+        <span className="eyebrow" style={{ margin: 0 }}>Qloo score, out of 1</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10 }}>
-        {cards.map((c, i) => {
-          const [ca] = typeColors(c.a_type), [cb] = typeColors(c.b_type);
-          return (
-            <a key={c.id} href={`/thesis/${c.slug ?? c.id}`} className="panel fade-up" style={{ padding: 18, display: "block", animationDelay: `${i * 70}ms` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <i style={{ width: 9, height: 9, borderRadius: "50%", background: ca, boxShadow: `0 0 10px ${ca}`, flex: "none" }} />
-                <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${ca}, #ffb020, ${cb})`, opacity: 0.7 }} />
-                <i style={{ width: 9, height: 9, borderRadius: "50%", background: cb, boxShadow: `0 0 10px ${cb}`, flex: "none" }} />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 14, gap: 8 }}>
-                <strong style={{ fontSize: 16.5, lineHeight: 1.25 }}>{c.a_name} <span style={{ color: "var(--mute)" }}>×</span> {c.b_name}</strong>
-                <span className={`band band-${c.band}`}>{c.score.toFixed(2)}</span>
-              </div>
-              <p style={{ color: "var(--dim)", fontSize: 13.5, margin: "10px 0 0", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.thesis}</p>
-            </a>
-          );
-        })}
+        {cards.map((c, i) => (
+          <a key={c.id} href={`/desk/${c.persona}`} className="panel fade-up" style={{ padding: 18, display: "block", animationDelay: `${i * 70}ms` }}>
+            <span className="eyebrow" style={{ margin: 0 }}>{persona(c.persona)?.title ?? c.persona}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 10, gap: 8 }}>
+              <strong style={{ fontSize: 16.5, lineHeight: 1.25 }}>{c.title}</strong>
+              <span className="band band-PITCH">{c.score.toFixed(2)}</span>
+            </div>
+            {c.why && <p style={{ color: "var(--dim)", fontSize: 13.5, margin: "10px 0 0", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.why.replace(/^Qloo's taste data, read today: (.)/, (_, x: string) => x.toUpperCase())}</p>}
+          </a>
+        ))}
       </div>
     </section>
   );
@@ -139,8 +139,8 @@ export default async function Floor() {
       <div id="floor" />
       <LiveFloor initialItems={items} initialFunnel={counts} middle={<Featured cards={cards} />} />
       <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 28, maxWidth: 760 }}>
-        Match scores describe aggregate audiences, not individuals, and say nothing about what a deal would cause. The score
-        is Qloo&apos;s, measured both ways. SYZYGY&apos;s own number is a rough estimate, used only where Qloo hasn&apos;t measured a pair. Contact details are masked on this public page.
+        Scores are Qloo&apos;s and describe whole audiences, not people. They say who leans toward whom, not what a deal would sell.
+        SYZYGY&apos;s own number is a rough estimate, used only where Qloo hasn&apos;t measured a pair. Contact details are masked here.
       </p>
     </main>
   );

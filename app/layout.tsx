@@ -10,19 +10,19 @@ const body = Inter({ subsets: ["latin"], variable: "--font-body" });
 const mono = Fira_Code({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500"] });
 
 const DESCRIPTION =
-  "Your audience data, finally doing the work. SYZYGY is a complete, fully automated commercial team for entertainment: 17 agents turn what an audience loves into booked rooms, sold sponsorships, signed ambassadors and filled ad slots. All in one place. You approve every send.";
+  "Taste data that books the deal. SYZYGY's agents read Qloo's taste data to see whose fans lean toward whom, then find the person who decides and write the pitch: sponsorships, ambassador deals, co-branded drops, venue partnerships and podcast ads. Nothing goes out until you approve it.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: { default: "SYZYGY · your audience data, finally doing the work", template: "%s · SYZYGY" },
+  title: { default: "SYZYGY · taste data that books the deal", template: "%s · SYZYGY" },
   description: DESCRIPTION,
   applicationName: "SYZYGY",
   authors: [{ name: "Onenept Studios Inc.", url: "https://onenept.com" }],
   creator: "Onenept Studios Inc.",
   publisher: "Onenept Studios Inc.",
-  keywords: ["all-in-one", "fully automated", "AI agents", "tour routing", "sponsorship sales", "brand ambassadors", "AI SDR", "brand partnerships", "audience overlap", "Qloo", "taste data", "cultural partnerships", "brand collaboration"],
-  openGraph: { type: "website", siteName: "SYZYGY", url: "/", title: "SYZYGY · your audience data, finally doing the work", description: DESCRIPTION, locale: "en_US" },
-  twitter: { card: "summary_large_image", title: "SYZYGY · your audience data, finally doing the work", description: DESCRIPTION },
+  keywords: ["AI agents", "tour routing", "sponsorship sales", "brand ambassadors", "AI SDR", "brand partnerships", "audience overlap", "Qloo", "taste data", "cultural partnerships", "brand collaboration"],
+  openGraph: { type: "website", siteName: "SYZYGY", url: "/", title: "SYZYGY · taste data that books the deal", description: DESCRIPTION, locale: "en_US" },
+  twitter: { card: "summary_large_image", title: "SYZYGY · taste data that books the deal", description: DESCRIPTION },
   robots: { index: true, follow: true },
 };
 

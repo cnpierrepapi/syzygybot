@@ -9,7 +9,7 @@ import { DESK_COOKIE, openDesk } from "@/lib/desk";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Open a desk",
-  description: "Pick a judge. SYZYGY opens the desk written for their business, fully automated, and asks before anything goes out.",
+  description: "Pick a judge. SYZYGY opens the desk written for their business, runs it live on Qloo's taste data, and asks before anything goes out.",
   alternates: { canonical: "/desk" },
 };
 
