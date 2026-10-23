@@ -14,7 +14,7 @@ export const SENSITIVE = /prison|violen|fight|crime|criminal|murder|death|drug|a
 export const safeTags = (tags: string[] | null | undefined) => (tags ?? []).filter(t => !SENSITIVE.test(t));
 
 /** "urn:tag:keyword:qloo:teen_comedy" -> "Teen comedy". */
-export const tagLabel = (t: string) => { const s = t.split(":").pop()!.replace(/_/g, " "); return s.charAt(0).toUpperCase() + s.slice(1); };
+export const tagLabel = (t: string) => { const s = t.split(":").pop()!.replace(/_+/g, " ").replace(/\s+/g, " ").trim(); return s.charAt(0).toUpperCase() + s.slice(1); };
 
 export type Side = { id?: string; name: string; tags: Set<string>; age: Record<string, number> | null; metros: Map<string, number> };
 export type QlooConfirm = { toward: number; back: number; band: string };

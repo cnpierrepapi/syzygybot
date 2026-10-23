@@ -72,8 +72,8 @@ function Hero({ types, stack }: { types: string[]; stack: Stack | null }) {
           <span>Taste data that</span><span className="grad-text">books the deal.</span>
         </h1>
         <p style={{ color: "var(--dim)", fontSize: 17, maxWidth: 580, marginTop: 18 }}>
-          A deal is any time two sides work together and split what it makes. A sponsor on a tour. An ambassador. A co-branded drop.
-          A season partner for a room, or ads on a podcast.
+          A deal is any time two sides work together and split what it makes. A sponsor on a tour. Two artists on one track. A room
+          booked where the fans are. An ambassador, a co-branded drop, ads on a podcast.
         </p>
         <p style={{ color: "var(--dim)", fontSize: 17, maxWidth: 580, marginTop: 10 }}>
           Qloo shows whose fans lean toward whom. The agents take it from there. They find the person who decides, write the pitch
@@ -81,6 +81,7 @@ function Hero({ types, stack }: { types: string[]; stack: Stack | null }) {
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
           <a className="btn btn-lg" href="/desk">Open a desk →</a>
+          <a className="btn btn-lg quiet" href="/desk#yours">Find yours</a>
         </div>
         {steps.length > 0 && (
           <div className="stack-strip" aria-label="The whole stack, running now">

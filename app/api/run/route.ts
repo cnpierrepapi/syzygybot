@@ -3,13 +3,14 @@
 import { after } from "next/server";
 import { execute, startOrJoin } from "@/lib/live/run";
 import { isLive } from "@/lib/live/plans";
+import { loadPersona } from "@/lib/personas";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 800;
 
 export async function POST(req: Request) {
   const { persona, again } = (await req.json().catch(() => ({}))) as { persona?: string; again?: boolean };
-  if (!persona || !isLive(persona)) return Response.json({ error: "not a live desk" }, { status: 400 });
+  if (!persona || !(await loadPersona(persona)) || !isLive(persona)) return Response.json({ error: "not a live desk" }, { status: 400 });
   const r = await startOrJoin(persona, again ? "again" : "visit");
   if (r.id && r.fresh) after(() => execute(r.id!));
   return Response.json(r, { headers: { "cache-control": "no-store" } });

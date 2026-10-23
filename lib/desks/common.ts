@@ -12,7 +12,7 @@ import { findEmail, usable } from "../hunter";
 import type { Match } from "../match";
 import { MEETING_ASK, UNMEASURED } from "../outreach";
 
-export type Purpose = "booking" | "sponsorship" | "partnerships" | "advertising" | "insights";
+export type Purpose = "booking" | "sponsorship" | "partnerships" | "advertising" | "insights" | "management";
 
 const PURPOSE_WORDS: Record<Purpose, string> = {
   booking: "booking, events, rentals or venue hire",
@@ -20,6 +20,7 @@ const PURPOSE_WORDS: Record<Purpose, string> = {
   partnerships: "brand partnerships, marketing, licensing or press",
   advertising: "advertising sales, sponsorship or partnerships",
   insights: "consumer insights, data partnerships or marketing",
+  management: "management, booking or business inquiries for the artist",
 };
 
 const USEFUL = /book|event|rent|hire|sponsor|partner|market|licens|press|media|advert|sales|business|info|contact|hello/i;
@@ -129,6 +130,7 @@ const BUYER: Record<Purpose, string> = {
   partnerships: "runs brand partnerships or marketing: head of brand partnerships, CMO, VP marketing or brand director",
   advertising: "sells advertising or partnerships: head of ad sales, partnerships director or VP sales",
   insights: "buys audience data: head of consumer insights, VP insights and analytics, head of data partnerships or CMO",
+  management: "manages or books them: their manager, their booking agent at an agency, or the head of their management company",
 };
 
 const BUYER_TITLE: Record<Purpose, RegExp> = {
@@ -137,6 +139,7 @@ const BUYER_TITLE: Record<Purpose, RegExp> = {
   partnerships: /partner|marketing|brand|\bcmo\b|\bcbo\b|licens/i,
   advertising: /advertis|ad sales|partner|sponsor|revenue|sales/i,
   insights: /insight|analytic|data|research|strateg|marketing|\bcmo\b/i,
+  management: /manag|agent|booking|agency|represent/i,
 };
 
 export type Buyer = { name: string; role: string; page: string; date: string | null; email: string | null; emailSource: "verified" | null };

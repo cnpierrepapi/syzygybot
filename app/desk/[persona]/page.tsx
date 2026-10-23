@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Logo } from "../../components/visuals";
-import { DESKS, PERSONAS, desksFor, persona, type DeskId } from "@/lib/personas";
+import { DESKS, PERSONAS, desksFor, loadPersona, persona, type DeskId } from "@/lib/personas";
 import { DESK_COOKIE, decide, requests, rulesOf, saveRules, underRules, watchItems, workspace, type Request } from "@/lib/desk";
 import { RULE_LABEL, type Rules } from "@/lib/clearance";
 import { sql } from "@/lib/db";
@@ -12,19 +12,20 @@ import { board, type Step } from "@/lib/board";
 import SkyCard from "../../components/SkyCard";
 import LiveBoard from "./LiveBoard";
 import Carousel from "./Carousel";
-import { isLive, PLANS } from "@/lib/live/plans";
+import { isLive, planOf } from "@/lib/live/plans";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ persona: string }> }): Promise<Metadata> {
-  const p = persona((await params).persona);
+  const p = await loadPersona((await params).persona);
   return { title: p ? `${p.title} · desk` : "Desk", robots: { index: false, follow: true } };
 }
 
 const ACTION_LABEL: Record<string, string> = {
   email: "Email", letter: "Letter", hold_request: "Hold request", sponsor_pitch: "Sponsor pitch",
   ambassador_pitch: "Ambassador pitch", podcast_pitch: "Ad-sales pitch", crm_push: "CRM export",
+  collab_pitch: "Collab pitch", booking_pitch: "Booking pitch",
 };
 
 async function ws() {
@@ -196,7 +197,7 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps }: { r: R
 export default async function Desk({ params, searchParams }: { params: Promise<{ persona: string }>; searchParams: Promise<{ desk?: string }> }) {
   const { persona: id } = await params;
   const { desk } = await searchParams;
-  const p = persona(id);
+  const p = await loadPersona(id);
   if (!p) notFound();
   const w = await ws();
   // A shared link to a desk opens one for the visitor (the cookie can only be set in a route).
@@ -236,7 +237,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
       <SkyCard>
         <div className="desk-hero">
           <div>
-            <p className="eyebrow">{p.demo ? "Demo desk" : p.judge ? `Written for ${p.judge}` : "Desk"} · simulated persona</p>
+            <p className="eyebrow">{p.demo ? "Demo desk · simulated persona" : p.judge ? `Written for ${p.judge} · simulated persona` : "Your desk · set up from Qloo"}</p>
             <h1>{p.title}</h1>
             <p>{p.who} {p.forWhom}</p>
           </div>
@@ -257,7 +258,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
       </div>
 
       {desk && <p className="hint" style={{ margin: "0 0 12px" }}>{DESKS[desk as DeskId]?.blurb}</p>}
-      {isLive(p.id) && <LiveBoard persona={p.id} review={PLANS[p.id].kind === "review"} />}
+      {isLive(p.id) && <LiveBoard persona={p.id} review={planOf(p.id)?.kind === "review"} />}
 
       <section id="queue" style={{ display: "grid", gap: 10, marginBottom: 22 }}>
         <h2 style={{ fontSize: 20 }}>Requests</h2>
@@ -282,7 +283,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
               <button className="btn" type="submit" style={{ marginTop: 12 }}>Save rules</button>
             </form>
           )}
-          <section id="watch" className="panel" style={{ padding: 18 }}>
+          {p.news.length > 0 && <section id="watch" className="panel" style={{ padding: 18 }}>
             <p className="eyebrow"><span className="live-dot" style={{ marginRight: 8, width: 6, height: 6 }} />Market Watch</p>
             {!news.length && <p style={{ color: "var(--dim)", fontSize: 13.5 }}>Reading the news for this desk. First items land within the hour.</p>}
             <ul className="watch">
@@ -295,7 +296,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
                 </li>
               ))}
             </ul>
-          </section>
+          </section>}
           <section className="panel" style={{ padding: 18 }}>
             <p className="eyebrow">What the agents did</p>
             <ul className="log">

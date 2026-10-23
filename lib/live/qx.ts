@@ -12,7 +12,7 @@ type Envelope = { results?: QlooEntity[] | { entities?: QlooEntity[] } };
 const list = (r: Envelope) => (Array.isArray(r.results) ? r.results : r.results?.entities ?? []);
 const chunk = <T,>(xs: T[], n: number) => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n));
 
-async function cached<T>(key: string, days: number, f: () => Promise<T>): Promise<T> {
+export async function cached<T>(key: string, days: number, f: () => Promise<T>): Promise<T> {
   const [hit] = (await sql()`select value from qloo_cache where key = ${key} and fetched_at > now() - make_interval(days => ${days})`) as { value: T }[];
   if (hit) return hit.value;
   const v = await f();
@@ -37,12 +37,14 @@ export const resolve = (name: string, type: EntityType) =>
 
 /** What the signal's audience over-indexes on, with Qloo's affinity for each (the affinity comes free with the list). */
 // `tags` narrows the list to a category: brand genre tags like urn:tag:genre:brand:wine_and_spirits (filter.tags).
-// `location` reads one city's taste (signal.location.query), e.g. a venue's crowd in its own metro.
-export const top = (signal: string[], type: EntityType, take = 40, tags: string[] = [], location?: string) =>
-  cached(`top:${type}:${signal.join("+")}:${take}${tags.length ? `:${tags.join("|")}` : ""}${location ? `@${location.toLowerCase()}` : ""}`, 7, async () => {
-    const r = tags.length || location
+// `location` leans the list toward one city's taste (signal.location.query), e.g. a venue's crowd in its own metro.
+// `within` keeps only candidates in that city (filter.location.query): rooms to hold in San Juan are in San Juan.
+export const top = (signal: string[], type: EntityType, take = 40, tags: string[] = [], location?: string, within?: string) =>
+  cached(`top:${type}:${signal.join("+")}:${take}${tags.length ? `:${tags.join("|")}` : ""}${location ? `@${location.toLowerCase()}` : ""}${within ? `in:${within.toLowerCase()}` : ""}`, 7, async () => {
+    const r = tags.length || location || within
       ? list(await qloo<Envelope>("/v2/insights", { "filter.type": `urn:entity:${type}`, "signal.interests.entities": signal,
-          ...(tags.length ? { "filter.tags": tags } : {}), ...(location ? { "signal.location.query": location } : {}), take }))
+          ...(tags.length ? { "filter.tags": tags } : {}), ...(location ? { "signal.location.query": location } : {}),
+          ...(within ? { "filter.location.query": within } : {}), take }))
       : await topFor(signal, type, take);
     return r.map(e => ({ ...ent(e, type), affinity: e.query?.affinity ?? null }));
   });

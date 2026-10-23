@@ -10,7 +10,7 @@ const body = Inter({ subsets: ["latin"], variable: "--font-body" });
 const mono = Fira_Code({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500"] });
 
 const DESCRIPTION =
-  "Taste data that books the deal. SYZYGY's agents read Qloo's taste data to see whose fans lean toward whom, then find the person who decides and write the pitch: sponsorships, ambassador deals, co-branded drops, venue partnerships and podcast ads. Nothing goes out until you approve it.";
+  "Taste data that books the deal. SYZYGY's agents read Qloo's taste data to see whose fans lean toward whom, then find the person who decides and write the pitch: sponsorships, artist features, room bookings, ambassador deals, co-branded drops and podcast ads. Nothing goes out until you approve it.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),

@@ -493,4 +493,20 @@ create table if not exists estimate_checks (
   qloo_back   double precision,
   created_at  timestamptz not null default now(),
   unique (source, a_id, b_id)
-)
+);
+
+-- Desks a visitor sets up for their own brand, artist, person, show or podcast from /desk: Qloo's record is the subject.
+create table if not exists custom_desks (
+  id          text primary key,                 -- "my-<slug>", the persona id
+  entity_id   text not null,
+  name        text not null,
+  type        text not null check (type in ('brand','artist','person','tv_show','movie','podcast')),
+  workspace   uuid,
+  created_at  timestamptz not null default now(),
+  unique (entity_id)
+);
+
+-- Live runs also file artist features and room bookings (23 Oct).
+alter table permission_requests drop constraint if exists permission_requests_action_check;
+alter table permission_requests add constraint permission_requests_action_check
+  check (action in ('email','letter','hold_request','sponsor_pitch','ambassador_pitch','podcast_pitch','crm_push','collab_pitch','booking_pitch'));

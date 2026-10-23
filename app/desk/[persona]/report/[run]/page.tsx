@@ -3,7 +3,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
-import { persona } from "@/lib/personas";
+import { loadPersona } from "@/lib/personas";
 import { snapshot, spearman } from "@/lib/live/run";
 import { colsFor } from "@/lib/live/plans";
 import type { Insights } from "@/lib/live/qx";
@@ -28,7 +28,7 @@ type Req = { id: string; title: string; target: { person?: string | null; role?:
 
 export default async function Report({ params }: { params: Promise<{ persona: string; run: string }> }) {
   const { persona: pid, run } = await params;
-  const p = persona(pid);
+  const p = await loadPersona(pid);
   if (!p || !/^[0-9a-f-]{36}$/i.test(run)) notFound();
   const s = await snapshot(run);
   const COLS = colsFor(p.id), review = COLS[0] !== "Spotted";

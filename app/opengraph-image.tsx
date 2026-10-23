@@ -5,5 +5,5 @@ export const size = OG_SIZE;
 export const contentType = "image/png";
 
 export default function Image() {
-  return card({ eyebrow: "Built on Qloo's taste data", title: "Taste data that books the deal.", sub: "Sponsorships, ambassadors, co-branded drops, venue partners, podcast ads. You say yes." });
+  return card({ eyebrow: "Built on Qloo's taste data", title: "Taste data that books the deal.", sub: "Sponsorships, features, room bookings, ambassadors, co-branded drops. You say yes." });
 }

@@ -5,7 +5,7 @@
 // newest cards the other desks filed back through Clearance, live.
 import { sql } from "../db";
 import { logAction, type Agent } from "../actions";
-import { persona, type Persona } from "../personas";
+import { loadPersona, type Persona } from "../personas";
 import { qlooCallsMade } from "../qloo";
 import { syzygyMatch, tagLabel } from "../match";
 import { clear, countryFromRole, countryOf } from "../clearance";
@@ -14,7 +14,7 @@ import { readAll } from "../web";
 import { rejectionNotes } from "../desk";
 import { slugify, token } from "../slug";
 import { draft, findBuyer, findInbox, talentDeals } from "../desks/common";
-import { PLANS, type Lane, type PitchPlan } from "./plans";
+import { planOf, type Lane, type PitchPlan } from "./plans";
 import { affinities, audienceInsights, mergeSides, profile, resolve, sideOf, top, type Ent, type Insights } from "./qx";
 import { metroOf } from "../geo";
 
@@ -73,7 +73,7 @@ export function spearman(xs: number[], ys: number[]) {
 
 export async function execute(runId: string) {
   const [run] = (await sql()`select id, persona from runs where id = ${runId}`) as { id: string; persona: string }[];
-  const p = run && persona(run.persona), plan = run && PLANS[run.persona];
+  const p = run && await loadPersona(run.persona), plan = run && planOf(run.persona);
   if (!p || !plan) return;
   calls0.set(runId, qlooCallsMade());
   const calls = () => qlooCallsMade() - (calls0.get(runId) ?? 0);
@@ -120,7 +120,7 @@ async function pitch(runId: string, p: Persona, plan: PitchPlan) {
     const groups = ins.audiences.slice(0, 3).map(a => a.name);
     await step(runId, p, null, null, "numbers", "run.audience",
       `Qloo, live: ${crowd(first, subject)} also follow ${listOf(ins.people.slice(0, 3)) || "no one Qloo lists"}` +
-      `${groups.length ? `, and over-index on ${listOf(groups)}` : ""}${ins.local.length ? `. In ${city} they lean toward ${listOf(ins.local.slice(0, 3).map(l => l.name))}` : ""}.`);
+      `${groups.length ? `, and over-index on ${listOf(groups)}` : ""}${ins.local.length ? `. In ${city} they lean toward ${listOf(ins.local.slice(0, 3).map(l => l.name))}` : ""}.`.replace(/\.\.$/, "."));
   };
   let insights: Promise<void> = Promise.resolve();
 
@@ -149,20 +149,32 @@ async function pitch(runId: string, p: Persona, plan: PitchPlan) {
 // sponsorship.
 const NOT_A_BUYER = /\b(tsa|precheck|global entry|dmv|usps|irs|social security|medicare|medicaid|fema|national park service|department of|u\.?s\.? (army|navy|air force|marines))\b/i;
 
+const NOUNS: Partial<Record<string, [string, string]>> = { brand: ["brand", "brands"], artist: ["artist", "artists"], person: ["person", "people"], place: ["room", "rooms"] };
+const many = (n: number, kind: string) => `${n} ${(NOUNS[kind] ?? ["candidate", "candidates"])[n === 1 ? 0 : 1]}`;
+
 type Scored = { c: Ent & { affinity: number | null }; back: number | null; twoWay: number | null; m: Awaited<ReturnType<typeof syzygyMatch>> };
 
 async function measureLane(runId: string, p: Persona, lane: Lane, taken: Set<string>, queue: (() => Promise<number>)[]) {
   const sig = await resolveAll(lane.signal);
   if (!sig.length) return;
   const who = crowd(lane, sig);
+  const kind = lane.target ?? "brand";
+  // Brands the talent already has a deal with are skipped up front, so the lane picks the next one instead of dropping a card.
+  const known = lane.talent && kind === "brand" ? (await talentDeals(lane.talent)).map(d => d.brand) : [];
+  const skip = new Set([...(lane.exclude ?? []), ...sig.map(s => s.name), ...known].map(x => x.toLowerCase()));
+  const [lo, hi] = lane.popularity ?? [0, 1];
   const fresh = (xs: Awaited<ReturnType<typeof top>>) => xs
     .map(c => ({ ...c, name: c.name.replace(/\s+/g, " ").trim() }))   // Qloo has "JAJA  Tequila"
-    .filter(c => c.affinity != null && !taken.has(c.name.toLowerCase()) && !NOT_A_BUYER.test(c.name)).slice(0, POOL);
-  let pool = fresh(await top(sig.map(s => s.id), "brand", 40, lane.tags, lane.location));
-  // A category read in one city can come back empty; the city's whole list is the fallback.
-  if (!pool.length && lane.tags?.length) pool = fresh(await top(sig.map(s => s.id), "brand", 40, [], lane.location));
+    .filter(c => c.affinity != null && !taken.has(c.name.toLowerCase()) && !skip.has(c.name.toLowerCase())
+      && (kind !== "brand" || !NOT_A_BUYER.test(c.name)) && (c.popularity == null || (c.popularity >= lo && c.popularity <= hi)))
+    .slice(0, POOL);
+  // A popularity band keeps only a slice of the list, so those lanes read deeper (Qloo allows 50 at most).
+  const take = lane.popularity ? 50 : 40;
+  let pool = fresh(await top(sig.map(s => s.id), kind, take, lane.tags, lane.location, lane.within));
+  // A category read in one city can come back empty; the city's whole list is the fallback (rooms keep their category).
+  if (!pool.length && lane.tags?.length && kind === "brand") pool = fresh(await top(sig.map(s => s.id), kind, take, [], lane.location, lane.within));
   if (!pool.length) return;
-  await step(runId, p, null, null, "numbers", "run.measuring", `Qloo listed ${pool.length} brands for ${who}. Measuring each one back the other way now.`);
+  await step(runId, p, null, null, "numbers", "run.measuring", `Qloo listed ${many(pool.length, kind)} for ${who}${lane.within ? ` in ${lane.within}` : ""}. Measuring each one back the other way now.`);
   const me = lane.side ?? mergeSides(who, await Promise.all(sig.map(sideOf)));
   // Qloo measures each pair both ways: how much these fans like the brand (free with the list), and how much the brand's
   // own audience likes them back (one call per brand, every member of the signal at once). The weaker is the two-way score.
@@ -183,7 +195,7 @@ async function measureLane(runId: string, p: Persona, lane: Lane, taken: Set<str
   const both = scored.filter(s => s.twoWay != null);
   const rho = spearman(both.map(s => s.m.score), both.map(s => s.twoWay!));
   await step(runId, p, null, null, "numbers", "run.compared",
-    `Measured ${both.length} brands both ways for ${who}. How close our rough estimate came to Qloo's ranking: ${rho == null ? "too few to compare" : `${rho} rank correlation (1 is a perfect match)`}.`,
+    `Measured ${many(both.length, kind)} both ways for ${who}. How close our rough estimate came to Qloo's ranking: ${rho == null ? "too few to compare" : `${rho} rank correlation (1 is a perfect match)`}.`,
     { lane: `${lane.desk}:${lane.speaker}`, rho, n: both.length });
   // Qloo's two-way measurement picks; our rough estimate only breaks ties and rides along on the card.
   const ranked = [...scored].sort((a, b) => (b.twoWay ?? -1) - (a.twoWay ?? -1) || b.m.score - a.m.score);
@@ -202,7 +214,7 @@ async function carry(runId: string, p: Persona, lane: Lane, sig: Ent[], s: Score
   try { return await carryCard(runId, p, lane, sig, s, rank, of, card, title); }
   catch (e) {
     await sql()`update run_cards set status = 'dropped', detail = ${JSON.stringify({ why: (e as Error).message.slice(0, 200) })} where id = ${card.id}`;
-    await step(runId, p, card, null, "sequencer", "card.dropped", `Dropped ${c.name}: an agent ran out of time on it. The next run tries again.`);
+    await step(runId, p, card, null, "sequencer", "card.dropped", `Dropped ${c.name}: ${/timeout|abort/i.test((e as Error).message) ? "an agent ran out of time on it" : "an agent hit an error on it"}. The next run tries again.`);
     return 0;
   }
 }
@@ -216,8 +228,11 @@ async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: S
   await step(runId, p, card, COL.spotted, lane.agent, "card.spotted",
     `Spotted in Qloo, live: ${who} lean toward ${c.name} at ${f2(c.affinity)} (out of 1). Number ${rank + 1} of ${of} once Qloo measured both ways.`);
 
-  // Checked: Qloo's two-way score with our rough estimate beside it, and the talent's known deals.
-  const deals = lane.talent ? await talentDeals(lane.talent) : [];
+  // Checked: Qloo's two-way score with our rough estimate beside it, and the talent's known deals (brand pitches only).
+  const isBrand = (lane.target ?? "brand") === "brand";
+  const deals = lane.talent && isBrand ? await talentDeals(lane.talent) : [];
+  // Everyone named in the message as talent, so Clearance checks none of them reads as endorsing anything.
+  const named = [...(lane.talent ? [lane.talent] : []), ...(lane.target === "artist" || lane.target === "person" ? [c.name] : [])];
   const clash = deals.find(d => d.brand.toLowerCase() === c.name.toLowerCase());
   if (clash) {
     await sql()`update run_cards set status = 'dropped', detail = ${JSON.stringify({ why: "existing deal", deal: clash })} where id = ${card.id}`;
@@ -267,14 +282,14 @@ async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: S
   // Clearance.
   const country = countryFromRole(buyer?.role) ?? countryOf(inbox.email, "US");
   const clearance = await clear({ channel, subject: d.draft.subject, body: d.draft.body, address: inbox.email, addressSource: inbox.email ? "published" : null,
-    roleStatus: buyer ? "confirmed" : null, country, talent: lane.talent ? [lane.talent] : [], targetBrand: c.name, talentDeals: deals, usesQloo: true });
+    roleStatus: buyer ? "confirmed" : null, country, talent: named, targetBrand: isBrand ? c.name : null, talentDeals: deals, usesQloo: true });
   const held = clearance.checks.filter(x => !x.pass);
   await step(runId, p, card, COL.clearance, "clearance", held.length ? "card.held" : "card.cleared",
     held.length ? `Held. ${held.map(h => h.note).join(" ")}` : `Cleared on all ${clearance.checks.length} rules.`);
 
   // Your approval: filed as a permission request, like every desk card.
   const target = { org: c.name, site, person: buyer?.name ?? null, role: buyer?.role ?? null, roleStatus: buyer ? "confirmed" : null, personSource: buyer?.page ?? null,
-    address: inbox.email, source: inbox.url, postal: inbox.postal, channel, country, talent: lane.talent ? [lane.talent] : [], brand: c.name, purpose: lane.purpose };
+    address: inbox.email, source: inbox.url, postal: inbox.postal, channel, country, talent: named, brand: isBrand ? c.name : null, purpose: lane.purpose };
   const evidence = { match: { ...m, qloo: c.affinity != null && back != null ? { toward: +c.affinity.toFixed(3), back: +back.toFixed(3), band: "live" } : null }, facts };
   const [req] = (await sql()`
     insert into permission_requests (persona, desk, action, title, target, preview, evidence, clearance, dedupe, ref_table, ref_id, slug, run_id)
@@ -314,7 +329,7 @@ async function review(runId: string, p: Persona, n: number) {
 }
 
 async function reviewCard(runId: string, p: Persona, card: Card, r: Filed) {
-  const t = r.target, owner = persona(r.persona);
+  const t = r.target, owner = await loadPersona(r.persona);
   const desk = owner?.title ?? r.persona;
   await step(runId, p, card, 0, "clearance", "review.picked",
     `Picked up from ${desk}: ${t.channel === "email" ? "an email" : "a letter"} to ${t.person ? `${t.person} at ` : ""}${t.org}, ${r.clearance.status === "pass" ? "cleared" : "held"} when it was filed.`);

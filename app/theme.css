@@ -220,3 +220,13 @@ button.kcard { font: inherit; text-align: left; cursor: pointer; width: 100%; }
 .desk-side { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; align-items: start; }
 /* Grid items default to min-width: auto, which lets the track push the page sideways (the min-content trap). */
 .carousel { min-width: 0; max-width: 100%; }
+
+/* /desk "find yours": the search box and Qloo's matches, one tappable row each. */
+.find-input { flex: 1 1 260px; min-width: 0; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--line, #d9d6cf); background: #fff; font: inherit; font-size: 15px; color: inherit; }
+.find-input:focus { outline: 2px solid #8b84c7; outline-offset: 1px; }
+.find-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.find-row { width: 100%; text-align: left; display: grid; gap: 4px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line, #d9d6cf); background: #fff; font: inherit; color: inherit; cursor: pointer; }
+.find-row:hover { border-color: #8b84c7; }
+.find-row .chip { margin-left: 6px; font-size: 11px; }
+.find-about { color: var(--dim); font-size: 13.5px; }
+.find-what { color: #5b54a6; font-size: 13px; }

@@ -16,7 +16,7 @@ const ALLOWED = new Set([
   "signal.interests.entities", "signal.interests.tags",
   "a.signal.interests.entities", "b.signal.interests.entities",
   "feature.explainability",
-  "filter.audience.types", "filter.query", "signal.location.query",
+  "filter.audience.types", "filter.query", "signal.location.query", "filter.location.query",
 ]);
 
 // Calls this process has made, so a run can say what it spent.
