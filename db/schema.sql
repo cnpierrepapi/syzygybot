@@ -510,3 +510,6 @@ create table if not exists custom_desks (
 alter table permission_requests drop constraint if exists permission_requests_action_check;
 alter table permission_requests add constraint permission_requests_action_check
   check (action in ('email','letter','hold_request','sponsor_pitch','ambassador_pitch','podcast_pitch','crm_push','collab_pitch','booking_pitch'));
+
+-- A picture for each set-up desk (Qloo's image of the record, else Wikipedia's), 23 Oct.
+alter table custom_desks add column if not exists image text;

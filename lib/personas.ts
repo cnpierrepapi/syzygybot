@@ -45,6 +45,7 @@ export type Persona = {
   demo?: boolean;
   extraDesks?: DeskId[];    // desks on top of the role's, shown first
   realSends?: boolean;      // approving an email on its pitches desk sends it for real (letters stay simulated)
+  image?: string | null;    // the desk's picture; judges' desks use /judges/<id>.jpg
 };
 
 export const PERSONAS: Persona[] = [
@@ -171,9 +172,9 @@ const custom = new Map<string, Persona & { entity: CustomEntity }>();
 const ROLE_OF: Record<CustomEntity["type"], RoleId> = { brand: "talent", artist: "tour", person: "talent", tv_show: "sponsorship", movie: "sponsorship", podcast: "media" };
 const KIND: Record<CustomEntity["type"], string> = { brand: "brand", artist: "artist", person: "talent", tv_show: "show", movie: "film", podcast: "podcast" };
 
-export function customPersona(id: string, e: CustomEntity): Persona & { entity: CustomEntity } {
+export function customPersona(id: string, e: CustomEntity, image: string | null = null): Persona & { entity: CustomEntity } {
   return {
-    id, judge: null, title: `${e.name}'s desk`, entity: e,
+    id, judge: null, image, title: `${e.name}'s desk`, entity: e,
     who: `A desk set up for ${e.name} from Qloo's record of the ${KIND[e.type]}.`,
     forWhom: `The agents read ${e.name}'s audience in Qloo and work the deals it points to.`,
     role: ROLE_OF[e.type], subject: e.name, watch: [], news: [], groups: [],
@@ -188,9 +189,9 @@ export async function loadPersona(id: string) {
   const known = persona(id);
   if (known || !/^my-[a-z0-9-]{2,80}$/.test(id)) return known;
   const { sql } = await import("./db");
-  const [row] = (await sql()`select id, entity_id, name, type from custom_desks where id = ${id}`) as { id: string; entity_id: string; name: string; type: CustomEntity["type"] }[];
+  const [row] = (await sql()`select id, entity_id, name, type, image from custom_desks where id = ${id}`) as { id: string; entity_id: string; name: string; type: CustomEntity["type"]; image: string | null }[];
   if (!row) return undefined;
-  const p = customPersona(row.id, { id: row.entity_id, name: row.name, type: row.type });
+  const p = customPersona(row.id, { id: row.entity_id, name: row.name, type: row.type }, row.image);
   custom.set(row.id, p);
   return p;
 }

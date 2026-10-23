@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Logo } from "../../components/visuals";
-import { DESKS, PERSONAS, desksFor, loadPersona, persona, type DeskId } from "@/lib/personas";
+import { DESKS, PERSONAS, customOf, desksFor, loadPersona, persona, type DeskId } from "@/lib/personas";
 import { DESK_COOKIE, decide, requests, rulesOf, saveRules, underRules, watchItems, workspace, type Request } from "@/lib/desk";
 import { RULE_LABEL, type Rules } from "@/lib/clearance";
 import { sql } from "@/lib/db";
@@ -199,6 +199,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
   const { desk } = await searchParams;
   const p = await loadPersona(id);
   if (!p) notFound();
+  const custom = customOf(p.id);
   const w = await ws();
   // A shared link to a desk opens one for the visitor (the cookie can only be set in a route).
   if (!w) redirect(`/desk/open?persona=${p.id}`);
@@ -240,6 +241,9 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
             <p className="eyebrow">{p.demo ? "Demo desk · simulated persona" : p.judge ? `Written for ${p.judge} · simulated persona` : "Your desk · set up from Qloo"}</p>
             <h1>{p.title}</h1>
             <p>{p.who} {p.forWhom}</p>
+            {custom && <p className="hint" style={{ margin: "8px 0 0" }}>
+              Not the one you meant? <a href={`/desk?q=${encodeURIComponent(custom.name)}#yours`}>See Qloo&apos;s other matches</a>
+            </p>}
           </div>
           <div className="desk-kpis">
             <a href="#queue"><b>{pending.length - heldCount}</b><small>waiting for you</small></a>

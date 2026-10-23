@@ -225,8 +225,10 @@ button.kcard { font: inherit; text-align: left; cursor: pointer; width: 100%; }
 .find-input { flex: 1 1 260px; min-width: 0; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--line, #d9d6cf); background: #fff; font: inherit; font-size: 15px; color: inherit; }
 .find-input:focus { outline: 2px solid #8b84c7; outline-offset: 1px; }
 .find-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.find-row { width: 100%; text-align: left; display: grid; gap: 4px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line, #d9d6cf); background: #fff; font: inherit; color: inherit; cursor: pointer; }
+.find-row { width: 100%; text-align: left; display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line, #d9d6cf); background: #fff; font: inherit; color: inherit; cursor: pointer; }
 .find-row:hover { border-color: #8b84c7; }
 .find-row .chip { margin-left: 6px; font-size: 11px; }
+.find-text { display: grid; gap: 4px; min-width: 0; }
+.find-img { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; object-position: 50% 22%; background: #eeedf6; }
 .find-about { color: var(--dim); font-size: 13.5px; }
 .find-what { color: #5b54a6; font-size: 13px; }
