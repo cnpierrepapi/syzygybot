@@ -123,7 +123,9 @@ export default function Constellation() {
     const world = new THREE.Group();
     // On wide screens the sky sits right of the headline, so text and stars don't fight.
     // On phones it rises above the headline instead.
-    const placeWorld = () => world.position.set(innerWidth >= 900 ? 14 : 0, innerWidth >= 900 ? 3 : 15, 0);
+    // A split card (front page) already gives the sky its own right-hand panel, so there it stays centred.
+    const split = () => innerWidth >= 900 && !!el.closest(".split-sky");
+    const placeWorld = () => world.position.set(split() ? 0 : innerWidth >= 900 ? 14 : 0, split() ? 0 : innerWidth >= 900 ? 3 : 15, 0);
     placeWorld();
     scene.add(world);
 

@@ -135,7 +135,7 @@ export default async function Floor() {
           <a className="btn" href="/desk" style={{ padding: "7px 16px", fontSize: 13.5 }}>Open a desk →</a>
         </span>
       </nav>
-      <SkyCard tall><Hero types={types} stack={stack} /></SkyCard>
+      <SkyCard tall grow><Hero types={types} stack={stack} /></SkyCard>
       <div id="floor" />
       <LiveFloor initialItems={items} initialFunnel={counts} middle={<Featured cards={cards} />} />
       <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 28, maxWidth: 760 }}>
