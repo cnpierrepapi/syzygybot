@@ -13,6 +13,21 @@ export const MODELS = {
 // Who takes a call when a model's quota is used up or it hangs: a draft falls to Flash, never to Flash-Lite.
 const FALLBACK: Partial<Record<keyof typeof MODELS, keyof typeof MODELS>> = { pen: "write", write: "fast" };
 
+// The model bake-off (scripts/model-bakeoff.mts) pins one model per tier, with no fallback, so each is measured on its own.
+type Tier = keyof typeof MODELS;
+const pinned: Partial<Record<Tier, string>> = {};
+export const pinModel = (tier: Tier, model: string | null) => { if (model) pinned[tier] = model; else delete pinned[tier]; };
+const modelOf = (tier: Tier) => pinned[tier] ?? MODELS[tier];
+// Thinking at "low" for every model above Flash-Lite (Flash-Lite doesn't take the setting).
+const thinks = (m: string) => !/flash-lite/.test(m);
+/** Tokens and calls per model in this process, for the bake-off's cost column. */
+export const tally = new Map<string, { calls: number; in: number; out: number; searches: number }>();
+const count = (m: string, u: { inputTokens?: number; outputTokens?: number }, search = false) => {
+  const t = tally.get(m) ?? { calls: 0, in: 0, out: 0, searches: 0 };
+  t.calls++; t.in += u.inputTokens ?? 0; t.out += u.outputTokens ?? 0; if (search) t.searches++;
+  tally.set(m, t);
+};
+
 // USD per token. ESTIMATES, not yet checked against the Vertex price sheet. The credit itself is in EUR.
 const PRICE: Record<string, { in: number; out: number }> = {
   [MODELS.fast]: { in: 0.0000001, out: 0.0000004 },
@@ -47,17 +62,18 @@ export async function ask(tier: keyof typeof MODELS, system: string, prompt: str
   const run = (m: string, retries: number) => generateText({
     model: provider()(m), system, prompt, maxRetries: retries, abortSignal: AbortSignal.timeout(90_000),
     maxOutputTokens: maxOutputTokens + 1024,
-    providerOptions: m === MODELS.write || m === MODELS.pen ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
+    providerOptions: thinks(m) ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
   });
-  let model: string = MODELS[tier];
+  let model: string = modelOf(tier);
   // When a model's quota is used up (429) or it hangs past the limit, the next one down takes the call instead of the run failing.
-  const next = FALLBACK[tier];
+  const next = pinned[tier] ? undefined : FALLBACK[tier];
   const r = await run(model, next ? 1 : 2).catch(e => {
     if (!next || !/resource exhausted|429|aborted|timeout/i.test(String((e as Error).message))) throw e;
     model = MODELS[next];
     return run(model, 2);
   });
-  return { text: r.text.trim(), model, costUsd: costUsd(model, r.usage.inputTokens, r.usage.outputTokens) };
+  count(model, r.usage);
+  return { text: r.text.trim(), model, costUsd: costUsd(model, r.usage.inputTokens, r.usage.outputTokens), usage: r.usage };
 }
 
 /** A model call that may call our own tools (e.g. live Qloo queries) for up to `steps` rounds. */
@@ -85,20 +101,21 @@ export async function askWeb(prompt: string, system: string, maxOutputTokens = 1
     // Cast: the Vertex package and ai resolve different provider-utils versions; fine at runtime.
     tools: { google_search: v.tools.googleSearch({}) } as unknown as ToolSet,
     maxOutputTokens: maxOutputTokens + 1024,
-    providerOptions: model === MODELS.write ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
+    providerOptions: thinks(model) ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
   });
-  let model: string = MODELS.write;
+  let model: string = modelOf("write");
   const r = await run(model, 1).catch(e => {
-    if (!/resource exhausted|429/i.test(String((e as Error).message))) throw e;
+    if (pinned.write || !/resource exhausted|429/i.test(String((e as Error).message))) throw e;
     model = MODELS.fast;
     return run(model, 2);
   });
   const sources: WebSource[] = (r.sources ?? [])
     .filter((s): s is typeof s & { url: string } => s.sourceType === "url")
     .map(s => ({ url: s.url, title: s.title ?? "" }));
+  count(model, r.usage, true);
   const tokens = costUsd(model, r.usage.inputTokens, r.usage.outputTokens) ?? 0;
   const gm = (r.providerMetadata as { vertex?: { groundingMetadata?: { webSearchQueries?: string[] } } } | undefined)?.vertex?.groundingMetadata;
-  return { text: r.text.trim(), sources, queries: gm?.webSearchQueries ?? [], model, costUsd: tokens + SEARCH_USD };
+  return { text: r.text.trim(), sources, queries: gm?.webSearchQueries ?? [], model, costUsd: tokens + SEARCH_USD, usage: r.usage };
 }
 
 /** Pulls the first JSON object out of a model reply (fenced or bare). */

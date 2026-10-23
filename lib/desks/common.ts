@@ -167,8 +167,9 @@ export type Buyer = { name: string; role: string; page: string; date: string | n
 /** The named person at this org who handles this purpose, verified on a public page by the Verifier's own rules, with
  *  a Hunter-verified work address where the country allows one. Cached per org and purpose: 30 days when found, 3 when not. */
 // Live runs pass { hunter: false, sweep: false }: Hunter credits are nearly gone, and the trade-press sweep is the slowest step.
-export async function findBuyer(org: string, site: string | null, purpose: Purpose, country: string, opts: { hunter?: boolean; sweep?: boolean } = {}): Promise<Buyer | null> {
-  const [hit] = (await sql()`select name, role, page, page_date, status, email, email_source from org_people
+// { cache: false } is for the model bake-off: no saved answer is read, and nothing it finds is saved.
+export async function findBuyer(org: string, site: string | null, purpose: Purpose, country: string, opts: { hunter?: boolean; sweep?: boolean; cache?: boolean } = {}): Promise<Buyer | null> {
+  const [hit] = opts.cache === false ? [] : (await sql()`select name, role, page, page_date, status, email, email_source from org_people
     where org = ${org} and purpose = ${purpose}
       and checked_at > now() - (case when status = 'confirmed' then interval '30 days' else interval '3 days' end)`) as any[];
   if (hit) return hit.status === "confirmed" ? { name: hit.name, role: hit.role, page: hit.page, date: hit.page_date, email: hit.email, emailSource: hit.email_source } : null;
@@ -215,6 +216,7 @@ JSON only: {"people": [{"name": "", "title": "", "source_url": "", "date": "YYYY
     const h = rest.length ? await findEmail(domain, first, rest.join(" "), { spent: 0, cap: 1 }).catch(() => ({ refused: "error" as const })) : { refused: "no surname" as const };
     if (!("refused" in h) && usable(h.found)) { found.email = h.found.email; found.emailSource = "verified"; }
   }
+  if (opts.cache === false) return found;
   await sql()`insert into org_people (org, purpose, name, role, page, page_date, status, email, email_source, detail)
     values (${org}, ${purpose}, ${found?.name ?? null}, ${found?.role ?? null}, ${found?.page ?? null}, ${found?.date ?? null}, ${found ? "confirmed" : "not_found"},
       ${found?.email ?? null}, ${found?.emailSource ?? null}, ${JSON.stringify({ candidates: people })})

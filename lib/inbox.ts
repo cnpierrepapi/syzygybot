@@ -23,7 +23,7 @@ import { handOff } from "./handoff";
 export const CLASSES = ["interested", "not_now", "referral", "opt_out", "ooo", "other"] as const;
 type Class = (typeof CLASSES)[number];
 
-const CLASSIFY_SYSTEM = `You sort replies to a cold email for an autonomous sales team. Reply with JSON only:
+export const CLASSIFY_SYSTEM = `You sort replies to a cold email for an autonomous sales team. Reply with JSON only:
 {"class":"interested|not_now|referral|opt_out|ooo|other","questions":["each question they asked, verbatim or close"],
 "referral":{"name":"","role":"","email":""} or null,"return_date":"YYYY-MM-DD" or null,"revisit_date":"YYYY-MM-DD" or null,"summary":"one line"}
 interested = wants to talk or learn more. not_now = maybe later. referral = points to someone else. opt_out = asks to stop,
