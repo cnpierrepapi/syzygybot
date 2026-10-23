@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     if (r?.id && r.fresh) await execute(r.id);
     const ran = [...(r?.fresh ? ["live run"] : []), ...(watch ? ["watch"] : [])];
     const result = { run: r?.id ?? recent?.id ?? null, ...(watch ? await runPersonaWatch(p) : {}) };
-    await logAction({ agent: "watch", kind: "desk.run", summary: `Desk run for ${p.title}.`, detail: { persona: p.id, ran, result } });
+    await logAction({ agent: "scout", kind: "desk.run", summary: `Desk run for ${p.title}.`, detail: { persona: p.id, ran, result } });
     return { persona: p.id, ran, result };
   }));
 }

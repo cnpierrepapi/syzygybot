@@ -15,5 +15,5 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     select e.name, e.type, p.name passed_name, p.type passed_type from accounts ac join entities e on e.qloo_id = ac.entity_id
     left join entities p on p.qloo_id = ac.passed_on where ac.id = ${hit.id}`) as { name: string; type: string; passed_name: string | null; passed_type: string | null }[];
   const [a1, a2] = typeColors(a.type), [b1, b2] = typeColors(a.passed_type ?? "artist");
-  return card({ eyebrow: "account", title: a.name, sub: a.passed_name ? `Picked as the buyer from the ${a.name} × ${a.passed_name} thesis.` : "Picked as the buyer by the Qualifier.", colors: [a1, a2, b1, b2] });
+  return card({ eyebrow: "account", title: a.name, sub: a.passed_name ? `Picked as the buyer from the ${a.name} × ${a.passed_name} thesis.` : "Picked as the buyer by Numbers.", colors: [a1, a2, b1, b2] });
 }

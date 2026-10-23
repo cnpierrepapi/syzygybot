@@ -1,4 +1,4 @@
-// Contact finder → Verifier → Strategist → Writer for the next account without contacts, then the
+// Contact finder → Verifier → Writer for the next account without contacts, then the
 // Sequencer schedules whatever the Writer drafted.
 // Its own cron, half an hour after Scout, because one account takes about 90 seconds.
 import { runOutreach } from "@/lib/outreach";

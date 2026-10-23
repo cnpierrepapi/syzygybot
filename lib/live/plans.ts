@@ -55,7 +55,7 @@ async function holdLanes(artist: string, n: number): Promise<Lane[]> {
     if (out.length >= n) break;
     if (!(await top([e.id], "place", 40, ROOMS, undefined, city).catch(() => [])).length) continue;
     out.push({
-      desk: "tour", agent: "router", action: "hold_request", purpose: "booking", n: 1, target: "place", tags: ROOMS, within: city,
+      desk: "tour", agent: "scout", action: "hold_request", purpose: "booking", n: 1, target: "place", tags: ROOMS, within: city,
       signal: [{ name: artist, type: "artist" }], speaker: artist, talent: artist,
       facts: [`${city} is number ${i + 1} on Qloo's heatmap of where ${artist}'s fans concentrate.`],
       title: org => `Hold ${org} for ${artist}`,
@@ -69,7 +69,7 @@ async function holdLanes(artist: string, n: number): Promise<Lane[]> {
 function collabLane(name: string, type: "artist" | "person", exclude: string[] = []): Lane {
   const feature = type === "artist";
   return {
-    desk: "talent", agent: "talent", action: "collab_pitch", purpose: "management", n: 1, target: type, exclude,
+    desk: "talent", agent: "scout", action: "collab_pitch", purpose: "management", n: 1, target: type, exclude,
     signal: [{ name, type }], speaker: name, talent: name,
     title: org => `${name} × ${org}: ${feature ? "a feature" : "a joint project"}`,
     ask: org => feature
@@ -97,7 +97,7 @@ async function rooms(): Promise<Lane[]> {
     const pops = (await Promise.all(r.acts.slice(0, 8).map(a => resolve(a, "artist")))).map(e => e?.popularity).filter((x): x is number => x != null);
     if (pops.length < 2) continue;
     bookings.push({
-      desk: "venue", agent: "venue", action: "booking_pitch", purpose: "management", n: 1, target: "artist",
+      desk: "venue", agent: "scout", action: "booking_pitch", purpose: "management", n: 1, target: "artist",
       signal: r.acts.slice(0, 6).map(name => ({ name, type: "artist" as const })), exclude: r.acts,
       popularity: [Math.min(...pops) * 0.97, Math.max(...pops) * 1.01],
       audience: `the crowd at ${r.name}`, speaker: r.name, talent: null,
@@ -108,7 +108,7 @@ async function rooms(): Promise<Lane[]> {
     });
   }
   return [...bookings, ...rs.map((r, i): Lane => ({
-    desk: "venue", agent: "venue", action: "sponsor_pitch", purpose: "sponsorship", n: 1, tags: [T(CATS[i % CATS.length])],
+    desk: "venue", agent: "scout", action: "sponsor_pitch", purpose: "sponsorship", n: 1, tags: [T(CATS[i % CATS.length])],
     signal: r.acts.slice(0, 6).map(name => ({ name, type: "artist" as const })),
     audience: `the crowd at ${r.name}`, location: r.metro,
     side: { name: r.name, tags: new Set(r.tags ?? []), age: null, metros: metroMap([r.metro]) },
@@ -125,13 +125,13 @@ export const PLANS: Record<string, Plan> = {
   "bad-bunny-touring": {
     kind: "pitch", city: "Miami",
     lanes: async () => [
-      { desk: "sponsorship", agent: "sponsor", action: "sponsor_pitch", purpose: "sponsorship", n: 2,
+      { desk: "sponsorship", agent: "scout", action: "sponsor_pitch", purpose: "sponsorship", n: 2,
         signal: [{ name: "Bad Bunny", type: "artist" }], speaker: "Bad Bunny", talent: "Bad Bunny",
         title: org => `${org} as a Bad Bunny tour sponsor`,
         ask: org => `A sponsorship pitch: offer ${org} a presenting partnership on Bad Bunny's next tour leg, led by the cities where both audiences concentrate. Ask them to reply if they want the full numbers.` },
       ...await holdLanes("Bad Bunny", 2),
       collabLane("Bad Bunny", "artist"),
-      { desk: "talent", agent: "talent", action: "ambassador_pitch", purpose: "partnerships", n: 1,
+      { desk: "talent", agent: "scout", action: "ambassador_pitch", purpose: "partnerships", n: 1,
         signal: [{ name: "Bad Bunny", type: "artist" }], speaker: "Bad Bunny", talent: "Bad Bunny",
         title: org => `Bad Bunny × ${org}: ambassador deal`,
         ask: org => `An ambassador pitch to ${org}'s partnerships team: a 12-month Bad Bunny ambassador deal, built on how the two audiences overlap. Ask who runs talent partnerships.` },
@@ -140,17 +140,17 @@ export const PLANS: Record<string, Plan> = {
   "cedric-brands": {
     kind: "pitch", city: "Atlanta",
     lanes: [
-      { desk: "talent", agent: "talent", action: "ambassador_pitch", purpose: "partnerships", n: 2,
+      { desk: "talent", agent: "scout", action: "ambassador_pitch", purpose: "partnerships", n: 2,
         signal: [{ name: "Cedric the Entertainer", type: "person" }], speaker: "Cedric the Entertainer", talent: "Cedric the Entertainer",
         title: org => `Cedric the Entertainer × ${org}: ambassador deal`,
         ask: org => `An ambassador pitch to ${org}: a campaign with Cedric the Entertainer, built on how close ${org}'s audience is to Cedric's fans. Ask who runs talent partnerships.` },
       // AC Barbeque is Cedric's and Anthony Anderson's, so the agents read both men's fans together.
-      { desk: "sales", agent: "sponsor", action: "sponsor_pitch", purpose: "partnerships", n: 1,
+      { desk: "sales", agent: "scout", action: "sponsor_pitch", purpose: "partnerships", n: 1,
         signal: [{ name: "Cedric the Entertainer", type: "person" }, { name: "Anthony Anderson", type: "person" }], speaker: "AC Barbeque", talent: null,
         tags: [T("food_and_beverage")],
         title: org => `AC Barbeque × ${org}: co-branded drop`,
         ask: org => `A co-branding pitch from AC Barbeque to ${org}: a limited co-branded product or a joint promotion, because the fans of AC Barbeque's founders lean toward ${org}. Ask them to reply if they want the full numbers.` },
-      { desk: "sales", agent: "sponsor", action: "sponsor_pitch", purpose: "partnerships", n: 1,
+      { desk: "sales", agent: "scout", action: "sponsor_pitch", purpose: "partnerships", n: 1,
         signal: [{ name: "Cedric the Entertainer", type: "person" }], speaker: "Setta Wines", talent: null,
         tags: [T("food_and_beverage:food")],
         title: org => `Setta Wines × ${org}: co-branded drop`,
@@ -164,7 +164,7 @@ export const PLANS: Record<string, Plan> = {
   "golden-globes-partnerships": {
     kind: "pitch", city: "Los Angeles",
     lanes: ([["wine_and_spirits", "spirits and wine"], ["fashion", "fashion"], ["travel", "travel"]] as const).map(([tag, cat]) => ({
-      desk: "sponsorship" as const, agent: "sponsor" as const, action: "sponsor_pitch" as const, purpose: "sponsorship" as const, n: 1,
+      desk: "sponsorship" as const, agent: "scout" as const, action: "sponsor_pitch" as const, purpose: "sponsorship" as const, n: 1,
       signal: NOMINEES, audience: "the Golden Globes TV nominees", speaker: "Golden Globes", talent: null, tags: [T(tag)],
       facts: [`The nominees read together: ${lineup.members.join(", ")} (Best Television Series, 83rd Golden Globes).`],
       title: (org: string) => `${org} for the Golden Globes broadcast`,
@@ -174,7 +174,7 @@ export const PLANS: Record<string, Plan> = {
   "twist-sponsorship": {
     kind: "pitch", city: "San Francisco",
     lanes: ([["software", 2, "software"], ["financial_services", 1, "fintech and financial"]] as const).map(([tag, n, cat]) => ({
-      desk: "podcast" as const, agent: "podcast" as const, action: "podcast_pitch" as const, purpose: "sponsorship" as const, n,
+      desk: "podcast" as const, agent: "scout" as const, action: "podcast_pitch" as const, purpose: "sponsorship" as const, n,
       signal: [{ name: "This Week in Startups", type: "podcast" as const }], audience: "This Week in Startups' listeners",
       speaker: "This Week in Startups", talent: null, tags: [T(tag)],
       title: (org: string) => `${org} sponsoring This Week in Startups`,
@@ -204,12 +204,12 @@ export const PLANS: Record<string, Plan> = {
 export function customPlan(e: CustomEntity): PitchPlan {
   const me = e.name, s: Sig[] = [{ name: me, type: e.type }];
   const brands = (desk: DeskId, n: number, title: (o: string) => string, ask: (o: string) => string, action: Lane["action"] = "sponsor_pitch"): Lane =>
-    ({ desk, agent: desk === "podcast" ? "podcast" : "sponsor", action, purpose: "sponsorship", n, signal: s, speaker: me, talent: e.type === "artist" || e.type === "person" ? me : null, title, ask });
+    ({ desk, agent: "scout", action, purpose: "sponsorship", n, signal: s, speaker: me, talent: e.type === "artist" || e.type === "person" ? me : null, title, ask });
   const why = (o: string) => `because ${me}'s audience leans toward ${o} in Qloo's taste data, both ways. Ask them to reply if they want the full numbers.`;
   switch (e.type) {
     case "brand": return { kind: "pitch", city: "New York", lanes: [
       { ...brands("sales", 2, o => `${me} × ${o}: co-branded drop`, o => `A co-branding pitch from ${me} to ${o}: a limited co-branded product or a joint promotion, ${why(o)}`), purpose: "partnerships" },
-      { desk: "talent", agent: "talent", action: "ambassador_pitch", purpose: "management", n: 1, target: "artist", signal: s, speaker: me, talent: null,
+      { desk: "talent", agent: "scout", action: "ambassador_pitch", purpose: "management", n: 1, target: "artist", signal: s, speaker: me, talent: null,
         title: o => `${o} as ${me}'s ambassador`,
         ask: o => `An ambassador pitch to ${o}'s management from ${me}: a campaign with ${o}, because ${o}'s fans and ${me}'s audience lean toward each other in Qloo's taste data. Ask them to reply if ${o} is open to it.` },
     ] };
@@ -219,7 +219,7 @@ export function customPlan(e: CustomEntity): PitchPlan {
       collabLane(me, "artist"),
     ] };
     case "person": return { kind: "pitch", city: "Los Angeles", lanes: [
-      { ...brands("talent", 2, o => `${me} × ${o}: ambassador deal`, o => `An ambassador pitch to ${o}: a campaign with ${me}, ${why(o)}`, "ambassador_pitch"), agent: "talent", purpose: "partnerships" },
+      { ...brands("talent", 2, o => `${me} × ${o}: ambassador deal`, o => `An ambassador pitch to ${o}: a campaign with ${me}, ${why(o)}`, "ambassador_pitch"), agent: "scout", purpose: "partnerships" },
       collabLane(me, "person"),
     ] };
     case "podcast": return { kind: "pitch", city: "New York", lanes: [

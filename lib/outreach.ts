@@ -31,11 +31,11 @@ export type AccountRow = Account & { passed_name: string; evidence: Evidence; sl
 export type Contact = { id: string; kind: string; name: string | null; role: string; email: string | null; role_status: string };
 type Trigger = { what: string; date?: string; source_url?: string; verified?: boolean; page?: string };
 
-const TRIGGER_SYSTEM = `You are the Strategist on an autonomous sales team. Find timing triggers for an outreach:
+const TRIGGER_SYSTEM = `You plan outreach for an autonomous sales team. Find timing triggers for an outreach:
 upcoming releases, tours, product launches or campaigns in the next four months, and marketing or partnership
 executives hired in the last six months. Use public pages only, never LinkedIn. Reply with JSON only.`;
 
-const PLAN_SYSTEM = `You are the Strategist on an autonomous sales team built on Qloo's taste data. The team
+const PLAN_SYSTEM = `You plan outreach for an autonomous sales team built on Qloo's taste data. The team
 approaches ONE company about using Qloo's audience data; the other entity in the thesis is evidence only and is
 never contacted. Given the evidence, verified contacts and verified triggers, decide:
 - angle: one sentence on what will make this company care, grounded in the numbers given
@@ -98,7 +98,7 @@ async function triggers(a: AccountRow): Promise<{ list: Trigger[]; costUsd: numb
 {"triggers":[{"what":"","date":"YYYY-MM-DD","source_url":""}]} At most 4, each with the exact public URL that states it.`,
       TRIGGER_SYSTEM, 800);
     const raw = (parseJson<{ triggers?: Trigger[] }>(web.text)?.triggers ?? []).filter(t => t?.what).slice(0, 4);
-    // Keep a trigger only if a page the Strategist can read itself backs it.
+    // Keep a trigger only if a page the Writer can read itself backs it.
     const pages = await readAll([...raw.map(t => t.source_url ?? ""), ...web.sources.map(s => s.url)]);
     const list = raw.map(t => {
       const page = pageBacking(pages, a.name, t.what);
@@ -151,7 +151,7 @@ Your last angle turned an affinity score into a percentage. Affinity is a 0 to 1
     returning id`) as { id: string }[];
   const verified = t.list.filter(x => x.verified).length;
   await logAction({
-    agent: "strategist", kind: "plan.set",
+    agent: "writer", kind: "plan.set",
     summary: `Plan for ${a.name}: ${plan.angle.replace(/\.$/, "")}. ${verified} verified timing trigger${verified === 1 ? "" : "s"}.`,
     refTable: "plans", refId: row.id, llmCostUsd: (r.costUsd ?? 0) + t.costUsd,
   });
@@ -225,7 +225,7 @@ export async function runOutreach(limit = 1, accountId?: string) {
       const contacts = (await sql()`select id, kind, name, role, email, role_status from contacts where account_id = ${a.id}`) as Contact[];
       const usable = contacts.filter(c => c.role_status === "confirmed");
       if (!usable.length) {
-        await logAction({ agent: "strategist", kind: "plan.blocked", summary: `No verified contact at ${a.name} yet, so no outreach plan. It gets searched again in 7 days.`, refTable: "accounts", refId: a.id });
+        await logAction({ agent: "writer", kind: "plan.blocked", summary: `No verified contact at ${a.name} yet, so no outreach plan. It gets searched again in 7 days.`, refTable: "accounts", refId: a.id });
         out.push({ account: a.name, contacts: contacts.length, verified: 0, touches: 0 });
         continue;
       }

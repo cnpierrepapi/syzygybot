@@ -96,7 +96,7 @@ export default async function Account({ params }: { params: Promise<{ id: string
       )}
       <section className="fade-up clear-hero" style={{ padding: "28px 4px 34px", marginTop: 8, position: "relative" }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <AgentChip agent="qualifier" label="Picked by Qualifier" />
+          <AgentChip agent="numbers" label="Picked by Numbers" />
           <AgentChip agent="numbers" label="Evidence by Numbers" />
         </div>
         <p className="eyebrow" style={{ marginTop: 22 }}>The buyer</p>
@@ -230,7 +230,7 @@ export default async function Account({ params }: { params: Promise<{ id: string
       </section>
 
       <p style={{ color: "var(--mute)", fontSize: 12.5, marginTop: 24, maxWidth: 760 }}>
-        {ev.source ?? "Source: Qloo taste data."} Picked by the Qualifier and assembled by the Numbers agent with no human review.
+        {ev.source ?? "Source: Qloo taste data."} Picked and assembled by the Numbers agent with no human review.
       </p>
     </main>
   );

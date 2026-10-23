@@ -4,27 +4,28 @@
 
 export const PALETTE = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"];
 
-export const AGENTS = [
-  "scout", "checker", "qualifier", "numbers", "contact_finder", "verifier",
-  "strategist", "writer", "sequencer", "inbox",
-] as const;
+import { AGENT_IDS, agentOf } from "./agents";
 
-export const AGENT_LABEL: Record<string, string> = {
-  scout: "Scout", checker: "Deal check", qualifier: "Qualifier", numbers: "Numbers", contact_finder: "Contact finder",
-  verifier: "Verifier", strategist: "Strategist", writer: "Writer", sequencer: "Sequencer",
-  inbox: "Inbox",
+// The nine agents, in the order a card meets them.
+export const AGENTS = AGENT_IDS;
+
+const LABEL: Record<string, string> = {
+  scout: "Scout", numbers: "Numbers", checker: "Deal check", contact_finder: "Contact finder", verifier: "Verifier",
+  writer: "Writer", clearance: "Clearance", sequencer: "Sequencer", inbox: "Inbox",
 };
+// Older rows and links may carry a retired name (Qualifier, Strategist...): they show as the agent that does that work now.
+export const AGENT_LABEL: Record<string, string> = new Proxy(LABEL, { get: (t, k: string) => t[agentOf(k)] });
 
 // Brighter steps of the same hues for chips and glows on the dark panels (text stays in ink colours).
 const BRIGHT = ["#5aa2ff", "#ff7a45", "#2fd39a", "#ffb31f", "#ff6fa6", "#3fbf3f", "#a99cff", "#ff8080"];
 
 // Fixed per agent, so adding one never recolours the others.
 const AGENT_COLOR: Record<string, string> = {
-  scout: BRIGHT[0], qualifier: BRIGHT[1], numbers: BRIGHT[2], contact_finder: BRIGHT[3], verifier: BRIGHT[4],
-  strategist: BRIGHT[5], writer: BRIGHT[6], sequencer: BRIGHT[7], inbox: "#e879f9", checker: "#5eead4",
+  scout: BRIGHT[0], clearance: BRIGHT[1], numbers: BRIGHT[2], contact_finder: BRIGHT[3], verifier: BRIGHT[4],
+  writer: BRIGHT[6], sequencer: BRIGHT[7], inbox: "#e879f9", checker: "#5eead4",
 };
 
-export const agentColor = (agent: string) => AGENT_COLOR[agent] ?? BRIGHT[0];
+export const agentColor = (agent: string) => AGENT_COLOR[agentOf(agent)] ?? BRIGHT[0];
 
 // Chart marks use the validated steps (all checks pass on #161140); chips use BRIGHT beside a label.
 export const DIM_COLOR: Record<string, string> = {

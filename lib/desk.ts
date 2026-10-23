@@ -66,7 +66,7 @@ export async function watchItems(personaId: string, limit = 12) {
     { id: string; headline: string; url: string; source: string; published: string | null; why: string; move: string | null; desk: string | null; created_at: string }[];
 }
 
-const AGENT_OF: Record<string, Agent> = { pitches: "sequencer", tour: "router", sponsorship: "sponsor", talent: "talent", venue: "venue", podcast: "podcast", sales: "sequencer" };
+const AGENT_OF: Record<string, Agent> = { pitches: "sequencer", tour: "sequencer", sponsorship: "scout", talent: "scout", venue: "scout", podcast: "scout", sales: "sequencer" };
 
 /** Approve, reject (a reason the agent keeps) or hold. Approving runs the action, simulated in a demo workspace. */
 export async function decide(w: Workspace, requestId: string, decision: "approved" | "rejected" | "held", reason: string | null, edit: { subject: string; body: string } | null) {

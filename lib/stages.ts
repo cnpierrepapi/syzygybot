@@ -77,7 +77,7 @@ export const STAGES: Stage[] = [
   { slug: "theses", label: "Theses published", agent: "scout", blurb: "Pairs that cleared WATCH and got a written thesis.", rows: () => pairRows("theses") },
   { slug: "pitch", label: "PITCH grade", agent: "scout", blurb: "The strongest theses: PITCH band on the rubric.", rows: () => pairRows("pitch") },
   {
-    slug: "accounts", label: "Accounts qualified", agent: "qualifier", blurb: "The side of each pair the Qualifier picked as the buyer, with the Numbers pack.",
+    slug: "accounts", label: "Accounts qualified", agent: "numbers", blurb: "The side of each pair Numbers picked as the buyer, with the Numbers pack.",
     rows: async () => ((await sql()`
       select ac.id, ac.slug, ac.reason, ac.created_at, e.name, pe.name passed
       from accounts ac join entities e on e.qloo_id = ac.entity_id left join entities pe on pe.qloo_id = ac.passed_on

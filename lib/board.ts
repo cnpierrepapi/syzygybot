@@ -6,10 +6,10 @@ import { persona } from "./personas";
 import type { Request } from "./desk";
 
 export const COLUMNS = [
-  { id: "spotted", label: "Spotted", agents: "Scout, desk agents" },
-  { id: "checked", label: "Checked", agents: "Deal check, Qualifier, Numbers" },
+  { id: "spotted", label: "Spotted", agents: "Scout" },
+  { id: "checked", label: "Checked", agents: "Deal check, Numbers" },
   { id: "person", label: "Person found", agents: "Contact finder, Verifier" },
-  { id: "drafted", label: "Drafted", agents: "Strategist, Writer" },
+  { id: "drafted", label: "Drafted", agents: "Writer" },
   { id: "clearance", label: "Clearance", agents: "Clearance" },
   { id: "approval", label: "Your approval", agents: "You" },
   { id: "sending", label: "Sending", agents: "Sequencer" },

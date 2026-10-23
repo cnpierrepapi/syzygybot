@@ -52,7 +52,7 @@ export function qualify(p: PairRow) {
   };
 }
 
-const REASON_SYSTEM = `You are the Qualifier on an autonomous sales team built on Qloo taste data.
+const REASON_SYSTEM = `You pick the buyer for an autonomous sales team built on Qloo taste data.
 Write two plain sentences: why the chosen side is the one to approach about Qloo's audience data,
 and why the other side is kept as evidence only. Use only the facts given. Never claim a budget,
 team or deal is confirmed; say what the facts suggest. No hype words, no em dashes.`;
@@ -124,7 +124,7 @@ export async function buildAccount(p: PairRow) {
     await sql()`update accounts set evidence = jsonb_set(evidence, '{otherTheses}', coalesce(evidence->'otherTheses', '[]'::jsonb) || ${JSON.stringify([extra])}::jsonb) where id = ${existing.id}`;
     await sql()`update pairs set account_id = ${existing.id} where id = ${p.id}`;
     await logAction({
-      agent: "qualifier", kind: "account.extended",
+      agent: "numbers", kind: "account.extended",
       summary: `${q.chosen.name} is already an account; the ${q.chosen.name} × ${q.passed.name} thesis joins it as more evidence.`,
       refTable: "accounts", refId: existing.id, llmCostUsd: reason.costUsd,
     });
@@ -138,7 +138,7 @@ export async function buildAccount(p: PairRow) {
   const accountId = rows[0].id;
   await sql()`update pairs set account_id = ${accountId} where id = ${p.id}`;
   await logAction({
-    agent: "qualifier", kind: "account.qualified",
+    agent: "numbers", kind: "account.qualified",
     summary: `Chose ${q.chosen.name} as the buyer; ${q.passed.name} is evidence only.`,
     refTable: "accounts", refId: accountId, detail: { model: reason.model }, llmCostUsd: reason.costUsd,
   });
@@ -193,7 +193,7 @@ export async function runAccounts(limit = 2) {
   for (const p of pairs) {
     try { out.push(await buildAccount(p)); }
     catch (e) {
-      await logAction({ agent: "qualifier", kind: "account.error", summary: `Could not qualify ${p.a.name} × ${p.b.name}.`, detail: { error: (e as Error).message.slice(0, 300) } });
+      await logAction({ agent: "numbers", kind: "account.error", summary: `Could not qualify ${p.a.name} × ${p.b.name}.`, detail: { error: (e as Error).message.slice(0, 300) } });
     }
   }
   if (out.length) await fillSlugs();

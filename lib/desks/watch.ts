@@ -83,11 +83,11 @@ JSON only: {"items": [{"n": 0, "why": "", "move": "", "desk": "one of ${desks.jo
         on conflict (dedupe) do nothing returning id`) as { id: string }[];
       if (!row) continue;
       kept++;
-      await logAction({ agent: "watch", kind: "watch.flagged", summary: `For ${p.title}: ${x.title} (${x.source})`, refTable: "watch_items", refId: row.id, detail: { persona: p.id, url: x.url, via: x.via } });
+      await logAction({ agent: "scout", kind: "watch.flagged", summary: `For ${p.title}: ${x.title} (${x.source})`, refTable: "watch_items", refId: row.id, detail: { persona: p.id, url: x.url, via: x.via } });
     }
   }
   await logAction({
-    agent: "watch", kind: "watch.read", llmCostUsd: cost, detail: { persona: p.id, searches: p.news, tradeFeeds: feeds.map(f => f.domain) },
+    agent: "scout", kind: "watch.read", llmCostUsd: cost, detail: { persona: p.id, searches: p.news, tradeFeeds: feeds.map(f => f.domain) },
     summary: `Read the news for ${p.title}: ${p.news.length} searches and ${feeds.length} trade-press feeds, ${seen.size} stories from the last ${DAYS} days, ${kept} worth acting on.`,
   });
   return Array.from({ length: kept }, (_, i) => String(i));

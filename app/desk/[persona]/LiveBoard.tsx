@@ -25,7 +25,9 @@ const REVIEW = [
 ];
 const AGENT: Record<string, string> = {
   scout: "Scout", checker: "Deal check", numbers: "Numbers", contact_finder: "Contact finder", writer: "Writer", clearance: "Clearance",
-  sponsor: "Sponsor", talent: "Talent", podcast: "Podcast", venue: "Venue", router: "Router", sequencer: "Sequencer", verifier: "Verifier",
+  sequencer: "Sequencer", verifier: "Verifier", inbox: "Inbox",
+  // Steps logged before the agents were merged (23 Oct) under the desk names.
+  sponsor: "Scout", talent: "Scout", podcast: "Scout", venue: "Scout", router: "Sequencer",
 };
 const HOLD_MS = 5_000, POLL_MS = 2_500;
 

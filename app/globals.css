@@ -128,7 +128,7 @@ h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -0.015em; }
 
 .funnel-tile { display: block; color: inherit; text-decoration: none; transition: transform 0.15s, border-color 0.15s; }
 .funnel-tile:hover { transform: translateY(-2px); border-color: rgba(239, 234, 255, 0.45) !important; }
-.funnel { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.funnel { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
 @media (max-width: 980px) { .funnel { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .funnel { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 

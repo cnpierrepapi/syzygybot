@@ -513,3 +513,10 @@ alter table permission_requests add constraint permission_requests_action_check
 
 -- A picture for each set-up desk (Qloo's image of the record, else Wikipedia's), 23 Oct.
 alter table custom_desks add column if not exists image text;
+
+-- Nine agents (23 Oct): the retired names' rows move to the agent that does that work now. The check still accepts the
+-- old names, so nothing anywhere can fail to log.
+update actions set agent = case agent
+  when 'qualifier' then 'numbers' when 'strategist' then 'writer' when 'router' then 'sequencer' when 'booker' then 'sequencer'
+  else 'scout' end
+where agent in ('qualifier','strategist','router','booker','watch','sponsor','talent','venue','podcast');

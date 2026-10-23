@@ -117,7 +117,7 @@ export default async function Thesis({ params }: { params: Promise<{ id: string 
           )}
           {p.account_id && (
             <a href={pathFor("accounts", p.account_slug, p.account_id!)} className="chip" style={{ marginTop: 20, padding: "8px 14px", fontSize: 13, borderColor: "#ff8a3d88" }}>
-              Qualifier picked {p.account_name} as the buyer →
+              Numbers picked {p.account_name} as the buyer →
             </a>
           )}
         </div>

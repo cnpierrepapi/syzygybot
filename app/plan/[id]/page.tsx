@@ -45,7 +45,7 @@ export default async function Plan({ params }: { params: Promise<{ id: string }>
       <nav className="nav"><Logo /><span className="crumb">PLAN · set {new Date(p.created_at).toISOString().slice(0, 10)}</span></nav>
 
       <section className="panel fade-up" style={{ padding: 28, marginTop: 8 }}>
-        <AgentChip agent="strategist" label="Set by Strategist" />
+        <AgentChip agent="writer" label="Set by Writer" />
         <p className="eyebrow" style={{ marginTop: 22 }}>The angle for <a href={pathFor("accounts", p.account_slug, p.account_id)} style={{ color: "var(--cyan)" }}>{p.account_name}</a></p>
         <p style={{ fontSize: "clamp(20px, 2.4vw, 28px)", lineHeight: 1.35, margin: 0 }}>{p.angle}</p>
         {p.detail.timing && <p style={{ color: "var(--dim)", marginTop: 16 }}><strong style={{ color: "#a86400" }}>When:</strong> {p.detail.timing}</p>}
@@ -72,7 +72,7 @@ export default async function Plan({ params }: { params: Promise<{ id: string }>
         </div>
         <div className="panel fade-up" style={{ padding: 26, animationDelay: "140ms" }}>
           <p className="eyebrow">Timing triggers</p>
-          <p style={{ color: "var(--dim)", fontSize: 13.5, margin: "0 0 14px" }}>A trigger is used only if the Strategist can read a page that backs it.</p>
+          <p style={{ color: "var(--dim)", fontSize: 13.5, margin: "0 0 14px" }}>A trigger is used only if the Writer can read a page that backs it.</p>
           <div style={{ display: "grid", gap: 12 }}>
             {[...kept, ...dropped].map((t, i) => (
               <div key={i} style={{ opacity: t.verified ? 1 : 0.55 }}>

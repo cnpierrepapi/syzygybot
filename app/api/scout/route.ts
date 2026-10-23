@@ -1,5 +1,5 @@
-// One full loop, every hour: Scout → Deal check → Qualifier → Numbers, then the account it just qualified goes
-// straight on to Contact finder → Verifier → Strategist → Writer → Sequencer, so the floor shows the
+// One full loop, every hour: Scout → Deal check → Numbers, then the account it just qualified goes
+// straight on to Contact finder → Verifier → Writer → Sequencer, so the floor shows the
 // whole chain in one cascade. If the pass qualified nobody new, the oldest waiting account goes instead.
 // The :30 cron (/api/outreach) keeps working the backlog in between.
 // Called by Vercel Cron (Bearer CRON_SECRET) or by hand with the same header.

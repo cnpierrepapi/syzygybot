@@ -74,7 +74,7 @@ export async function funnel(): Promise<Funnel> {
     { label: "Cards filed by runs", value: c.filed, agent: "clearance", href: "/desk" },
     { label: "Theses published", value: c.theses, agent: "scout", href: "/floor/theses" },
     { label: "PITCH grade", value: c.pitch, agent: "scout", href: "/floor/pitch" },
-    { label: "Accounts qualified", value: c.accounts, agent: "qualifier", href: "/floor/accounts" },
+    { label: "Accounts qualified", value: c.accounts, agent: "numbers", href: "/floor/accounts" },
     { label: "Contacts found", value: c.contacts, agent: "contact_finder", href: "/floor/contacts" },
     { label: "Verified", value: c.verified, agent: "verifier", href: "/floor/verified" },
     { label: "Messages drafted", value: c.touches, agent: "writer", href: "/floor/messages" },

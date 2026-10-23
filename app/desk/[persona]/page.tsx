@@ -59,9 +59,9 @@ async function rules(fd: FormData) {
 const initials = (n?: string | null) => n ? n.split(/\s+/).map(x => x[0]).join(". ") + "." : null;
 
 const STEP_AGENT: Record<string, string> = {
-  scout: "Scout", checker: "Deal check", qualifier: "Qualifier", numbers: "Numbers", contact_finder: "Contact finder", verifier: "Verifier",
-  strategist: "Strategist", writer: "Writer", sequencer: "Sequencer", inbox: "Inbox agent", clearance: "Clearance", router: "Router",
-  sponsor: "Sponsor", talent: "Talent", venue: "Venue", podcast: "Podcast",
+  scout: "Scout", checker: "Deal check", qualifier: "Numbers", numbers: "Numbers", contact_finder: "Contact finder", verifier: "Verifier",
+  strategist: "Writer", writer: "Writer", sequencer: "Sequencer", inbox: "Inbox agent", clearance: "Clearance", router: "Sequencer",
+  sponsor: "Scout", talent: "Scout", venue: "Scout", podcast: "Scout", watch: "Scout",
 };
 
 function Card({ r, personaId, rulesOn, showPersona, desk, first, steps }: { r: Request; personaId: string; rulesOn: Rules; showPersona: boolean; desk?: string; first: boolean; steps: Step[] }) {
