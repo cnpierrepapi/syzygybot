@@ -242,6 +242,8 @@ async function carry(runId: string, p: Persona, lane: Lane, sig: Ent[], s: Score
 
 // Place keywords and tags nearly every show carries ("Actor", "Love") say nothing about why two audiences fit.
 const PLACE_TAG = /\b(city|california|new york|los angeles|texas|florida|chicago|atlanta|miami|london|paris|tokyo|puerto rico|new jersey|georgia|ohio|spain|madrid|england|italy|france|japan|korea|brazil|colombia)\b|^(actor|actress|love|secret|family relationships|friendship|21st century|female protagonist|male protagonist|based on a true story|celebrity)$/i;
+// Qloo keywords that say nothing to a buyer ("Friend", "Uncensored", "Experienced" went out in drafts on 23 Oct).
+const VAGUE_TAG = /^(best )?friends?(hip)?$|^(experienced|uncensored|models?|contemporary|modern|classic|popular|famous|fun|funny|cool|beautiful|style|lifestyle|people|person|woman|man|adult|life|culture|entertainment|media|music|songs?|singers?|musicians?|artists?|stars?|fans?|fairy godmother|spanish literature|literature|fiction|drama|comedy|humor|humour|tv|television|film|movies?)$/i;
 
 async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: Scored, rank: number, of: number, card: Card, title: string) {
   const { c, m, back } = s;
@@ -261,7 +263,7 @@ async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: S
     return 0;
   }
   // Place keywords ("Los angeles california") are where a show is set, not a taste; the cities line covers geography.
-  const shared = m.sharedTags.filter(t => !PLACE_TAG.test(t)).slice(0, 3).map(tagLabel);
+  const shared = m.sharedTags.filter(t => !PLACE_TAG.test(t) && !VAGUE_TAG.test(tagLabel(t))).slice(0, 3).map(tagLabel);
   await step(runId, p, card, COL.checked, "numbers", "card.checked",
     `Qloo score ${f2(s.twoWay)}/1: ${f2(c.affinity)} toward ${c.name}, ${f2(back)} back. Our rough estimate: ${m.score}/100.` +
     `${shared.length ? ` Shared tastes: ${shared.join(", ")}.` : ""}${deals.length ? " No clash with known deals." : ""}`,
@@ -282,6 +284,8 @@ async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: S
   const facts = [
     ...(lane.facts ?? []),
     `Qloo's taste data, read today: ${who} lean toward ${c.name} at ${f2(c.affinity)}${back != null ? `, and ${c.name}'s audience leans back at ${back.toFixed(2)}` : ""} (0 to 1).`,
+    // The weaker way is the pair's score; the writer quotes this one, so a lopsided pair isn't sold on its strong side.
+    ...(s.twoWay != null ? [`Qloo's score for the pair, both ways (the weaker of the two): ${f2(s.twoWay)} out of 1.`] : []),
     ...(shared.length ? [`Shared audience tastes: ${shared.join(", ")}.`] : []),
     ...(m.sharedCities.length ? [`Both audiences concentrate in ${listOf(m.sharedCities.slice(0, 3))}.`] : []),
   ];

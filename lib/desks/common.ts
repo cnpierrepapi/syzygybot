@@ -63,17 +63,36 @@ JSON only: {"deals": [{"brand": "", "category": "", "exclusive": true|false, "ye
   return deals;
 }
 
-const WRITER = `You write one short outbound message for a desk on SYZYGY, an AI agent team for entertainment partnerships.
-Hard rules:
-- The first sentence says plainly that an AI agent (SYZYGY) drafted this for the sender named in the brief, and a person approved it.
-- Use only facts and numbers from the brief. SYZYGY's match score is out of 100 and is SYZYGY's own estimate: call it "our match score".
-  Describe it by how it was built (as the brief says); never say Qloo hasn't measured, rated or scored something.
-  Qloo affinity numbers are 0 to 1 scores from Qloo's taste data: credit them as Qloo's, never as percentages. Never claim to be Qloo.
+// Pro writes these (Flash's read like form letters and quoted raw data, 23 Oct): a note from someone who did their homework.
+const WRITER = `You write one short cold message for a desk on SYZYGY, an AI agent team for entertainment partnerships. It goes out
+under the sender named in the brief, after a person on their team approves it.
+
+How it should read: a note from someone in the business who did their homework, to one busy person. Plain words, short
+sentences, a little warmth. Not a press release, not a form letter.
+- Open with why this pairing is worth their time, in their terms: their audience, their business. The ask comes after.
+- In the first two sentences, say in one plain clause that SYZYGY, an AI agent, drafted it for the sender and a person on
+  their team approved it. Short and matter-of-fact.
+- One number at most, and only Qloo's. If the brief gives a both-ways score for the pair, that is the number; otherwise the
+  lower of the two directions. E.g. "Qloo's taste data scores the pair at 0.95 out of 1, both ways". Credit it to
+  Qloo, never as a percentage, and never claim to be Qloo. Leave out any score that is SYZYGY's own. Never say Qloo hasn't
+  measured, rated or scored something.
+- At most one shared taste or one city from the brief, and only if it would mean something to this reader. Skip filler.
+- Call people by the name the public knows them by (a stage name over a legal or long-form name in the brief).
 - Talent appears only as audience data ("Bad Bunny's fans lean toward..."), never as liking, using or backing anything.
-- One clear ask, answered by a reply. Never ask for a call, a meeting or a time slot; a person takes over after a reply. Under 140 words. No em dashes, no exclamation marks, no hype words.
+- End on one specific question about the deal itself, answered by a reply. Never ask for a call, a meeting or a time slot;
+  a person takes over after a reply. No boilerplate like "please let me know if you are open to this".
+- Subject: under 8 words, specific to the pairing. Not "partnership opportunity" or "collaboration opportunity".
+- Stay out of spam filters: no "opportunity", "free", "guarantee", "exclusive", "act now", "limited time", "urgent", no money
+  amounts, no links, no exclamation marks, no capitals for emphasis. No em dashes, no hype words.
+- 60 to 120 words. Use only facts from the brief: never say what an audience buys, uses, relies on or does beyond them.
+- Say what the data shows, plainly. No "aligned", "alignment", "synergy", "engage", "engagement", "demographic", "leverage",
+  "deeply", "perfect fit".
 - If recipient_person is given, write to that person by name (and if delivered_via says it's a shared inbox, say it's for their attention).
 - Sign as the sender in the brief.
 Reply with JSON only: {"subject": "", "body": ""}`;
+
+// Words that send a cold email to spam, or read like one.
+const SPAMMY = /\b(opportunit(y|ies)|free|guarantee[ds]?|exclusive offer|act now|limited time|urgent|click here|risk[- ]free|synergy|align(ed|ment)|engagement|demographic|leverage)\b|\$\d|!/i;
 
 const style = (b: string, subject: string) => ({
   no_em_dash: !/—/.test(`${subject}${b}`),
@@ -82,12 +101,13 @@ const style = (b: string, subject: string) => ({
   discloses: /\bai\b/i.test(b.slice(0, 260)),
   no_meeting_ask: !MEETING_ASK.test(`${subject}\n${b}`),
   no_unmeasured_note: !UNMEASURED.test(`${subject}\n${b}`),
+  no_spam_words: !SPAMMY.test(`${subject}\n${b}`),
 });
 
 export async function draft(brief: Record<string, unknown>) {
   let cost = 0, last: { subject: string; body: string } | null = null, broke: Record<string, boolean> = {};
   for (let attempt = 0; attempt < 2; attempt++) {
-    const r = await ask("write", WRITER, attempt ? `${JSON.stringify(brief)}\n\nYour last draft broke a rule: ${JSON.stringify(broke)}. Fix it.` : JSON.stringify(brief), 450);
+    const r = await ask("pen", WRITER, attempt ? `${JSON.stringify(brief)}\n\nYour last draft broke a rule: ${JSON.stringify(broke)}. Fix it.` : JSON.stringify(brief), 450);
     cost += r.costUsd ?? 0;
     last = parseJson<{ subject: string; body: string }>(r.text);
     if (!last?.body) continue;

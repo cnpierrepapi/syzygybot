@@ -97,7 +97,8 @@ export async function syzygyMatch(a: Side, b: Side): Promise<Match> {
   const { edges } = await loadCorpus();
   const e = a.id && b.id ? (edges.get(a.id) ?? []).find(x => x.partnerId === b.id) : undefined;
   const sharedTags = [...a.tags].filter(t => b.tags.has(t) && !SENSITIVE.test(t)).sort((x, y) => (df.get(x) ?? 0) - (df.get(y) ?? 0)).slice(0, 8);
-  const sharedCities = [...a.metros.keys()].filter(m => b.metros.has(m)).slice(0, 5);
+  // Unnamed map cells (Qloo geohashes like "djuc") still count toward the overlap, but only named cities are shown or sent.
+  const sharedCities = [...a.metros.keys()].filter(m => b.metros.has(m) && /[A-Z]/.test(m)).slice(0, 5);
   return {
     score, strength: score >= 80 ? "strong" : score >= 60 ? "medium" : "weak",
     parts: { taste: +taste.toFixed(2), age: age == null ? null : +age.toFixed(2), cities: +cities.toFixed(2) },

@@ -3,16 +3,21 @@ import { createVertex } from "@ai-sdk/google-vertex";
 
 // Gemini on Vertex AI, billed to his Google Cloud credit. Claude on Vertex has zero quota on
 // trial accounts (429 on the first call, 13 Oct), and Vercel AI Gateway is on its free tier.
-// Flash-Lite for cheap screening and sorting, Flash for strategy and writing.
+// Flash-Lite for cheap screening and sorting, Flash for strategy and research, Pro for the messages that go out (Flash's
+// drafts read like form letters, 23 Oct). 3.1 Pro Preview is the newest Pro this project can call.
 export const MODELS = {
   fast: "gemini-3.5-flash-lite",
   write: "gemini-3.8-flash",
+  pen: "gemini-3.1-pro-preview",
 } as const;
+// Who takes a call when a model's quota is used up or it hangs: a draft falls to Flash, never to Flash-Lite.
+const FALLBACK: Partial<Record<keyof typeof MODELS, keyof typeof MODELS>> = { pen: "write", write: "fast" };
 
 // USD per token. ESTIMATES, not yet checked against the Vertex price sheet. The credit itself is in EUR.
 const PRICE: Record<string, { in: number; out: number }> = {
   [MODELS.fast]: { in: 0.0000001, out: 0.0000004 },
   [MODELS.write]: { in: 0.0000005, out: 0.000003 },
+  [MODELS.pen]: { in: 0.000002, out: 0.000012 },
 };
 
 export function costUsd(model: string, inputTokens = 0, outputTokens = 0) {
@@ -42,13 +47,14 @@ export async function ask(tier: keyof typeof MODELS, system: string, prompt: str
   const run = (m: string, retries: number) => generateText({
     model: provider()(m), system, prompt, maxRetries: retries, abortSignal: AbortSignal.timeout(90_000),
     maxOutputTokens: maxOutputTokens + 1024,
-    providerOptions: m === MODELS.write ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
+    providerOptions: m === MODELS.write || m === MODELS.pen ? { google: { thinkingConfig: { thinkingLevel: "low" } } } : undefined,
   });
   let model: string = MODELS[tier];
-  // When the writer's quota is used up (429) or it hangs past the limit, the fast model takes the call instead of the run failing.
-  const r = await run(model, tier === "write" ? 1 : 2).catch(e => {
-    if (tier !== "write" || !/resource exhausted|429|aborted|timeout/i.test(String((e as Error).message))) throw e;
-    model = MODELS.fast;
+  // When a model's quota is used up (429) or it hangs past the limit, the next one down takes the call instead of the run failing.
+  const next = FALLBACK[tier];
+  const r = await run(model, next ? 1 : 2).catch(e => {
+    if (!next || !/resource exhausted|429|aborted|timeout/i.test(String((e as Error).message))) throw e;
+    model = MODELS[next];
     return run(model, 2);
   });
   return { text: r.text.trim(), model, costUsd: costUsd(model, r.usage.inputTokens, r.usage.outputTokens) };
