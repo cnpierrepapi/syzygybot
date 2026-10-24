@@ -1,7 +1,7 @@
 "use client";
 
 // The live constellation behind every page. Stars are the brands, artists and shows in published theses;
-// lines are the theses; the nine agents ride an outer ring. When an agent acts, a pulse of light leaves its
+// lines are the theses; the ten agents ride an outer ring. When an agent acts, a pulse of light leaves its
 // satellite and lands on the star it touched (window event "syzygy:pulse"). Pages can pull the camera
 // toward the stars they're about (window event "syzygy:focus"). Drag turns it, the +/- buttons (or a pinch)
 // zoom, and stars are picked by nearest-on-screen so they're easy to hit.

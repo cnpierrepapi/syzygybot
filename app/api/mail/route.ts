@@ -4,6 +4,7 @@ import { withLock } from "@/lib/lock";
 import { sendDueEmails } from "@/lib/mail";
 import { pollLetters, sendDueLetters } from "@/lib/letters";
 import { readInbox } from "@/lib/mailbox";
+import { pollOutboundLetters, sendDueOutbound } from "@/lib/outbound";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -18,6 +19,9 @@ export async function GET(req: Request) {
     emails: await safe(() => sendDueEmails()),
     letters: await safe(() => sendDueLetters()),
     tracking: await safe(() => pollLetters()),
+    // Live-run cards a person approved for real, in SYZYGY's own voice.
+    outbound: await safe(() => sendDueOutbound()),
+    outboundTracking: await safe(() => pollOutboundLetters()),
     inbox: await safe(() => readInbox()),
   })));
 }

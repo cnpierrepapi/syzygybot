@@ -63,9 +63,9 @@ export async function funnel(): Promise<Funnel> {
       (select count(*) from contacts where role_status = 'confirmed')::int verified,
       (select count(*) from touches where step = 1)::int touches,
       (select count(*) from touches where scheduled_for is not null and status <> 'cancelled')::int scheduled,
-      (select count(*) from replies where ${showSimulated()} or not simulated)::int replies,
+      ((select count(*) from replies where ${showSimulated()} or not simulated) + (select count(*) from outbound_replies))::int replies,
       (select count(*) from do_not_contact)::int optouts,
-      (select count(*) from handoffs where ${showSimulated()} or not simulated)::int handoffs,
+      ((select count(*) from handoffs where ${showSimulated()} or not simulated) + (select count(*) from outbound_replies where class not in ('ooo','opt_out')))::int handoffs,
       (select count(*) from workspaces where claimed_at is not null and not demo)::int claimed`) as Record<string, number>[];
   return [
     // The desks' live runs lead; the queue chain behind the older tiles stopped on 23 Oct, so its backlog isn't shown.

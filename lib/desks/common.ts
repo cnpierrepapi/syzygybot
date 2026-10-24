@@ -94,7 +94,7 @@ Reply with JSON only: {"subject": "", "body": ""}`;
 // Words that send a cold email to spam, or read like one.
 const SPAMMY = /\b(opportunit(y|ies)|free|guarantee[ds]?|exclusive offer|act now|limited time|urgent|click here|risk[- ]free|synergy|align(ed|ment)|engagement|demographic|leverage)\b|\$\d|!/i;
 
-const style = (b: string, subject: string) => ({
+export const style = (b: string, subject: string) => ({
   no_em_dash: !/—/.test(`${subject}${b}`),
   no_percent: !/%|\bper ?cent\b/i.test(`${subject}${b}`),
   short: b.split(/\s+/).length <= 170,

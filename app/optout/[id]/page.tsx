@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { maskEmail } from "@/lib/ui";
 import { logAction } from "@/lib/actions";
 import { stopSequence } from "@/lib/sequencer";
+import { stopOutbound } from "@/lib/outbound";
 import { Logo } from "../../components/visuals";
 
 // About a person, or a working document: visible on the floor, kept out of search results.
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: "Opt out", robots: { index: false, fo
 
 export const dynamic = "force-dynamic";
 
-type Row = { id: string; to_address: string | null; contact_id: string; company: string; site: string | null };
+type Row = { id: string; to_address: string | null; contact_id: string | null; company: string; site: string | null; outbound?: boolean };
 
 // Only the recipient has the token (it's in their copy of the message, and masked on every public page),
 // so only they can opt out. Message UUIDs are not accepted: they aren't secret.
@@ -21,7 +22,10 @@ async function load(tok: string) {
     select t.id, t.to_address, t.contact_id, e.name company, e.official_site site
     from touches t join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id join entities e on e.qloo_id = ac.entity_id
     where t.optout_token = ${tok}`) as Row[];
-  return t ?? null;
+  if (t) return t;
+  // Live-run cards sent for real (lib/outbound.ts) carry their own token.
+  const [o] = (await sql()`select id, to_address, null contact_id, company, site, true outbound from outbound where optout_token = ${tok}`) as Row[];
+  return o ?? null;
 }
 
 // Opening the link changes nothing (mail scanners open links); the button does.
@@ -31,8 +35,9 @@ async function optOut(formData: FormData) {
   if (!t) return;
   const value = (t.to_address ?? t.site?.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? t.company).toLowerCase();
   await sql()`insert into do_not_contact (value, reason) values (${value}, ${"opted out via link"}) on conflict (value) do nothing`;
-  const n = t.to_address ? await stopSequence({ address: t.to_address }, "opted out") : await stopSequence({ contactId: t.contact_id }, "opted out");
-  await logAction({ agent: "sequencer", kind: "optout.honoured", summary: `Opt-out from ${t.company} honoured: ${n} unsent message${n === 1 ? "" : "s"} cancelled, address added to do-not-contact.`, refTable: "touches", refId: t.id });
+  const n = (t.to_address ? await stopSequence({ address: t.to_address }, "opted out") : t.contact_id ? await stopSequence({ contactId: t.contact_id }, "opted out") : 0)
+    + await stopOutbound(t.to_address, t.outbound ? t.company : null);
+  await logAction({ agent: "sequencer", kind: "optout.honoured", summary: `Opt-out from ${t.company} honoured: ${n} unsent message${n === 1 ? "" : "s"} cancelled, address added to do-not-contact.`, refTable: t.outbound ? undefined : "touches", refId: t.outbound ? undefined : t.id });
 }
 
 export default async function OptOut({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ done?: string }> }) {

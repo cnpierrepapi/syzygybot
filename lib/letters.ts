@@ -18,7 +18,7 @@ export const FROM = {
   city: "Dover", provinceOrState: "DE", postalOrZip: "19901", countryCode: "US",
 };
 
-async function pg(path: string, init: { method?: string; body?: unknown; live: boolean }) {
+export async function pg(path: string, init: { method?: string; body?: unknown; live: boolean }) {
   const key = init.live ? process.env.POSTGRID_LIVE_KEY : process.env.POSTGRID_API_KEY;
   if (!key) throw new Error(init.live ? "POSTGRID_LIVE_KEY not set" : "POSTGRID_API_KEY not set");
   if (!init.live && !key.startsWith("test_")) throw new Error("POSTGRID_API_KEY is not a test key");

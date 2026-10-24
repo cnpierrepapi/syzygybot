@@ -8,6 +8,7 @@ import { sql } from "./db";
 import { logAction } from "./actions";
 import { handleReply } from "./inbox";
 import { stopSequence } from "./sequencer";
+import { handleOutboundReply, outboundForReply, stopOutbound } from "./outbound";
 
 const UUID = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})@syzygybot\.com/gi;
 
@@ -72,10 +73,26 @@ export async function readInbox(max = 25) {
       const raw = source.toString("utf8");
       const m = await simpleParser(source);
       const mid = m.messageId ?? `uid:${validity}:${uid}`;
-      const [seen] = (await sql()`select 1 from replies where detail->>'message_id' = ${mid}`) as unknown[];
-      const t = seen ? null : await touchFor(m, raw);
+      const [seen] = (await sql()`select 1 from replies where detail->>'message_id' = ${mid}
+        union all select 1 from outbound_replies where detail->>'message_id' = ${mid}`) as unknown[];
+      // Live-run cards sent for real (lib/outbound.ts) carry <outbound-id@syzygybot.com>; older messages carry the touch id.
+      const refs = [m.inReplyTo ?? "", ...(Array.isArray(m.references) ? m.references : m.references ? [m.references] : [])].join(" ");
+      const ids = [...(isBounce(m) ? raw : refs).matchAll(UUID)].map(x => x[1].toLowerCase()).reverse();
+      // By message id first (ours, then the older touches), and only then by the sender's address.
+      let o = seen ? null : await outboundForReply(ids, null);
+      const t = seen || o ? null : await touchFor(m, raw);
+      if (!seen && !o && !t && !isBounce(m)) o = await outboundForReply([], m.from?.value[0]?.address?.toLowerCase() ?? null);
       let kind = seen ? "duplicate" : "unmatched";
-      if (t && isBounce(m)) { await bounced(t); kind = "bounce"; }
+      if (o && isBounce(m)) {
+        await sql()`update outbound set status = 'bounced', detail = detail || '{"bounced": true}'::jsonb where id = ${o.id}`;
+        const n = await stopOutbound(o.to_address, null);
+        await logAction({ agent: "inbox", kind: "outbound.bounced", summary: `The email to ${o.company} bounced. ${n} unsent message${n === 1 ? "" : "s"} to that address cancelled.`, refTable: "permission_requests", refId: o.request_id });
+        kind = "bounce";
+      } else if (o) {
+        const text = stripQuoted(m.text ?? "") || (m.subject ?? "").trim();
+        const r = await handleOutboundReply(o, text.slice(0, 5000), { message_id: mid, from: m.from?.value[0]?.address ?? null, received: m.date?.toISOString() ?? null });
+        kind = r.class;
+      } else if (t && isBounce(m)) { await bounced(t); kind = "bounce"; }
       else if (t) {
         const text = stripQuoted(m.text ?? "") || (m.subject ?? "").trim();
         const r = await handleReply(t.id, text.slice(0, 5000), false);
@@ -88,7 +105,7 @@ export async function readInbox(max = 25) {
       last = uid;
       await sql()`insert into mailbox_state (name, uid_validity, last_uid) values ('INBOX', ${validity}, ${last})
         on conflict (name) do update set uid_validity = excluded.uid_validity, last_uid = excluded.last_uid, updated_at = now()`;
-      out.push({ uid, matched: !!t, kind });
+      out.push({ uid, matched: !!(t || o), kind });
     }
   } finally {
     lock.release();

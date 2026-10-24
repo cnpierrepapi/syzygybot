@@ -7,8 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import type { RunCard, RunSnapshot, RunStep } from "@/lib/live/run";
 
 const PITCH = [
-  { label: "Spotted", agents: "Scout, desk agents" },
-  { label: "Checked", agents: "Numbers, Deal check" },
+  { label: "Spotted", agents: "Scout" },
+  { label: "Checked", agents: "Numbers, Deal check, Rival check" },
   { label: "Person found", agents: "Contact finder" },
   { label: "Drafted", agents: "Writer" },
   { label: "Clearance", agents: "Clearance" },
@@ -24,7 +24,7 @@ const REVIEW = [
   { label: "Your sign-off", agents: "The desk owner" },
 ];
 const AGENT: Record<string, string> = {
-  scout: "Scout", checker: "Deal check", numbers: "Numbers", contact_finder: "Contact finder", writer: "Writer", clearance: "Clearance",
+  scout: "Scout", checker: "Deal check", rival_check: "Rival check", numbers: "Numbers", contact_finder: "Contact finder", writer: "Writer", clearance: "Clearance",
   sequencer: "Sequencer", verifier: "Verifier", inbox: "Inbox",
   // Steps logged before the agents were merged (23 Oct) under the desk names.
   sponsor: "Scout", talent: "Scout", podcast: "Scout", venue: "Scout", router: "Sequencer",

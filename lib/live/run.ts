@@ -14,6 +14,7 @@ import { readAll } from "../web";
 import { rejectionNotes } from "../desk";
 import { slugify, token } from "../slug";
 import { draft, findBuyer, findInbox, talentDeals } from "../desks/common";
+import { rivalHit, screenFor } from "../rivals";
 import { planOf, type Lane, type PitchPlan } from "./plans";
 import { affinities, audienceInsights, mergeSides, profile, resolve, sideOf, top, type Ent, type Insights } from "./qx";
 import { metroOf } from "../geo";
@@ -43,6 +44,23 @@ function dealsOf(talent: string) {
   return d;
 }
 const PICK_DEALS_MS = 20_000, CARD_DEALS_MS = 60_000;
+
+// Rival check: whose rivals a lane must skip. Brand lanes only, and not Qloo's own data sales (a data client's
+// competitor is a fine prospect). One lookup per subject per process, like the deals.
+const screened = (lane: Lane) => (lane.target ?? "brand") === "brand" && lane.purpose !== "insights" ? (lane.talent ?? lane.speaker) : null;
+type Screened = Awaited<ReturnType<typeof screenFor>>;
+const screenLookups = new Map<string, Promise<Screened | null>>();
+function screenOf(lane: Lane) {
+  const subject = screened(lane);
+  if (!subject) return Promise.resolve(null);
+  let s = screenLookups.get(subject);
+  if (!s) {
+    s = screenFor(subject, !!lane.talent).catch(() => null).finally(() => screenLookups.delete(subject));
+    screenLookups.set(subject, s);
+  }
+  return s;
+}
+const PICK_RIVALS_MS = 60_000;
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 const host = (u: string | null | undefined) => { try { return u ? new URL(u).hostname.replace(/^www\./, "") : ""; } catch { return u ?? ""; } };
 const f2 = (x: number | null | undefined) => x?.toFixed(2) ?? "n/a";
@@ -127,6 +145,10 @@ async function pitch(runId: string, p: Persona, plan: PitchPlan) {
     dealsOf(t);
     await step(runId, p, null, null, "checker", "run.deals", `Looking up the brand deals ${t} already has, so the desk doesn't pitch one of them.`);
   }
+  const subjects = [...new Map(lanes.filter(l => screened(l)).map(l => [screened(l)!, l])).values()];
+  for (const l of subjects) screenOf(l);
+  if (subjects.length) await step(runId, p, null, null, "rival_check", "run.rivals",
+    `Rival check: looking up the current partners of ${listOf(subjects.slice(0, 3).map(l => screened(l)!))}${subjects.length > 3 ? ` and ${subjects.length - 3} more` : ""}, and who competes with each, so no card pitches a competitor.`);
 
   // What Qloo says about the audience (its network, shows, podcasts, interests) is read once the first lane is measured,
   // alongside the cards, so the first card doesn't queue behind it for Qloo calls.
@@ -194,6 +216,20 @@ async function measureLane(runId: string, p: Persona, lane: Lane, taken: Set<str
   let pool = fresh(await top(sig.map(s => s.id), kind, take, lane.tags, lane.location, lane.within));
   // A category read in one city can come back empty; the city's whole list is the fallback (rooms keep their category).
   if (!pool.length && lane.tags?.length && kind === "brand") pool = fresh(await top(sig.map(s => s.id), kind, take, [], lane.location, lane.within));
+  // Rival check: competitors of the subject's current partners never become cards.
+  const rivals = await within(screenOf(lane), PICK_RIVALS_MS, null);
+  if (rivals?.screen.size) {
+    const out = pool.map(c => ({ c, hit: rivalHit(c.name, rivals.screen) })).filter(x => x.hit);
+    if (out.length) {
+      pool = pool.filter(c => !out.some(x => x.c.id === c.id));
+      for (const x of out) taken.add(x.c.name.toLowerCase());
+      const by = new Map<string, string[]>();
+      for (const x of out) by.set(x.hit!.partner, [...(by.get(x.hit!.partner) ?? []), x.c.name]);
+      await step(runId, p, null, null, "rival_check", "run.rivals_skipped",
+        `Rival check skipped ${listOf([...by].map(([partner, names]) => `${listOf(names)} (${names.length === 1 ? "a rival" : "rivals"} of ${screened(lane)}'s ${partner} deal)`))}.`,
+        { skipped: out.map(x => ({ name: x.c.name, ...x.hit })) });
+    }
+  }
   if (!pool.length) return;
   await step(runId, p, null, null, "numbers", "run.measuring", `Qloo listed ${many(pool.length, kind)} for ${who}${lane.within ? ` in ${lane.within}` : ""}. Measuring each one back the other way now.`);
   const me = lane.side ?? mergeSides(who, await Promise.all(sig.map(sideOf)));
@@ -256,6 +292,25 @@ async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: S
   const deals = lane.talent && isBrand ? await within(dealsOf(lane.talent), CARD_DEALS_MS, [] as Deals) : [];
   // Everyone named in the message as talent, so Clearance checks none of them reads as endorsing anything.
   const named = [...(lane.talent ? [lane.talent] : []), ...(lane.target === "artist" || lane.target === "person" ? [c.name] : [])];
+  // Rival check again, for a screen that wasn't ready when the lane picked.
+  const late = isBrand ? await within(screenOf(lane), CARD_DEALS_MS, null) : null;
+  const rival = late ? rivalHit(c.name, late.screen) : null;
+  if (rival) {
+    await sql()`update run_cards set status = 'dropped', detail = ${JSON.stringify({ why: "rival of a current partner", rival })} where id = ${card.id}`;
+    await step(runId, p, card, COL.checked, "rival_check", "card.dropped", `Rival check: ${c.name} competes with ${screened(lane)}'s ${rival.partner} deal (${rival.category}). Not pitching.`);
+    return 0;
+  }
+  // The web's rival lists are narrow ("Calvin Klein" doesn't list Zara); Clearance's exclusivity judge reads the category
+  // wider. Rival check asks it now, before anything is drafted, so a card it would hold is never filed.
+  if (isBrand && lane.talent && deals.length && !deals.some(d => d.brand.toLowerCase() === c.name.toLowerCase())) {
+    const ex = (await clear({ channel: "email", subject: "", body: "", address: null, addressSource: null, country: "US", talent: [lane.talent],
+      targetBrand: c.name, talentDeals: deals, usesQloo: true })).checks.find(x => x.rule === "exclusivity");
+    if (ex && !ex.pass) {
+      await sql()`update run_cards set status = 'dropped', detail = ${JSON.stringify({ why: "category conflict with a current deal", note: ex.note })} where id = ${card.id}`;
+      await step(runId, p, card, COL.checked, "rival_check", "card.dropped", `Rival check: ${c.name} ${ex.note.replace(/^Conflicts with/, "competes with").replace(/\. Hold until.*$/s, "").replace(/, source: .*$/s, "")}. Not pitching.`);
+      return 0;
+    }
+  }
   const clash = deals.find(d => d.brand.toLowerCase() === c.name.toLowerCase());
   if (clash) {
     await sql()`update run_cards set status = 'dropped', detail = ${JSON.stringify({ why: "existing deal", deal: clash })} where id = ${card.id}`;

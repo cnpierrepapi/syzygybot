@@ -28,11 +28,12 @@ export type BoardCard = {
 // Where a log entry belongs on the board.
 function columnOf(agent: string, kind: string): number | null {
   if (kind === "step.matched" || agent === "scout") return COL.spotted;
-  if (["checker", "qualifier", "numbers"].includes(agent)) return COL.checked;
+  if (["checker", "rival_check", "qualifier", "numbers"].includes(agent)) return COL.checked;
   if (kind === "step.buyer" || agent === "contact_finder" || agent === "verifier") return COL.person;
   if (agent === "clearance") return COL.clearance;
   if (kind === "touch.approved" || /^request\.approved/.test(kind)) return COL.sending;
-  if (kind === "touch.sent" || kind === "letter.sent" || kind === "letter.test") return COL.sent;
+  if (kind === "touch.sent" || kind === "letter.sent" || kind === "letter.test" || kind === "outbound.sent") return COL.sent;
+  if (kind === "outbound.approved" || kind === "outbound.written") return COL.sending;
   if (agent === "inbox") return COL.replied;
   if (["strategist", "writer"].includes(agent) || kind === "request.drafted" || kind === "sequence.scheduled") return COL.drafted;
   return null;
@@ -78,6 +79,10 @@ export async function board(reqs: Request[]): Promise<BoardCard[]> {
       if (real && ch) {
         col = ch.replies ? COL.replied : ch.touch_status === "sent" ? COL.sent : COL.sending;
         note = ch.touch_status === "sent" ? "Sent for real" : "Approved, waiting for their sending window";
+      } else if ((r.outcome as { simulated?: boolean } | null)?.simulated === false) {
+        // A live-run card the operator approved for real (lib/outbound.ts).
+        const queued = !!(r.outcome as { queued?: boolean }).queued;
+        col = queued ? COL.sending : COL.sent; note = queued ? "Approved for real, waiting to send" : "Sent for real";
       } else { col = COL.sent; note = "Simulated: nothing was sent"; }
     } else if (ch?.touch_status === "sent") { col = ch.replies ? COL.replied : COL.sent; note = "Sent on an earlier approval"; }
     else if (ch?.touch_status === "queued") { col = COL.sending; note = "Approved, waiting for their sending window"; }

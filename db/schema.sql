@@ -520,3 +520,51 @@ update actions set agent = case agent
   when 'qualifier' then 'numbers' when 'strategist' then 'writer' when 'router' then 'sequencer' when 'booker' then 'sequencer'
   else 'scout' end
 where agent in ('qualifier','strategist','router','booker','watch','sponsor','talent','venue','podcast');
+
+-- Rival check (24 Oct): the tenth agent. A partner's direct competitors, from the web, shared by every desk for a month.
+alter table actions drop constraint if exists actions_agent_check;
+alter table actions add constraint actions_agent_check check (agent in ('scout','checker','rival_check','qualifier','numbers','contact_finder','verifier','strategist','writer','sequencer','inbox','booker','router','sponsor','talent','venue','watch','podcast','clearance'));
+create table if not exists brand_rivals (
+  brand       text primary key,                -- normalised partner name
+  category    text not null,
+  rivals      jsonb not null default '[]',     -- [{name, source}]
+  sources     jsonb not null default '[]',
+  checked_at  timestamptz not null default now()
+);
+
+-- Real sends from live-run cards (24 Oct). The persona's draft never leaves: on the operator's go, the Writer rewrites it in
+-- SYZYGY's own voice (it represents no one on the desk), the operator approves that exact text, and the mail cron sends it
+-- through the same gates as every other message.
+create table if not exists outbound (
+  id            uuid primary key default gen_random_uuid(),
+  request_id    uuid not null unique references permission_requests(id) on delete cascade,
+  channel       text not null check (channel in ('email','letter')),
+  company       text not null,
+  site          text,
+  to_address    text,
+  postal        text,
+  attention     text,
+  role          text,
+  role_status   text,
+  country       text not null default 'US',
+  tz            text not null default 'America/New_York',
+  subject       text,
+  body          text not null,
+  status        text not null default 'draft' check (status in ('draft','queued','sent','held','failed','cancelled','bounced')),
+  scheduled_for timestamptz,
+  sent_at       timestamptz,
+  message_id    text,
+  optout_token  text not null unique,
+  detail        jsonb not null default '{}',
+  created_at    timestamptz not null default now()
+);
+create index if not exists outbound_due_idx on outbound (status, scheduled_for);
+create table if not exists outbound_replies (
+  id          uuid primary key default gen_random_uuid(),
+  outbound_id uuid not null references outbound(id) on delete cascade,
+  class       text not null,
+  body        text not null,
+  summary     text,
+  detail      jsonb not null default '{}',
+  created_at  timestamptz not null default now()
+);

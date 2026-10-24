@@ -13,6 +13,8 @@ import SkyCard from "../../components/SkyCard";
 import LiveBoard from "./LiveBoard";
 import Carousel from "./Carousel";
 import { isLive, planOf } from "@/lib/live/plans";
+import { isAdmin } from "@/lib/admin";
+import { outboundFor, prepare, type Outbound } from "@/lib/outbound";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -40,9 +42,20 @@ async function act(fd: FormData) {
   const decision = String(fd.get("decision")) as "approved" | "rejected" | "held";
   const subject = fd.get("subject"), body = fd.get("body");
   const r = await decide(w, String(fd.get("id")), decision, String(fd.get("reason") ?? "").trim().slice(0, 300) || null,
-    subject != null && body != null ? { subject: String(subject).slice(0, 200), body: String(body).slice(0, 3000) } : null);
+    subject != null && body != null ? { subject: String(subject).slice(0, 200), body: String(body).slice(0, 3000) } : null, await isAdmin());
   const jar = await cookies();
   if (!r.ok) jar.set("syz_desk_flash", r.why.slice(0, 280), { httpOnly: true, sameSite: "lax", secure: true, maxAge: 60, path: "/desk" });
+  revalidatePath(back);
+  redirect(`${back}${fd.get("desk") ? `?desk=${fd.get("desk")}` : ""}#r-${fd.get("id")}`);
+}
+
+// The operator only: the Writer rewrites the card in SYZYGY's own voice, the text that would really be sent.
+async function writeReal(fd: FormData) {
+  "use server";
+  const back = `/desk/${String(fd.get("persona"))}`;
+  if (!(await isAdmin())) redirect(back);
+  const r = await prepare(String(fd.get("id")), "operator");
+  if (!r.ok) (await cookies()).set("syz_desk_flash", r.why.slice(0, 280), { httpOnly: true, sameSite: "lax", secure: true, maxAge: 60, path: "/desk" });
   revalidatePath(back);
   redirect(`${back}${fd.get("desk") ? `?desk=${fd.get("desk")}` : ""}#r-${fd.get("id")}`);
 }
@@ -59,19 +72,23 @@ async function rules(fd: FormData) {
 const initials = (n?: string | null) => n ? n.split(/\s+/).map(x => x[0]).join(". ") + "." : null;
 
 const STEP_AGENT: Record<string, string> = {
-  scout: "Scout", checker: "Deal check", qualifier: "Numbers", numbers: "Numbers", contact_finder: "Contact finder", verifier: "Verifier",
+  scout: "Scout", checker: "Deal check", rival_check: "Rival check", qualifier: "Numbers", numbers: "Numbers", contact_finder: "Contact finder", verifier: "Verifier",
   strategist: "Writer", writer: "Writer", sequencer: "Sequencer", inbox: "Inbox agent", clearance: "Clearance", router: "Sequencer",
   sponsor: "Scout", talent: "Scout", venue: "Scout", podcast: "Scout", watch: "Scout",
 };
 
-function Card({ r, personaId, rulesOn, showPersona, desk, first, steps }: { r: Request; personaId: string; rulesOn: Rules; showPersona: boolean; desk?: string; first: boolean; steps: Step[] }) {
+const OUT_STATUS: Record<string, string> = { draft: "Waiting for your approval", queued: "Approved, waiting for its sending window", sent: "Sent", held: "Held at the gates", failed: "Failed", cancelled: "Cancelled", bounced: "Bounced" };
+
+function Card({ r, personaId, rulesOn, showPersona, desk, first, steps, operator, out: real0 }: { r: Request; personaId: string; rulesOn: Rules; showPersona: boolean; desk?: string; first: boolean; steps: Step[]; operator: boolean; out?: Outbound }) {
   const c = underRules(r.clearance, rulesOn);
   const m = r.evidence.match;
   const msg = r.edited ?? r.preview;
   const held = c.status === "hold";
   const decided = r.decision;
   // The Bad Bunny demo's pitches desk: an approved email really goes out (letters stay simulated).
-  const real = !!persona(r.persona)?.realSends && r.desk === "pitches" && r.target.channel === "email";
+  // Real sends need the operator. Live-run cards go out in SYZYGY's own voice; the Bad Bunny pitches desk's older emails as written.
+  const liveCard = operator && r.ref_table === "run_cards" && (r.target.channel === "email" || r.target.channel === "letter");
+  const real = operator && !!persona(r.persona)?.realSends && r.desk === "pitches" && r.target.channel === "email";
   const out = (r.outcome ?? {}) as { did?: string; simulated?: boolean; queued?: boolean };
   const sentForReal = out.simulated === false && !out.queued;
   return (
@@ -80,7 +97,7 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps }: { r: R
         <span className="chip"><i style={{ background: "#a86400" }} />{DESKS[r.desk]?.label ?? r.desk}</span>
         <span className="chip">{(() => { const a = ACTION_LABEL[r.action] ?? r.action, ch = r.target.channel === "email" ? "email" : "letter"; return a.toLowerCase() === ch ? a : `${a} · ${ch}`; })()}</span>
         {showPersona && <span className="chip">{persona(r.persona)?.title ?? r.persona}</span>}
-        {real && <span className="chip" style={{ borderColor: "#1f8a5b88", color: "#1f8a5b" }}>REAL EMAIL</span>}
+        {(real || liveCard) && <span className="chip" style={{ borderColor: "#1f8a5b88", color: "#1f8a5b" }}>{r.target.channel === "letter" ? "REAL LETTER" : "REAL EMAIL"}</span>}
         <span className={`clear-badge ${held ? "hold" : "pass"}`}>{held ? "HELD BY CLEARANCE" : "CLEARED"}</span>
       </header>
       <div className="req-main">
@@ -113,6 +130,26 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps }: { r: R
         <summary>{msg.subject || "(no subject)"}</summary>
         <pre>{msg.body}</pre>
       </details>
+      {liveCard && (
+        <section className="req-msg" style={{ padding: "10px 14px", borderLeft: "3px solid #1f8a5b" }}>
+          <p className="eyebrow" style={{ margin: "0 0 6px" }}>What really goes out · SYZYGY&apos;s own voice{real0 ? ` · ${OUT_STATUS[real0.status] ?? real0.status}` : ""}</p>
+          {real0 ? (<>
+            <b>{real0.subject}</b>
+            <pre>{real0.body}</pre>
+            {real0.status === "held" && <p className="hint" style={{ color: "#b4432f" }}>{(real0.detail?.held ?? []).map((h: { note: string }) => h.note).join(" ")}</p>}
+            <p className="hint" style={{ margin: "6px 0 0" }}>To {real0.attention ? `${real0.attention} at ` : ""}{real0.company} · {real0.channel === "email" ? maskEmail(real0.to_address ?? "") : "by post"} · with the opt-out link and postal footer</p>
+          </>) : (
+            <p className="hint" style={{ margin: 0 }}>The desk&apos;s draft speaks as {persona(r.persona)?.title ?? "the desk"}, so it never leaves as written. Have the Writer write the real one: SYZYGY speaking for itself, representing no one on the desk. You approve that exact text.</p>
+          )}
+          {!decided && (!real0 || ["draft", "held", "cancelled"].includes(real0.status)) && (
+            <form action={writeReal} style={{ marginTop: 8 }}>
+              <input type="hidden" name="id" value={r.id} /><input type="hidden" name="persona" value={personaId} />
+              {desk && <input type="hidden" name="desk" value={desk} />}
+              <button className="btn quiet" type="submit">{real0 ? "Rewrite it" : "Write the real version"}</button>
+            </form>
+          )}
+        </section>
+      )}
       {steps.length > 0 && (
         <details className="req-msg">
           <summary>How the agents got here · {steps.length} steps</summary>
@@ -162,7 +199,9 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps }: { r: R
             {desk && <input type="hidden" name="desk" value={desk} />}
             {r.action === "crm_push"
               ? <button className="btn" type="button" disabled title="No CRM is connected to this workspace yet">Connect HubSpot or Salesforce to enable</button>
-              : <button className="btn" type="submit" disabled={held} title={held ? "Clearance is holding this one" : real ? "This sends a real email" : undefined}>{real ? "Approve and send" : "Approve"}</button>}
+              : liveCard
+                ? <button className="btn" type="submit" disabled={held || real0?.status !== "draft"} title={held ? "Clearance is holding this one" : real0?.status !== "draft" ? "Write the real version first" : `This sends a real ${r.target.channel}`}>Approve and send for real</button>
+                : <button className="btn" type="submit" disabled={held} title={held ? "Clearance is holding this one" : real ? "This sends a real email" : undefined}>{real ? "Approve and send" : "Approve"}</button>}
           </form>
           <form action={act}>
             <input type="hidden" name="id" value={r.id} /><input type="hidden" name="persona" value={personaId} /><input type="hidden" name="decision" value="held" />
@@ -208,6 +247,8 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
   const isClearance = p.role === "clearance";
   const rulesOn = rulesOf(w);
   const all = await requests(isClearance ? "all" : p.id, w.id);
+  const operator = await isAdmin();
+  const outs = operator ? await outboundFor(all.map(r => r.id)) : new Map<string, Outbound>();
   const desks = desksFor(p).filter(d => d !== "watch" && d !== "clearance");
   const shown = all.filter(r => !desk || r.desk === desk);
   const status = (r: Request) => underRules(r.clearance, rulesOn).status;
@@ -268,7 +309,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
         <h2 style={{ fontSize: 20 }}>Requests</h2>
         {!sorted.length && <div className="panel" style={{ padding: 22, color: "var(--dim)" }}>Nothing here yet. New requests land here first as the agents file them.</div>}
         <Carousel>
-          {sorted.map((r, i) => <Card key={r.id} r={r} personaId={p.id} rulesOn={rulesOn} showPersona={isClearance} desk={desk} first={i === 0} steps={stepsOf.get(r.id) ?? []} />)}
+          {sorted.map((r, i) => <Card key={r.id} r={r} personaId={p.id} rulesOn={rulesOn} showPersona={isClearance} desk={desk} first={i === 0} steps={stepsOf.get(r.id) ?? []} operator={operator} out={outs.get(r.id)} />)}
         </Carousel>
       </section>
 
@@ -310,8 +351,8 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
         </aside>
       </div>
       <p className="hint" style={{ marginTop: 26 }}>
-        Demo desks are simulated personas. Addresses are masked. Approving runs the action as a simulation and nothing is sent,
-        except on the Bad Bunny desk&apos;s SYZYGY pitches, where an approved email really goes out.
+        Demo desks are simulated personas. Addresses are masked. Your approval runs the action as a simulation and nothing is sent.
+        Only SYZYGY&apos;s operator can send for real, and a real message goes out in SYZYGY&apos;s own voice, never as the desk.
         The score is Qloo&apos;s, out of 1: how much each audience leans toward the other, and the weaker of the two counts.
         Our own number, out of 100, is a rough estimate. It only leads when Qloo hasn&apos;t measured the pair.
       </p>

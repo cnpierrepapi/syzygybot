@@ -6,11 +6,11 @@ export const PALETTE = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "
 
 import { AGENT_IDS, agentOf } from "./agents";
 
-// The nine agents, in the order a card meets them.
+// The ten agents, in the order a card meets them.
 export const AGENTS = AGENT_IDS;
 
 const LABEL: Record<string, string> = {
-  scout: "Scout", numbers: "Numbers", checker: "Deal check", contact_finder: "Contact finder", verifier: "Verifier",
+  scout: "Scout", numbers: "Numbers", checker: "Deal check", rival_check: "Rival check", contact_finder: "Contact finder", verifier: "Verifier",
   writer: "Writer", clearance: "Clearance", sequencer: "Sequencer", inbox: "Inbox",
 };
 // Older rows and links may carry a retired name (Qualifier, Strategist...): they show as the agent that does that work now.
@@ -22,7 +22,7 @@ const BRIGHT = ["#5aa2ff", "#ff7a45", "#2fd39a", "#ffb31f", "#ff6fa6", "#3fbf3f"
 // Fixed per agent, so adding one never recolours the others.
 const AGENT_COLOR: Record<string, string> = {
   scout: BRIGHT[0], clearance: BRIGHT[1], numbers: BRIGHT[2], contact_finder: BRIGHT[3], verifier: BRIGHT[4],
-  writer: BRIGHT[6], sequencer: BRIGHT[7], inbox: "#e879f9", checker: "#5eead4",
+  writer: BRIGHT[6], sequencer: BRIGHT[7], inbox: "#e879f9", checker: "#5eead4", rival_check: "#fde047",
 };
 
 export const agentColor = (agent: string) => AGENT_COLOR[agentOf(agent)] ?? BRIGHT[0];
