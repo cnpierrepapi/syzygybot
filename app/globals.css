@@ -343,3 +343,7 @@ body:has(.desk-mode) .sky-labels { display: none; }
 .hero p, .hero h1 { text-shadow: 0 0 18px rgba(5, 6, 11, 0.95), 0 0 4px rgba(5, 6, 11, 0.9); }
 /* Gradient text has a transparent fill, so a text-shadow shows through it and muddies the colour; drop-shadow sits behind. */
 .hero h1 .grad-text { text-shadow: none; filter: drop-shadow(0 0 10px rgba(5, 6, 11, 0.85)) drop-shadow(0 0 3px rgba(5, 6, 11, 0.9)); }
+
+/* The warning before a real send (app/desk/[persona]/RealApprove.tsx). */
+.real-modal-back { position: fixed; inset: 0; background: rgba(20, 14, 48, 0.45); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.real-modal { max-width: 440px; width: 100%; padding: 20px 22px; background: #fff; box-shadow: 0 18px 50px rgba(20, 14, 48, 0.3); }

@@ -179,7 +179,7 @@ alter table pairs add column if not exists deal_check jsonb;
 alter table pairs add column if not exists deal_checked_at timestamptz;
 alter table actions drop constraint if exists actions_agent_check;
 -- (the full agent list, so a re-run doesn't trip on rows from agents added later; widened again below)
-alter table actions add constraint actions_agent_check check (agent in ('scout','checker','qualifier','numbers','contact_finder','verifier','strategist','writer','sequencer','inbox','booker','router','sponsor','talent','venue','watch','podcast','clearance'));
+alter table actions add constraint actions_agent_check check (agent in ('scout','checker','rival_check','qualifier','numbers','contact_finder','verifier','strategist','writer','sequencer','inbox','booker','router','sponsor','talent','venue','watch','podcast','clearance'));
 
 -- Claim flow (15 Oct). A brand claims its page by posting a one-time code from its X account; X's oEmbed
 -- says who really posted it. A claim makes (or takes over) the brand's workspace.
@@ -337,7 +337,7 @@ alter table venues add column if not exists country text not null default 'US';
 alter table workspaces alter column entity_id drop not null;
 alter table workspaces add column if not exists persona text;
 alter table actions drop constraint if exists actions_agent_check;
-alter table actions add constraint actions_agent_check check (agent in ('scout','checker','qualifier','numbers','contact_finder','verifier','strategist','writer','sequencer','inbox','booker','router','sponsor','talent','venue','watch','podcast','clearance'));
+alter table actions add constraint actions_agent_check check (agent in ('scout','checker','rival_check','qualifier','numbers','contact_finder','verifier','strategist','writer','sequencer','inbox','booker','router','sponsor','talent','venue','watch','podcast','clearance'));
 
 create table if not exists permission_requests (
   id          uuid primary key default gen_random_uuid(),
@@ -567,4 +567,29 @@ create table if not exists outbound_replies (
   summary     text,
   detail      jsonb not null default '{}',
   created_at  timestamptz not null default now()
+);
+
+-- Desk owners (24 Oct). Approving on a desk sends for real once that browser's workspace proved the desk is theirs with a
+-- code sent to an email at the desk's own domain.
+create table if not exists desk_domains (
+  persona     text primary key,
+  domains     jsonb not null default '[]',
+  checked_at  timestamptz not null default now()
+);
+create table if not exists owner_codes (
+  workspace_id uuid not null references workspaces(id) on delete cascade,
+  persona      text not null,
+  email        text not null,
+  code_hash    text not null,
+  expires_at   timestamptz not null,
+  tries        int not null default 0,
+  created_at   timestamptz not null default now(),
+  primary key (workspace_id, persona)
+);
+create table if not exists desk_owners (
+  workspace_id uuid not null references workspaces(id) on delete cascade,
+  persona      text not null,
+  email        text not null,
+  verified_at  timestamptz not null default now(),
+  primary key (workspace_id, persona)
 );

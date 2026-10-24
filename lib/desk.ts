@@ -7,6 +7,7 @@ import { clear, DEFAULT_RULES, type Check, type Clearance, type Rules } from "./
 import { persona, type DeskId, type Persona } from "./personas";
 import { approveAndSend } from "./mail";
 import { approveReal, cancelReal } from "./outbound";
+import { ownerOf } from "./owners";
 
 export const DESK_COOKIE = "syz_desk";
 const DAILY_DEMOS = 400;
@@ -69,9 +70,9 @@ export async function watchItems(personaId: string, limit = 12) {
 
 const AGENT_OF: Record<string, Agent> = { pitches: "sequencer", tour: "sequencer", sponsorship: "scout", talent: "scout", venue: "scout", podcast: "scout", sales: "sequencer" };
 
-/** Approve, reject (a reason the agent keeps) or hold. A visitor's approval runs as a simulation. Only the operator's sends:
- * a live-run card goes out in SYZYGY's own voice (lib/outbound.ts), the Bad Bunny pitches desk's older emails as written. */
-export async function decide(w: Workspace, requestId: string, decision: "approved" | "rejected" | "held", reason: string | null, edit: { subject: string; body: string } | null, operator = false) {
+/** Approve, reject (a reason the agent keeps) or hold. On a desk this workspace has verified as its own (lib/owners.ts),
+ * approving sends the card for real, in the desk's name; anywhere else it runs as a simulation. */
+export async function decide(w: Workspace, requestId: string, decision: "approved" | "rejected" | "held", reason: string | null, edit: { subject: string; body: string } | null) {
   const [r] = (await sql()`select * from permission_requests where id = ${requestId}`) as (Omit<Request, "decision"> & { persona: string })[];
   if (!r) return { ok: false as const, why: "That request is gone." };
   let clearance = r.clearance;
@@ -89,8 +90,9 @@ export async function decide(w: Workspace, requestId: string, decision: "approve
   const p0 = persona(r.persona);
   // The pitches desk of a real-send persona: an approved email really goes out, through every send gate with Clearance's
   // full default rules (a workspace's switched-off rules don't apply to a real send). Letters stay simulated.
-  const real = operator && !!p0?.realSends && r.desk === "pitches" && (r as { ref_table?: string }).ref_table === "touches" && r.target.channel === "email";
-  const liveCard = operator && (r as { ref_table?: string }).ref_table === "run_cards" && (r.target.channel === "email" || r.target.channel === "letter");
+  const owner = !!(await ownerOf(w.id, r.persona));
+  const real = owner && !!p0?.realSends && r.desk === "pitches" && (r as { ref_table?: string }).ref_table === "touches" && r.target.channel === "email";
+  const liveCard = owner && (r as { ref_table?: string }).ref_table === "run_cards" && (r.target.channel === "email" || r.target.channel === "letter");
   if (real && edit) return { ok: false as const, why: "This one sends for real, so it goes out exactly as SYZYGY wrote it. Approve it as is, or hold it." };
   let realOutcome: Record<string, unknown> | null = null;
   if (real) {
@@ -116,7 +118,9 @@ export async function decide(w: Workspace, requestId: string, decision: "approve
   }
   if (liveCard) {
     if (decision === "approved") {
-      const res = await approveReal(requestId, `operator:${w.id}`);
+      // The exact text on the card: this workspace's saved edit if there is one, else the draft.
+      const [prev] = (await sql()`select edited from request_decisions where workspace_id = ${w.id} and request_id = ${requestId}`) as { edited: { subject: string; body: string } | null }[];
+      const res = await approveReal(requestId, edit ?? prev?.edited ?? r.preview, `owner:${w.id}`);
       if (!res.ok) return { ok: false as const, why: res.why };
       realOutcome = { simulated: false, queued: res.status !== "sent", at: new Date().toISOString(), did: res.did };
     } else await cancelReal(requestId);

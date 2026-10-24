@@ -19,7 +19,7 @@ const SUBPAGE = ROUTE;
 
 // Kept off the live floor: the intake's per-seed bookkeeping, and the Verifier correcting records it already
 // holds (a fixed title, a restored contact, a recheck finding someone left). The floor shows the team working.
-const OFF_FLOOR = ["queue.scored", "contact.relabelled", "contact.restored", "desk.run"];
+const OFF_FLOOR = ["queue.scored", "contact.relabelled", "contact.restored", "desk.run", "owner.code_sent"];
 
 // Only what happens inside the persona desks reaches the floor (his call, 23 Oct): live runs and desk decisions.
 // Test replies stay off the public floor until he says they can be shown (SHOW_SIMULATED=1).

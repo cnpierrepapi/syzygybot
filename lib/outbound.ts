@@ -1,10 +1,8 @@
-// Real sends from live-run cards (24 Oct). A desk's draft is written as the desk (a simulated persona: "Sponsorship, Live
-// Nation venues"), so it never leaves as is. When the operator wants a card sent for real, the Writer rewrites it in
-// SYZYGY's own voice: an AI agent from Onenept Studios, representing no one on the desk, passing on what Qloo's data shows.
-// The operator approves that exact text, and it goes out through the same gates as every message: do-not-contact, the
-// person still in the role, Clearance under the full default rules, the postal footer and opt-out link, and for email the
-// recipient's sending window, the daily cap and one email per company a day. Email needs MAIL_LIVE=1; letters print only
-// with POSTGRID_LIVE=1 (otherwise PostGrid's test mode).
+// Real sends from live-run cards (24 Oct). On a desk its owner verified (lib/owners.ts), approving a card sends that card's
+// message as written, in the desk's name: the exact text on the card, or the owner's edit of it. It goes out through the
+// same gates as every message: do-not-contact, the person still in the role, Clearance under the full default rules, the
+// postal footer and opt-out link, for email the recipient's sending window, the daily cap and one email per company a
+// day, and for letters a daily cap on print-mail spend. Email needs MAIL_LIVE=1; letters print only with POSTGRID_LIVE=1.
 import { sql } from "./db";
 import { logAction } from "./actions";
 import { ask, parseJson } from "./llm";
@@ -12,7 +10,7 @@ import { clear } from "./clearance";
 import { blocked, footer, inWindow, local } from "./sequencer";
 import { fromAddress, mailLive, nextWindow, SEND_CAP, transport } from "./mail";
 import { FROM, letterHtml, lettersLive, parseAddress, pg } from "./letters";
-import { style, talentDeals } from "./desks/common";
+import { talentDeals } from "./desks/common";
 import { CLASSES, CLASSIFY_SYSTEM } from "./inbox";
 import { SITE, token } from "./slug";
 
@@ -23,40 +21,7 @@ const TZ: Record<string, string> = { US: "America/New_York", CA: "America/Toront
   DE: "Europe/Berlin", ES: "Europe/Madrid", IT: "Europe/Rome", NL: "Europe/Amsterdam", MX: "America/Mexico_City", BR: "America/Sao_Paulo",
   AU: "Australia/Sydney", JP: "Asia/Tokyo", PR: "America/Puerto_Rico" };
 
-const OWN_VOICE = `You write one short cold message from SYZYGY, an AI agent built and run by Onenept Studios. SYZYGY speaks only for
-itself. It does not represent, work for or write for any artist, venue, show, brand or company named in the brief, and it must
-never sound like it does. It writes because Qloo's taste data shows something about the recipient's audience they may want to see.
-- First sentence: SYZYGY, an AI agent from Onenept Studios, wrote this, and a person at Onenept approved it before it went out.
-- Say once, plainly, that SYZYGY doesn't represent the other side of the pairing (name it) and isn't writing on their behalf.
-- The finding in their terms: one number at most, Qloo's both-ways score from the brief, credited to Qloo's taste data, never as a
-  percentage. Never claim to be Qloo or to work for Qloo.
-- At most one shared taste or city from the brief, only if it means something to this reader.
-- Talent appears only as audience data ("Bad Bunny's fans lean toward..."), never as liking, using or backing anything.
-- What SYZYGY can offer is the full read on this pairing. End on one specific question they can answer by reply. Never ask for a
-  call, a meeting or a time slot. No boilerplate like "let me know if you are open to this".
-- Never write "our" or "we" about a venue, artist, show, roster or client, and never "on behalf of". "I" means SYZYGY.
-- Use only facts from the brief. Call people by the name the public knows them by.
-- Subject: under 8 words, specific to the pairing, not "partnership opportunity".
-- No "opportunity", "free", "guarantee", "exclusive", "urgent", no money amounts, no links, no exclamation marks, no em dashes,
-  no "aligned", "synergy", "engagement", "demographic", "leverage". 60 to 110 words.
-- If recipient_person is given, write to them by name (if delivered_via says it's a shared inbox, say it's for their attention).
-- Sign off exactly: SYZYGY (AI agent), Onenept Studios
-Reply with JSON only: {"subject": "", "body": ""}`;
-
-const REPRESENTS = /\b(our (venue|venues|room|rooms|tour|artist|artists|client|clients|roster|show|team|brand)|on behalf of|we represent|my client|i represent)\b/i;
-const DISCLAIMS = /\b(do(es)?n['’]?t|do(es)? not|is not|isn['’]t|am not|i['’]m not) (represent|work for|speak for|writ(e|ing) for|writ(e|ing) on behalf)/i;
-const ownVoice = (body: string, subject: string) => ({
-  ...style(body, subject),
-  says_onenept: /onenept/i.test(body.slice(0, 300)),
-  disclaims: DISCLAIMS.test(body),
-  represents_no_one: !REPRESENTS.test(`${subject}\n${body}`),
-  signed: /SYZYGY \(AI agent\), Onenept Studios\s*$/i.test(body.trim()),
-});
-
-type Req = {
-  id: string; persona: string; title: string; run_id: string | null; target: Record<string, any>;
-  evidence: { facts: string[] }; preview: { subject: string; body: string };
-};
+type Req = { id: string; persona: string; title: string; run_id: string | null; target: Record<string, any> };
 export type Outbound = {
   id: string; request_id: string; channel: "email" | "letter"; company: string; site: string | null; to_address: string | null;
   postal: string | null; attention: string | null; role: string | null; role_status: string | null; country: string; tz: string;
@@ -64,47 +29,29 @@ export type Outbound = {
   detail: Record<string, any>; created_at: string;
 };
 
+export const LETTER_CAP = 10;  // real letters a day across every desk: each one is printed and posted at our cost
+
 export async function outboundFor(requestIds: string[]) {
   if (!requestIds.length) return new Map<string, Outbound>();
   const rows = (await sql()`select * from outbound where request_id = any(${requestIds}::uuid[])`) as Outbound[];
   return new Map(rows.map(o => [o.request_id, o]));
 }
 
-/** The Writer's own-voice version of a card: what would really be sent. Rewrites an unapproved draft; never one already queued. */
-export async function prepare(requestId: string, by: string) {
-  const [r] = (await sql()`select id, persona, title, run_id, target, evidence, preview from permission_requests where id = ${requestId}`) as Req[];
+/** The card's message, exactly as it will leave, staged for sending. A message already queued or sent is left alone. */
+async function stage(requestId: string, msg: { subject: string; body: string }, by: string) {
+  const [r] = (await sql()`select id, persona, title, run_id, target from permission_requests where id = ${requestId}`) as Req[];
   if (!r) return { ok: false as const, why: "That card is gone." };
-  if (r.target.channel !== "email" && r.target.channel !== "letter") return { ok: false as const, why: "This card isn't a message." };
-  if (r.target.channel === "email" && !r.target.address) return { ok: false as const, why: "There's no published address to send this to." };
-  if (r.target.channel === "letter" && !r.target.postal) return { ok: false as const, why: "There's no published postal address for this one." };
+  const t = r.target;
+  if (t.channel === "email" && !t.address) return { ok: false as const, why: "There's no published address to send this to." };
+  if (t.channel === "letter" && !t.postal) return { ok: false as const, why: "There's no published postal address for this one." };
   const [cur] = (await sql()`select status from outbound where request_id = ${requestId}`) as { status: string }[];
   if (cur && !["draft", "held", "cancelled"].includes(cur.status)) return { ok: false as const, why: `It's already ${cur.status}.` };
-  const t = r.target;
-  const brief = {
-    pairing: r.title, facts: r.evidence.facts, recipient: t.org,
-    ...(t.person ? { recipient_person: { name: t.person, role: t.role }, ...(t.channel === "email" ? { delivered_via: `the organisation's published inbox, marked for ${t.person}'s attention` } : {}) } : {}),
-  };
-  let cost = 0, last: { subject: string; body: string } | null = null, broke: Record<string, boolean> = {};
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const a = await ask("pen", OWN_VOICE, attempt ? `${JSON.stringify(brief)}\n\nYour last draft broke a rule: ${JSON.stringify(broke)}. Fix it.` : JSON.stringify(brief), 450);
-    cost += a.costUsd ?? 0;
-    last = parseJson<{ subject: string; body: string }>(a.text);
-    if (!last?.body) continue;
-    broke = ownVoice(last.body, last.subject ?? "");
-    if (Object.values(broke).every(Boolean)) break;
-  }
-  if (!last?.body || !Object.values(broke).every(Boolean))
-    return { ok: false as const, why: `The Writer couldn't write it in SYZYGY's own voice without breaking a rule (${Object.entries(broke).filter(([, v]) => !v).map(([k]) => k.replace(/_/g, " ")).join(", ") || "no draft"}). Try again.` };
   const country = String(t.country ?? "US").toUpperCase();
-  const row = { channel: t.channel, company: t.org, site: t.site ?? null, to_address: t.address ?? null, postal: t.postal ?? null, attention: t.person ?? null,
-    role: t.role ?? null, role_status: t.roleStatus ?? null, country, tz: TZ[country] ?? "America/New_York", subject: last.subject ?? "", body: last.body.trim() };
   await sql()`insert into outbound (request_id, channel, company, site, to_address, postal, attention, role, role_status, country, tz, subject, body, status, optout_token, detail)
-    values (${requestId}, ${row.channel}, ${row.company}, ${row.site}, ${row.to_address}, ${row.postal}, ${row.attention}, ${row.role}, ${row.role_status},
-      ${row.country}, ${row.tz}, ${row.subject}, ${row.body}, 'draft', ${token(10)}, ${JSON.stringify({ written: { by, at: new Date().toISOString(), cost } })})
+    values (${requestId}, ${t.channel}, ${t.org}, ${t.site ?? null}, ${t.address ?? null}, ${t.postal ?? null}, ${t.person ?? null}, ${t.role ?? null}, ${t.roleStatus ?? null},
+      ${country}, ${TZ[country] ?? "America/New_York"}, ${msg.subject}, ${msg.body.trim()}, 'draft', ${token(10)}, ${JSON.stringify({ staged: { by, at: new Date().toISOString() } })})
     on conflict (request_id) do update set subject = excluded.subject, body = excluded.body, status = 'draft', scheduled_for = null,
       detail = outbound.detail || excluded.detail`;
-  await logAction({ agent: "writer", kind: "outbound.written", summary: `Wrote the real ${row.channel} to ${row.company} in SYZYGY's own voice, for a person to approve.`,
-    refTable: "permission_requests", refId: requestId, detail: { persona: r.persona, ...(r.run_id ? { run: r.run_id } : {}) }, llmCostUsd: cost });
   return { ok: true as const };
 }
 
@@ -126,6 +73,10 @@ async function gates(o: Outbound, timing: boolean): Promise<Gate[]> {
     roleStatus: o.role_status, country: o.country, talent, targetBrand: t.brand ?? null, talentDeals: deals, usesQloo: true });
   const held = c.checks.filter(x => !x.pass);
   push("clearance", c.status === "pass", held.length ? `Clearance holds it: ${held.map(x => x.note).join(" ")}` : `Clearance passed all ${c.checks.length} rules.`);
+  if (o.channel === "letter") {
+    const [{ n }] = (await sql()`select count(*)::int n from outbound where channel = 'letter' and status = 'sent' and sent_at > now() - interval '24 hours'`) as { n: number }[];
+    push("letter_cap", n < LETTER_CAP, `${n} of ${LETTER_CAP} letters printed in the last 24 hours.`);
+  }
   if (!timing || o.channel !== "email") return g;
   const now = new Date(), l = local(now, o.tz);
   push("window", inWindow(now, o.tz), `Sending window is Tue to Thu, 09:00 to 11:30 in ${o.tz}; it is ${l.weekday} ${String(Math.floor(l.minutes / 60)).padStart(2, "0")}:${String(l.minutes % 60).padStart(2, "0")} there.`);
@@ -140,10 +91,11 @@ async function gates(o: Outbound, timing: boolean): Promise<Gate[]> {
 
 const fmt = (d: Date, tz: string) => new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(d);
 
-/** The operator's go on the exact own-voice text: every gate but timing now, then queued; sent at once if it's due. */
-export async function approveReal(requestId: string, by: string) {
+/** The owner's go on the card's exact text: every gate but timing now, then queued; sent at once if it's due. */
+export async function approveReal(requestId: string, msg: { subject: string; body: string }, by: string) {
+  const st = await stage(requestId, msg, by);
+  if (!st.ok) return st;
   const [o] = (await sql()`select * from outbound where request_id = ${requestId}`) as Outbound[];
-  if (!o || o.status !== "draft") return { ok: false as const, why: o ? `It's ${o.status}, not waiting for approval.` : "Write the real version first." };
   const failed = (await gates(o, false)).filter(x => !x.pass);
   if (failed.length) {
     await sql()`update outbound set status = 'held', detail = detail || ${JSON.stringify({ held: failed })}::jsonb where id = ${o.id}`;
@@ -156,11 +108,11 @@ export async function approveReal(requestId: string, by: string) {
   const sent = due ? await sendOne(o.id) : null;
   const [after] = (await sql()`select status, detail from outbound where id = ${o.id}`) as { status: string; detail: Record<string, any> }[];
   const did = after.status === "sent"
-    ? o.channel === "email" ? `Sent to ${o.company}${o.attention ? ` for ${o.attention}` : ""}. A real email, in SYZYGY's own voice.` : `The letter to ${o.company} went to print. PostGrid posts it within two business days.`
+    ? o.channel === "email" ? `Sent to ${o.company}${o.attention ? ` for ${o.attention}` : ""}. A real email, now in their inbox.` : `The letter to ${o.company} went to print. PostGrid posts it within two business days.`
     : after.status === "queued"
       ? o.channel === "email" ? `Approved for real. It sends ${fmt(at, o.tz)} their time, when their sending window opens.` : `Approved for real. The letter goes to print on the next mail run.`
       : `Approved, but it didn't go: ${sent?.why ?? after.detail?.held?.[0]?.note ?? after.status}.`;
-  await logAction({ agent: "sequencer", kind: "outbound.approved", summary: `A person approved the real ${o.channel} to ${o.company}. ${did}`, refTable: "permission_requests", refId: requestId, detail: { outbound: o.id } });
+  await logAction({ agent: "sequencer", kind: "outbound.approved", summary: `The desk's owner approved the real ${o.channel} to ${o.company}. ${did}`, refTable: "permission_requests", refId: requestId, detail: { outbound: o.id } });
   return { ok: true as const, did, status: after.status };
 }
 
@@ -179,7 +131,7 @@ export async function sendOne(id: string): Promise<{ ok: boolean; why?: string }
   const where = { persona: r?.persona, ...(r?.run_id ? { run: r.run_id } : {}), outbound: o.id };
   const failed = (await gates(o, true)).filter(x => !x.pass);
   // Outside the window or over the cap: wait for the next run. Anything else holds it for a person.
-  const waiting = failed.filter(x => ["window", "daily_cap", "one_per_company"].includes(x.gate));
+  const waiting = failed.filter(x => ["window", "daily_cap", "one_per_company", "letter_cap"].includes(x.gate));
   if (failed.length > waiting.length) {
     const why = failed.filter(x => !waiting.includes(x)).map(x => x.note).join(" ");
     await sql()`update outbound set status = 'held', detail = detail || ${JSON.stringify({ held: failed })}::jsonb where id = ${o.id}`;
@@ -204,7 +156,7 @@ export async function sendOne(id: string): Promise<{ ok: boolean; why?: string }
       const info = await transport().sendMail(msg);
       await sql()`update outbound set status = 'sent', sent_at = now(), message_id = ${msg.messageId},
         detail = detail || ${JSON.stringify({ smtp: { response: info.response?.slice(0, 120), accepted: info.accepted?.length ?? 0 } })}::jsonb where id = ${o.id}`;
-      await logAction({ agent: "sequencer", kind: "outbound.sent", summary: `Sent the email to ${o.attention ? `${o.attention} at ` : ""}${o.company}, in SYZYGY's own voice, approved by a person.`, refTable: "permission_requests", refId: o.request_id, detail: where });
+      await logAction({ agent: "sequencer", kind: "outbound.sent", summary: `Sent the email to ${o.attention ? `${o.attention} at ` : ""}${o.company}, approved by the desk's owner.`, refTable: "permission_requests", refId: o.request_id, detail: where });
       return { ok: true };
     } catch (e) {
       const why = (e as Error).message.slice(0, 200);
