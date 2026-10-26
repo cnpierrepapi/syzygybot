@@ -6,8 +6,11 @@ import DeskPicker from "./DeskPicker";
 import { DESKS, PERSONAS, desksFor, loadPersona, type Persona } from "@/lib/personas";
 import { DESK_COOKIE, openDesk } from "@/lib/desk";
 import { best, find, recentDesks, setUp, SETUP_WHY, type Found } from "@/lib/live/custom";
+import { BUSINESS_WHY, looksLikeSite, setUpBusiness } from "@/lib/live/anchors";
 
 export const dynamic = "force-dynamic";
+// Setting a desk up from a website reads the site and asks Qloo about each anchor: about 20 seconds.
+export const maxDuration = 60;
 export const metadata: Metadata = {
   title: "Open a desk",
   description: "Pick a judge, or find your own brand, artist or show. SYZYGY runs the desk live on Qloo's taste data and asks before anything goes out.",
@@ -34,6 +37,8 @@ async function search(fd: FormData) {
   "use server";
   const q = String(fd.get("q") ?? "").trim().slice(0, 60);
   const list = `/desk?q=${encodeURIComponent(q)}#yours`;
+  // A website rather than a name: the business may not be in Qloo at all, so its desk is set up from the site.
+  if (looksLikeSite(q)) await fromSite(q);
   const found = q ? await find(q) : null;
   const e = found && best(q, found);
   if (!e) redirect(list);
@@ -45,6 +50,17 @@ async function search(fd: FormData) {
   await go(r.id);
 }
 
+async function fromSite(site: string) {
+  const r = await setUpBusiness(site);
+  if (!r.ok) redirect(`/desk?site=${encodeURIComponent(site.slice(0, 120))}&bwhy=${r.why}#yours`);
+  await go(r.id);
+}
+
+async function business(fd: FormData) {
+  "use server";
+  await fromSite(String(fd.get("site") ?? "").trim().slice(0, 120));
+}
+
 async function mine(fd: FormData) {
   "use server";
   const q = String(fd.get("q") ?? "");
@@ -53,14 +69,14 @@ async function mine(fd: FormData) {
   await go(r.id);
 }
 
-const KIND: Record<Found["type"], string> = { brand: "Brand", artist: "Artist", person: "Person", tv_show: "TV show", movie: "Film", podcast: "Podcast" };
+const KIND: Record<Found["type"], string> = { brand: "Brand", artist: "Artist", person: "Person", tv_show: "TV show", movie: "Film", podcast: "Podcast", business: "Business" };
 const WHAT: Record<Found["type"], string> = {
   brand: "co-brands and artist ambassadors", artist: "tour sponsors, rooms to hold and a feature", person: "brand deals and a collab",
-  tv_show: "sponsors", movie: "sponsors", podcast: "ad sponsors",
+  tv_show: "sponsors", movie: "sponsors", podcast: "ad sponsors", business: "ambassadors, podcasts to sponsor and co-marketing",
 };
 
-export default async function DeskStart({ searchParams }: { searchParams: Promise<{ full?: string; q?: string; why?: string }> }) {
-  const { full, q, why } = await searchParams;
+export default async function DeskStart({ searchParams }: { searchParams: Promise<{ full?: string; q?: string; why?: string; site?: string; bwhy?: string }> }) {
+  const { full, q, why, site, bwhy } = await searchParams;
   const tile = (p: Persona, name: string, image: string | null, sub?: string) =>
     ({ id: p.id, title: p.title, judge: p.judge, who: p.who, forWhom: p.forWhom, role: p.role, desks: desksFor(p), demo: p.demo, name, sub, image });
   const personas = PERSONAS.map(p => tile(p, p.judge ?? "Bad Bunny's team", `/judges/${p.id}.jpg`, p.judge ? undefined : "the demo"));
@@ -90,17 +106,28 @@ export default async function DeskStart({ searchParams }: { searchParams: Promis
           <p className="eyebrow">Or find yours</p>
           <p style={{ color: "var(--dim)", margin: 0, maxWidth: 600 }}>
             Type a brand, an artist, a person, a show or a podcast. If Qloo has it under that exact name, its desk opens. If not,
-            pick the right one from Qloo&apos;s list.
+            pick the right one from Qloo&apos;s list. Not in Qloo at all? Type its website instead.
           </p>
         </div>
         <form action={search} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <input name="q" defaultValue={q ?? ""} placeholder="e.g. Liquid Death, Karol G, Hot Ones" maxLength={60} required
-            className="find-input" aria-label="Brand, artist, person, show or podcast" />
+          <input name="q" defaultValue={q ?? ""} placeholder="e.g. Liquid Death, Karol G, Hot Ones, onenept.com" maxLength={60} required
+            className="find-input" aria-label="Brand, artist, person, show, podcast or website" />
           <button className="btn" type="submit">Open its desk</button>
         </form>
         {why && why in SETUP_WHY && <p className="chip" style={{ color: "#b4432f", margin: 0 }}>{SETUP_WHY[why as keyof typeof SETUP_WHY]}</p>}
         {q && found === null && <p className="hint" style={{ margin: 0 }}>Today&apos;s searches are used up. Try again tomorrow, or open a judge&apos;s desk.</p>}
-        {q && found && !found.length && <p className="hint" style={{ margin: 0 }}>Qloo has nothing under &quot;{q}&quot; that a desk can work for. Try the full name.</p>}
+        {q && found && !found.length && <p className="hint" style={{ margin: 0 }}>Qloo has nothing under &quot;{q}&quot; that a desk can work for. Try the full name, or set it up from its website below.</p>}
+        {bwhy && bwhy in BUSINESS_WHY && <p className="chip" style={{ color: "#b4432f", margin: 0 }}>{BUSINESS_WHY[bwhy as keyof typeof BUSINESS_WHY]}</p>}
+        <form action={business} style={{ display: "grid", gap: 8, borderTop: "1px solid var(--line)", paddingTop: 14 }}>
+          <span style={{ color: "var(--dim)", fontSize: 14 }}>
+            <b>Not in Qloo?</b> Give the business&apos;s website. SYZYGY reads it, picks anchors Qloo does know whose audience is that
+            business&apos;s, and measures every candidate against them with Qloo&apos;s own numbers. It takes about 20 seconds.
+          </span>
+          <span style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <input name="site" defaultValue={site ?? ""} placeholder="e.g. onenept.com" maxLength={120} required className="find-input" aria-label="Website" />
+            <button className="btn quiet" type="submit">Set up from the site</button>
+          </span>
+        </form>
         {found && found.length > 0 && (
           <ul className="find-list">
             {found.map(e => (

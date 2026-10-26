@@ -128,7 +128,9 @@ export async function execute(runId: string) {
   }
 }
 
-const resolveAll = async (sigs: Lane["signal"]) => (await Promise.all(sigs.map(s => resolve(s.name, s.type)))).filter((e): e is Ent => !!e);
+// A desk's anchors arrive with their Qloo ids already; everything else is looked up by name.
+const resolveAll = async (sigs: Lane["signal"]) => (await Promise.all(sigs.map(s =>
+  s.id ? { id: s.id, name: s.name, type: s.type, popularity: null, site: null } as Ent : resolve(s.name, s.type)))).filter((e): e is Ent => !!e);
 /** How a lane's audience is named in steps and drafts. */
 const crowd = (lane: Lane, sig: Ent[]) => lane.audience ?? `${sig.map(s => s.name).join(" and ")}'s fans`;
 const listOf = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
@@ -236,8 +238,10 @@ async function measureLane(runId: string, p: Persona, lane: Lane, taken: Set<str
   // Qloo measures each pair both ways: how much these fans like the brand (free with the list), and how much the brand's
   // own audience likes them back (one call per brand, every member of the signal at once). The weaker is the two-way score.
   const scored: Scored[] = await Promise.all(pool.map(async c => {
-    const backs = await affinities([c.id], sig.map(s => s.id), sig[0].type).catch(() => new Map<string, number | null>());
-    const vals = [...backs.values()].filter((v): v is number => v != null);
+    // Qloo filters by one kind per call, so a mixed signal (a desk's podcasts and brands) is measured kind by kind.
+    const kinds = [...new Set(sig.map(s => s.type))];
+    const backs = await Promise.all(kinds.map(k => affinities([c.id], sig.filter(s => s.type === k).map(s => s.id), k).catch(() => new Map<string, number | null>())));
+    const vals = backs.flatMap(b => [...b.values()]).filter((v): v is number => v != null);
     const back = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
     return { c, back, twoWay: back != null ? Math.min(c.affinity!, back) : null, m: await syzygyMatch(me, await sideOf(c)) };
   }));
@@ -370,7 +374,8 @@ async function carryCard(runId: string, p: Persona, lane: Lane, sig: Ent[], s: S
   // Your approval: filed as a permission request, like every desk card.
   const target = { org: c.name, site, person: buyer?.name ?? null, role: buyer?.role ?? null, roleStatus: buyer ? "confirmed" : null, personSource: buyer?.page ?? null,
     address: inbox.email, source: inbox.url, postal: inbox.postal, channel, country, talent: named, brand: isBrand ? c.name : null, purpose: lane.purpose };
-  const evidence = { match: { ...m, qloo: c.affinity != null && back != null ? { toward: +c.affinity.toFixed(3), back: +back.toFixed(3), band: "live" } : null }, facts };
+  const evidence = { match: { ...m, qloo: c.affinity != null && back != null ? { toward: +c.affinity.toFixed(3), back: +back.toFixed(3), band: "live",
+    ...(lane.anchored ? { via: sig.map(x => x.name) } : {}) } : null }, facts };
   const [req] = (await sql()`
     insert into permission_requests (persona, desk, action, title, target, preview, evidence, clearance, dedupe, ref_table, ref_id, slug, run_id)
     values (${p.id}, ${lane.desk}, ${lane.action}, ${title}, ${JSON.stringify(target)}, ${JSON.stringify(d.draft)}, ${JSON.stringify(evidence)},

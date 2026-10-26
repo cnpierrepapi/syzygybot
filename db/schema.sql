@@ -593,3 +593,12 @@ create table if not exists desk_owners (
   verified_at  timestamptz not null default now(),
   primary key (workspace_id, persona)
 );
+
+-- Desks for businesses Qloo has no record of (26 Oct). SYZYGY reads the business's own site and picks anchors: entities Qloo
+-- does know that share its audience. Every score on the desk is Qloo's, measured against those anchors.
+alter table custom_desks add column if not exists site text;
+alter table custom_desks add column if not exists about text;
+alter table custom_desks add column if not exists anchors jsonb;
+alter table custom_desks add column if not exists anchors_at timestamptz;
+alter table custom_desks drop constraint if exists custom_desks_type_check;
+alter table custom_desks add constraint custom_desks_type_check check (type in ('brand','artist','person','tv_show','movie','podcast','business'));

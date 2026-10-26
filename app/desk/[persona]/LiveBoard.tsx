@@ -37,7 +37,7 @@ type Line = { key: string; who: string; agent: string; col: number | null; summa
 const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const mins = (a: string, b: string | null) => { const s = Math.round(((b ? +new Date(b) : Date.now()) - +new Date(a)) / 1000); return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; };
 
-export default function LiveBoard({ persona, review = false }: { persona: string; review?: boolean }) {
+export default function LiveBoard({ persona, review = false, again = false }: { persona: string; review?: boolean; again?: boolean }) {
   const COLS = review ? REVIEW : PITCH;
   const [snap, setSnap] = useState<RunSnapshot | null>(null);
   const [why, setWhy] = useState<string | null>(null);
@@ -53,7 +53,11 @@ export default function LiveBoard({ persona, review = false }: { persona: string
     joined.current = !r.fresh;
     runId.current = r.id; logged.current = new Set(); setShown({}); setLines([]); setSnap(null); setWhy(null);
   };
-  useEffect(() => { begin(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // "Run it again" from the anchors panel arrives as ?again=1: start a fresh run once, then drop it so a reload only joins.
+  useEffect(() => {
+    begin(again);
+    if (again) { const u = new URL(window.location.href); u.searchParams.delete("again"); window.history.replaceState(null, "", u); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll the run until it's finished.
   useEffect(() => {

@@ -16,7 +16,7 @@ export type Request = {
   id: string; persona: string; desk: DeskId; action: string; title: string; slug: string | null; ref_table?: string | null;
   target: { org: string; person?: string | null; role?: string | null; address?: string | null; source?: string | null; postal?: string | null; channel: "email" | "letter"; country: string };
   preview: { subject: string; body: string };
-  evidence: { match?: { score: number; strength: string; qloo: { toward: number; back: number; band: string } | null; sharedTags: string[]; sharedCities: string[] } | null; pattern?: { strength: string; lookalikes: string[] } | null; facts: string[] };
+  evidence: { match?: { score: number; strength: string; qloo: { toward: number; back: number; band: string; via?: string[] } | null; sharedTags: string[]; sharedCities: string[] } | null; pattern?: { strength: string; lookalikes: string[] } | null; facts: string[] };
   clearance: Clearance;
   created_at: string;
   decision: "approved" | "rejected" | "held" | null; reason: string | null; edited: { subject: string; body: string } | null; outcome: Record<string, unknown> | null; decided_at: string | null;

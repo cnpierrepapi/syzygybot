@@ -43,7 +43,14 @@ export async function deskDomains(personaId: string): Promise<string[]> {
   if (!p) return [];
   const fixed = BUILT_IN[personaId];
   let domains: string[] = [];
+  const biz = customOf(personaId);
   if (Array.isArray(fixed)) domains = fixed;
+  // A desk set up from a business's own site: that site's domain, if it takes email.
+  else if (biz?.type === "business") {
+    const h = hostOf(biz.site);
+    const d = h ? rootOf(h) : null;
+    if (d && !FREE_MAIL.test(`${d}.`) && await hasMx(d)) domains = [d];
+  }
   else {
     const who = fixed ?? (() => { const e = customOf(personaId); return e ? { name: e.name, type: e.type } : null; })();
     const ent = who ? await resolve(who.name, who.type as never).catch(() => null) : null;

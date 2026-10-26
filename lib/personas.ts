@@ -166,15 +166,24 @@ export const PERSONAS: Persona[] = [
 ];
 
 // Desks visitors set up for their own brand, artist, person or show (/desk, "find yours"). They live in custom_desks and are
-// loaded into this process before anything reads them, so persona() stays a plain lookup.
-export type CustomEntity = { id: string; name: string; type: "brand" | "artist" | "person" | "tv_show" | "movie" | "podcast" };
+// loaded into this process before anything reads them, so persona() stays a plain lookup. A "business" desk is one Qloo has
+// no record of: it was set up from the business's own site, and its runs read the audience through anchors (lib/live/anchors).
+export type CustomEntity = { id: string; name: string; type: "brand" | "artist" | "person" | "tv_show" | "movie" | "podcast" | "business"; site?: string | null; about?: string | null };
 const custom = new Map<string, Persona & { entity: CustomEntity }>();
-const ROLE_OF: Record<CustomEntity["type"], RoleId> = { brand: "talent", artist: "tour", person: "talent", tv_show: "sponsorship", movie: "sponsorship", podcast: "media" };
-const KIND: Record<CustomEntity["type"], string> = { brand: "brand", artist: "artist", person: "talent", tv_show: "show", movie: "film", podcast: "podcast" };
+const ROLE_OF: Record<CustomEntity["type"], RoleId> = { brand: "talent", artist: "tour", person: "talent", tv_show: "sponsorship", movie: "sponsorship", podcast: "media", business: "brand" };
+const KIND: Record<CustomEntity["type"], string> = { brand: "brand", artist: "artist", person: "talent", tv_show: "show", movie: "film", podcast: "podcast", business: "business" };
+const deskOf = (name: string) => `${name}${/s$/i.test(name) ? "'" : "'s"} desk`;
+const hostName = (u?: string | null) => { try { return u ? new URL(u).hostname.replace(/^www\./, "") : ""; } catch { return u ?? ""; } };
 
 export function customPersona(id: string, e: CustomEntity, image: string | null = null): Persona & { entity: CustomEntity } {
+  if (e.type === "business") return {
+    id, judge: null, image, title: deskOf(e.name), entity: e,
+    who: `A desk set up for ${e.name} from its own site, ${hostName(e.site)}.${e.about ? ` ${e.about}` : ""}`,
+    forWhom: `It isn't in Qloo, so the agents read it through anchors Qloo does know.`,
+    role: "brand", extraDesks: ["talent", "podcast"], subject: e.name, watch: [], news: [], groups: [],
+  };
   return {
-    id, judge: null, image, title: `${e.name}'s desk`, entity: e,
+    id, judge: null, image, title: deskOf(e.name), entity: e,
     who: `A desk set up for ${e.name} from Qloo's record of the ${KIND[e.type]}.`,
     forWhom: `The agents read ${e.name}'s audience in Qloo and work the deals it points to.`,
     role: ROLE_OF[e.type], subject: e.name, watch: [], news: [], groups: [],
@@ -189,9 +198,9 @@ export async function loadPersona(id: string) {
   const known = persona(id);
   if (known || !/^my-[a-z0-9-]{2,80}$/.test(id)) return known;
   const { sql } = await import("./db");
-  const [row] = (await sql()`select id, entity_id, name, type, image from custom_desks where id = ${id}`) as { id: string; entity_id: string; name: string; type: CustomEntity["type"]; image: string | null }[];
+  const [row] = (await sql()`select id, entity_id, name, type, image, site, about from custom_desks where id = ${id}`) as { id: string; entity_id: string; name: string; type: CustomEntity["type"]; image: string | null; site: string | null; about: string | null }[];
   if (!row) return undefined;
-  const p = customPersona(row.id, { id: row.entity_id, name: row.name, type: row.type }, row.image);
+  const p = customPersona(row.id, { id: row.entity_id, name: row.name, type: row.type, site: row.site, about: row.about }, row.image);
   custom.set(row.id, p);
   return p;
 }

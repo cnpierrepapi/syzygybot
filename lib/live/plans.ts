@@ -10,8 +10,9 @@ import { metroMap } from "../match";
 import { sql } from "../db";
 import { PERSONAS, customOf, type CustomEntity } from "../personas";
 import { profile, resolve, top } from "./qx";
+import { anchorsOf } from "./anchors";
 
-export type Sig = { name: string; type: EntityType };
+export type Sig = { name: string; type: EntityType; id?: string };   // id: a Qloo record already known (a desk's anchors)
 
 export type Lane = {
   desk: DeskId; agent: Agent; purpose: Purpose; n: number;
@@ -28,6 +29,7 @@ export type Lane = {
   talent: string | null;                           // talent named in the message (Clearance checks their exclusive deals)
   tags?: string[];                                 // Qloo brand genre tags the candidates must carry (a co-brand stays in category)
   facts?: string[];                                // what the desk already knows (a room's size, its recent acts)
+  anchored?: boolean;                              // the signal stands in for a business Qloo doesn't know (its anchors)
   title: (org: string) => string;
   ask: (org: string) => string;
 };
@@ -201,7 +203,8 @@ export const PLANS: Record<string, Plan> = {
 };
 
 /** A desk someone set up for their own brand, artist, person or show: lanes picked by what Qloo says it is. */
-export function customPlan(e: CustomEntity): PitchPlan {
+export function customPlan(e: CustomEntity, deskId = ""): PitchPlan {
+  if (e.type === "business") return { kind: "pitch", city: "New York", lanes: () => anchoredLanes(deskId, e) };
   const me = e.name, s: Sig[] = [{ name: me, type: e.type }];
   const brands = (desk: DeskId, n: number, title: (o: string) => string, ask: (o: string) => string, action: Lane["action"] = "sponsor_pitch"): Lane =>
     ({ desk, agent: "scout", action, purpose: "sponsorship", n, signal: s, speaker: me, talent: e.type === "artist" || e.type === "person" ? me : null, title, ask });
@@ -231,11 +234,44 @@ export function customPlan(e: CustomEntity): PitchPlan {
   }
 }
 
+const listOf = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+
+/** A business Qloo doesn't know: its anchors' audience, read together, stands in for its own. Three lanes: creators to sign as
+ *  ambassadors, podcasts to sponsor, brands to co-market with. Read fresh each run, so an owner's swap counts at once. */
+async function anchoredLanes(deskId: string, e: CustomEntity): Promise<Lane[]> {
+  const anchors = await anchorsOf(deskId);
+  if (anchors.length < 2) return [];
+  const me = e.name, site = e.site ? new URL(e.site).hostname.replace(/^www\./, "") : "its site";
+  const signal: Sig[] = anchors.map(a => ({ id: a.id, name: a.name, type: a.type }));
+  const names = listOf(anchors.map(a => a.name));
+  const base = {
+    agent: "scout" as const, signal, anchored: true, speaker: me, talent: null,
+    // Short, since it's in every step on the board; the facts and the anchors panel name each anchor.
+    audience: `people who follow ${me}${/s$/i.test(me) ? "'" : "'s"} anchors`,
+    facts: [
+      ...(e.about ? [`${me}: ${e.about}`] : []),
+      `${me} isn't in Qloo's data. SYZYGY read ${site} and picked anchors Qloo does know, whose audience is ${me}'s: ${names}.`,
+      `Both numbers here are Qloo's own, measured against those anchors, not against ${me} itself. Say so if the numbers are quoted.`,
+    ],
+  };
+  return [
+    { ...base, desk: "talent", action: "ambassador_pitch", purpose: "partnerships", n: 2, target: "person",
+      title: o => `${o} as ${me}${/s$/i.test(me) ? "'" : "'s"} ambassador`,
+      ask: o => `An ambassador pitch to ${o}'s team from ${me}: a paid creator partnership (posts, a video or a talk about ${me}'s work), because the audience ${me} sells to leans toward ${o} in Qloo's taste data, and ${o}'s audience leans back. Ask who handles their partnerships.` },
+    { ...base, desk: "podcast", action: "podcast_pitch", purpose: "sponsorship", n: 2, target: "podcast",
+      title: o => `${me} sponsoring ${o}`,
+      ask: o => `A sponsorship enquiry to ${o}'s ad sales from ${me}: ${me} wants to buy a run of host-read spots, because ${o}'s listeners are the audience ${me} sells to, by Qloo's taste data. Ask for the rate card and open dates.` },
+    { ...base, desk: "sales", action: "sponsor_pitch", purpose: "partnerships", n: 2,
+      title: o => `${me} × ${o}: co-marketing`,
+      ask: o => `A co-marketing pitch from ${me} to ${o}'s partnerships team: a joint campaign, integration or offer for the audience they share, because that audience leans toward ${o} in Qloo's taste data, and ${o}'s audience leans back. Ask who runs partnerships.` },
+  ];
+}
+
 /** The plan for any desk, custom ones included (their persona must be loaded first: loadPersona). */
 export function planOf(personaId: string): Plan | undefined {
   if (PLANS[personaId]) return PLANS[personaId];
   const e = customOf(personaId);
-  return e ? customPlan(e) : undefined;
+  return e ? customPlan(e, personaId) : undefined;
 }
 
 export const isLive = (personaId: string) => !!planOf(personaId);

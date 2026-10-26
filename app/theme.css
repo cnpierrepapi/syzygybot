@@ -179,7 +179,10 @@ button.kcard { font: inherit; text-align: left; cursor: pointer; width: 100%; }
 @media (max-width: 900px) { .stage { grid-template-columns: 1fr; } }
 
 .funnel-tile { background: #fff; }
-.kcard-step { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+/* Two lines a card, so a full column doesn't push the requests carousel down; tapping a card shows its whole step below. */
+.kcard-step { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.kcard-who { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.board-col.is-you .kcard-step { display: none; }
 @media (max-width: 720px) {
   .sky-card .sky-ctl { display: none; }
   .sky-card .sky { opacity: 0.45; }

@@ -16,6 +16,7 @@ import { isLive, planOf } from "@/lib/live/plans";
 import { outboundFor, type Outbound } from "@/lib/outbound";
 import { deskDomains, ownedDesks, ownerOf, pendingCode, sendCode, verifyCode } from "@/lib/owners";
 import RealApprove from "./RealApprove";
+import { addAnchor, anchorsOf, removeAnchor } from "@/lib/live/anchors";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -61,6 +62,25 @@ async function owner(fd: FormData) {
   if (!r.ok) (await cookies()).set("syz_desk_flash", r.why.slice(0, 280), { httpOnly: true, sameSite: "lax", secure: true, maxAge: 60, path: "/desk" });
   revalidatePath(back);
   redirect(`${back}#owner`);
+}
+
+// A business desk's anchors: only its verified owner may swap one, since every score on the desk is read through them.
+async function anchor(fd: FormData) {
+  "use server";
+  const w = await ws();
+  const id = String(fd.get("persona")), back = `/desk/${id}`;
+  if (!w) redirect("/desk");
+  const jar = await cookies();
+  if (!(await ownerOf(w.id, id))) {
+    jar.set("syz_desk_flash", "Only the desk's verified owner can change its anchors.", { httpOnly: true, sameSite: "lax", secure: true, maxAge: 60, path: "/desk" });
+    redirect(`${back}#anchors`);
+  }
+  if (fd.get("rerun")) redirect(`${back}?again=1#board`);
+  const gone = fd.get("remove"), name = fd.get("add");
+  const r = gone ? await removeAnchor(id, String(gone)) : await addAnchor(id, String(name ?? ""));
+  if (!r.ok) jar.set("syz_desk_flash", r.why.slice(0, 280), { httpOnly: true, sameSite: "lax", secure: true, maxAge: 60, path: "/desk" });
+  revalidatePath(back);
+  redirect(`${back}#anchors`);
 }
 
 async function rules(fd: FormData) {
@@ -119,6 +139,7 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps, owned, o
             <div className="req-score" title="Qloo's taste data, measured both ways. The score is the weaker of the two.">
               <b>{Math.min(m.qloo.toward, m.qloo.back).toFixed(2)}<small>/1</small></b><span>Qloo, both ways</span>
               <em className="qloo-yes">{m.qloo.toward.toFixed(2)} toward · {m.qloo.back.toFixed(2)} back</em>
+              {m.qloo.via && <em className="qloo-no" title={`Measured against ${m.qloo.via.join(", ")}`}>Measured against {m.qloo.via.length} anchors</em>}
               <em className="qloo-no">Our rough estimate {m.score}/100</em>
             </div>
           ) : (
@@ -221,9 +242,9 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps, owned, o
   );
 }
 
-export default async function Desk({ params, searchParams }: { params: Promise<{ persona: string }>; searchParams: Promise<{ desk?: string }> }) {
+export default async function Desk({ params, searchParams }: { params: Promise<{ persona: string }>; searchParams: Promise<{ desk?: string; again?: string }> }) {
   const { persona: id } = await params;
-  const { desk } = await searchParams;
+  const { desk, again } = await searchParams;
   const p = await loadPersona(id);
   if (!p) notFound();
   const custom = customOf(p.id);
@@ -240,6 +261,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
   const mine = isClearance ? null : await ownerOf(w.id, p.id);
   const codeTo = isClearance || mine ? null : await pendingCode(w.id, p.id);
   const domains = isClearance || mine ? [] : await deskDomains(p.id);
+  const anchors = custom?.type === "business" ? await anchorsOf(p.id) : null;
   const desks = desksFor(p).filter(d => d !== "watch" && d !== "clearance");
   const shown = all.filter(r => !desk || r.desk === desk);
   const status = (r: Request) => underRules(r.clearance, rulesOn).status;
@@ -270,10 +292,10 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
       <SkyCard>
         <div className="desk-hero">
           <div>
-            <p className="eyebrow">{p.demo ? "Demo desk · simulated persona" : p.judge ? `Written for ${p.judge} · simulated persona` : "Your desk · set up from Qloo"}</p>
+            <p className="eyebrow">{p.demo ? "Demo desk · simulated persona" : p.judge ? `Written for ${p.judge} · simulated persona` : anchors ? "Your desk · set up from its website, read through Qloo" : "Your desk · set up from Qloo"}</p>
             <h1>{p.title}</h1>
             <p>{p.who} {p.forWhom}</p>
-            {custom && <p className="hint" style={{ margin: "8px 0 0" }}>
+            {custom && !anchors && <p className="hint" style={{ margin: "8px 0 0" }}>
               Not the one you meant? <a href={`/desk?q=${encodeURIComponent(custom.name)}#yours`}>See Qloo&apos;s other matches</a>
             </p>}
           </div>
@@ -311,6 +333,48 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
         </section>
       )}
 
+      {anchors && (
+        <section id="anchors" className="panel" style={{ padding: "14px 16px", marginBottom: 12, display: "grid", gap: 10 }}>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: 4 }}>Anchors · how Qloo reads {p.subject}</p>
+            <p style={{ margin: 0, color: "var(--dim)", fontSize: 14, maxWidth: 760 }}>
+              Qloo has no record of {p.subject}, so the agents read its audience through these: things Qloo knows whose audience is
+              the one {p.subject} sells to, picked from {custom?.site ? new URL(custom.site).hostname.replace(/^www\./, "") : "its site"}.
+              Every score on this desk is Qloo&apos;s, measured both ways against them.
+              {mine ? " Swap one and run the desk again." : " The desk's verified owner can swap them."}
+            </p>
+          </div>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {anchors.map(a => (
+              <li key={a.id} className="chip" title={a.why ?? undefined} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                <b>{a.name}</b><span style={{ color: "var(--mute)" }}>{a.type.replace("_", " ")}</span>
+                {mine && anchors.length > 2 && (
+                  <form action={anchor} style={{ display: "inline" }}>
+                    <input type="hidden" name="persona" value={p.id} /><input type="hidden" name="remove" value={a.id} />
+                    <button type="submit" className="linkish" aria-label={`Remove ${a.name}`}>×</button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+          {mine && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              {anchors.length < 6 && (
+                <form action={anchor} style={{ display: "flex", gap: 8 }}>
+                  <input type="hidden" name="persona" value={p.id} />
+                  <input name="add" required maxLength={60} placeholder="Add a podcast, brand, show or person" aria-label="Add an anchor" style={{ minWidth: 260 }} />
+                  <button className="btn quiet" type="submit">Add</button>
+                </form>
+              )}
+              <form action={anchor}>
+                <input type="hidden" name="persona" value={p.id} /><input type="hidden" name="rerun" value="1" />
+                <button className="btn" type="submit">Run it again with these anchors</button>
+              </form>
+            </div>
+          )}
+        </section>
+      )}
+
       <div className="desk-tabs" role="tablist">
         <a role="tab" aria-selected={!desk} className={!desk ? "on" : ""} href={`/desk/${p.id}`}>All <span>{pending.length}</span></a>
         {desks.map(d => <a key={d} role="tab" aria-selected={desk === d} className={desk === d ? "on" : ""} href={`/desk/${p.id}?desk=${d}`}>{DESKS[d].label} <span>{counts[d]}</span></a>)}
@@ -318,7 +382,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
       </div>
 
       {desk && <p className="hint" style={{ margin: "0 0 12px" }}>{DESKS[desk as DeskId]?.blurb}</p>}
-      {isLive(p.id) && <LiveBoard persona={p.id} review={planOf(p.id)?.kind === "review"} />}
+      {isLive(p.id) && <div id="board"><LiveBoard persona={p.id} review={planOf(p.id)?.kind === "review"} again={!!again && !!mine} /></div>}
 
       <section id="queue" style={{ display: "grid", gap: 10, marginBottom: 22 }}>
         <h2 style={{ fontSize: 20 }}>Requests</h2>
