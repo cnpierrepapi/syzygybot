@@ -16,6 +16,8 @@ Not in Qloo at all? Type the business's website instead. SYZYGY reads the site a
 
 Your browser gets its own workspace, so whatever you approve or reject is yours. Approving is a simulation unless you've proved the desk is yours (more on that below), so click around freely.
 
+There's a six-page walkthrough of every page and button in [docs/how-syzygy-works.pdf](docs/how-syzygy-works.pdf).
+
 ## How it fits together
 
 ```mermaid
