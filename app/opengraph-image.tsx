@@ -1,6 +1,6 @@
 import { card, OG_SIZE } from "@/lib/og";
 
-export const alt = "SYZYGY: every brand has a Qloo number it hasn't seen yet";
+export const alt = "SYZYGY: taste data that books the deal";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 

@@ -15,6 +15,7 @@ export const ORG = {
   "@id": "https://onenept.com/#org",
   name: "Onenept Studios Inc.",
   url: "https://onenept.com",
+  sameAs: ["https://github.com/cnpierrepapi"],
   address: { "@type": "PostalAddress", streetAddress: "611 South Dupont Highway, Suite 102", addressLocality: "Dover", addressRegion: "DE", postalCode: "19901", addressCountry: "US" },
 };
 
@@ -25,8 +26,8 @@ export const siteJsonLd = () => ({
     ORG,
     { "@type": "WebSite", "@id": `${SITE}/#site`, url: SITE, name: "SYZYGY", publisher: { "@id": ORG["@id"] } },
     {
-      "@type": "SoftwareApplication", name: "SYZYGY", url: SITE, applicationCategory: "BusinessApplication", operatingSystem: "Web",
-      description: "Taste data that books the deal. AI agents read Qloo's taste data, pick the brands an audience leans toward, find the person who decides and write the pitch for sponsorships, artist features, room bookings, ambassador deals, co-branded drops, venue partnerships and podcast ads. A compliance agent checks every message and a person approves every send.",
+      "@type": "SoftwareApplication", name: "SYZYGY", url: SITE, sameAs: ["https://github.com/cnpierrepapi/syzygybot"], applicationCategory: "BusinessApplication", operatingSystem: "Web",
+      description: "Taste data that books the deal. Ten AI agents read Qloo's taste data, pick who an audience leans toward, find the person who decides and write the pitch: sponsorships, artist features, room bookings, ambassador deals, co-marketing and podcast ads. A business Qloo doesn't know is read through anchors Qloo does. A clearance agent checks every message and a person approves every send.",
       creator: { "@id": ORG["@id"] },
     },
   ],

@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 export const metadata: Metadata = {
   title: "Open a desk",
-  description: "Pick a judge, or find your own brand, artist or show. SYZYGY runs the desk live on Qloo's taste data and asks before anything goes out.",
+  description: "Pick a judge's desk, or find your own brand, artist or show. Not in Qloo? Type its website. The agents run the desk live and ask before anything goes out.",
   alternates: { canonical: "/desk" },
 };
 

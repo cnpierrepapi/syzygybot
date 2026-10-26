@@ -9,8 +9,9 @@ const display = Figtree({ subsets: ["latin"], variable: "--font-display", weight
 const body = Inter({ subsets: ["latin"], variable: "--font-body" });
 const mono = Fira_Code({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500"] });
 
+// About 155 characters, so search results show it whole.
 const DESCRIPTION =
-  "Taste data that books the deal. SYZYGY's agents read Qloo's taste data to see whose fans lean toward whom, then find the person who decides and write the pitch: sponsorships, artist features, room bookings, ambassador deals, co-branded drops and podcast ads. Nothing goes out until you approve it.";
+  "AI agents read Qloo's taste data, find who your audience leans toward and the person who decides there, and write the pitch. Nothing goes out until you approve.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
   authors: [{ name: "Onenept Studios Inc.", url: "https://onenept.com" }],
   creator: "Onenept Studios Inc.",
   publisher: "Onenept Studios Inc.",
-  keywords: ["AI agents", "tour routing", "sponsorship sales", "brand ambassadors", "AI SDR", "brand partnerships", "audience overlap", "Qloo", "taste data", "cultural partnerships", "brand collaboration"],
+  keywords: ["AI agents", "AI sales agents", "sponsorship sales", "podcast sponsorship", "brand ambassadors", "brand partnerships", "tour routing", "audience overlap", "Qloo", "taste data", "co-marketing"],
   openGraph: { type: "website", siteName: "SYZYGY", url: "/", title: "SYZYGY · taste data that books the deal", description: DESCRIPTION, locale: "en_US" },
   twitter: { card: "summary_large_image", title: "SYZYGY · taste data that books the deal", description: DESCRIPTION },
   robots: { index: true, follow: true },
