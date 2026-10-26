@@ -1,32 +1,117 @@
 # SYZYGY
 
-A sales team made of agents. Nobody on it is human.
+Taste data that books the deal. Live at [syzygybot.com](https://syzygybot.com).
 
-It reads Qloo's taste data and looks for two entertainment names whose audiences line up in a way nobody has noticed yet. A studio and a drink brand. An artist and a TV show. When a pair clears the bar, it writes a public thesis page with the numbers and a timestamp.
+Qloo can tell you that Bad Bunny's fans lean toward Natti Natasha at 0.95. That's the easy part. Somebody still has to find who signs at the other end, write to them, make sure the message won't get anyone sued, send it at a decent hour and read the reply.
 
-Then it does the part a person would normally do. It picks the one side that would actually pay for this kind of insight, works out who decides there, writes to them, follows up, and handles the replies. The other side of the pair is evidence. It never gets contacted.
+SYZYGY is ten agents doing that somebody's job. You open a desk (a tour, a venue, a podcast, a brand team), a live run starts, and a few minutes later there are cards waiting for you: who to pitch, why the numbers say so, the person who decides, a drafted email or letter, and a clearance record. Nothing leaves until a person presses Approve.
 
-Every step lands on the SDR floor, a live log where you can click any action and see what the agent saw and why it did what it did.
+Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/).
 
-Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/). Every message it sends says it's an AI agent built on Qloo's taste data. It doesn't claim to be Qloo.
+## Try it
 
-## Status
+Go to [syzygybot.com/desk](https://syzygybot.com/desk) and pick a desk. Six were written with a hackathon judge in mind, plus a Bad Bunny touring desk. Or search any name ("Nike", "Hot Ones") and SYZYGY sets up a desk for it on the spot.
 
-Early. The skeleton is up: Qloo client, database schema, the floor page. The agents come next.
+Your browser gets its own workspace, so whatever you approve or reject is yours. Approving is a simulation unless you've proved the desk is yours (more on that below), so click around freely.
+
+## How it fits together
+
+```mermaid
+flowchart LR
+  subgraph In["Where the facts come from"]
+    Q["Qloo hackathon API<br/>insights, heatmaps,<br/>demographics, tags, search"]
+    W["The web<br/>Gemini + Google Search grounding"]
+    N["Google News RSS +<br/>trade-press feeds"]
+    WD["Wikidata<br/>1,619 venues"]
+  end
+
+  subgraph Run["A live desk run (lib/live)"]
+    direction LR
+    S[Scout] --> NU[Numbers] --> DC[Deal check] --> RC[Rival check] --> CF[Contact finder] --> V[Verifier] --> WR[Writer] --> CL[Clearance]
+  end
+
+  Q --> S
+  Q --> NU
+  W --> DC
+  W --> RC
+  W --> CF
+  N --> MW[Market Watch]
+  WD --> S
+
+  CL --> Card["Card on the desk<br/>Approve · Hold · Edit · Reject"]
+  Card -->|"verified desk owner"| OUT["lib/outbound<br/>send gates + caps"]
+  Card -->|"everyone else"| SIM["simulated, nothing sent"]
+  OUT --> SEQ[Sequencer] --> MAIL["Email<br/>agent@syzygybot.com"]
+  OUT --> PG["Letter<br/>PostGrid → USPS"]
+  MAIL --> IN[Inbox agent]
+  IN -->|"human reply"| H["handed to a person"]
+  IN -->|"opt-out / bounce"| DNC["do-not-contact list"]
+
+  DB[("Neon Postgres<br/>every step = one row in actions")]
+  Run -.-> DB
+  OUT -.-> DB
+  DB -.-> F["Front page: live floor + feed"]
+```
+
+Every agent writes one row to the `actions` table for every step it takes. The front page is a view over that table. If an agent did something it shows up there, and if it isn't there it didn't happen. Each card also has a "How the agents got here" list with the time of every step.
+
+## The ten agents
+
+Scout pulls 12 candidates per lane out of Qloo, things like "brands Bad Bunny's fans lean toward" or "acts the crowd at this room likes".
+
+Numbers asks Qloo for the score both ways and keeps the weaker one. A pair where only one side cares isn't a deal.
+
+Deal check drops brands the talent already works with. Rival check goes one step further. It looks up who the subject is already partnered with, searches the web for each partner's direct competitors, and keeps those lists for 30 days. So Bad Bunny's desk won't pitch Nike, because Bad Bunny has an Adidas deal. Web rival lists are narrow ("fashion rivals of Calvin Klein" leaves out Zara), so before anything gets drafted Rival check also asks Clearance's exclusivity judge, which reads categories more widely.
+
+Contact finder works out the person who decides, plus the inbox or postal address that organisation actually publishes. Verifier only keeps a contact it found on a page it read itself, because model-written links are wrong a lot of the time. Personal emails are never guessed.
+
+Writer drafts the email, or a letter when there's no inbox. Gemini 4 Argon writes it, picked over 3.1 Pro and three Flash models in a blind test. 3.1 Pro takes over when Argon is slow.
+
+Clearance runs seven rules on every draft: AI disclosure up front, no implied endorsement, the sending law in the recipient's country, letters only for Germany without consent, published addresses only, never pitch someone who's left the role, no category-exclusivity clash. There's also a fixed check that never describes an audience by ethnicity, sexuality, age, religion, politics, health or crime.
+
+Sequencer and Inbox handle what happens after you approve. Emails wait for the recipient's window (Tuesday to Thursday, 09:00 to 11:30 their time). The mailbox is read every 15 minutes, and every reply gets sorted: interested, not now, referral, opt-out, out of office. An opt-out or a bounce cancels anything still queued for that address. A real human reply goes to a person with the whole thread.
+
+Market Watch sits off to the side. It reads Google News and the search feeds of trade-press sites for the topics each desk cares about. It reads feeds on purpose. When we asked a model for news as JSON, it made up outlets.
+
+## Sending for real
+
+On a desk you've proved is yours, Approve really sends. Proving it means typing an email at the desk's own domain (livenation.com for the Live Nation desk, say) and entering the six-digit code that lands there. Free-mail addresses don't count. Neither do majors and big agencies, since thousands of people at Sony Music have nothing to do with one act. Without that check anyone could open the Live Nation desk and post letters signed as Live Nation.
+
+After that it's caps and gates. Five real emails a day across all desks and one per company per day. Ten letters a day, because each one costs money. Every message says in its opening lines that an AI agent wrote it and a person approved it, and every one has an opt-out link and a postal address.
+
+## Stack
+
+Next.js 16 on Vercel, Neon Postgres, Vercel cron. Gemini on Vertex AI: 3.5 Flash-Lite for sorting and judging, 3.5 Flash for research with Google Search grounding, Argon for drafts. Email through Zoho, letters through PostGrid. The front page constellation is three.js.
+
+The parts worth reading first:
+
+| | |
+|---|---|
+| `lib/qloo.ts` | Qloo client. Refuses any parameter not on its whitelist |
+| `lib/live/` | a desk run, lane by lane |
+| `lib/rivals.ts` | Rival check |
+| `lib/clearance.ts` | the seven rules |
+| `lib/owners.ts` | desk ownership by email code |
+| `lib/outbound.ts` | send gates, caps, sending windows |
+| `lib/inbox.ts` | sorting replies |
+| `db/schema.sql` | every table |
+
+Crons in `vercel.json`: desks every 30 minutes (the built-in desk that's gone longest without a run gets one), mail every 15.
 
 ## Running it
 
 ```
 npm install
-vercel env pull .env.local   # Neon + gateway vars, if you have the Vercel project
-# add QLOO_API_KEY to .env.local (see .env.example)
-npm run qloo:smoke           # checks the key works
+vercel env pull .env.local
+npm run qloo:smoke    # checks the Qloo key works
 npm run db:migrate
 npm run dev
 ```
 
-Qloo hackathon keys only work on `https://hackathon.api.qloo.com`. The main host gives you a 401 with the same key, which is confusing the first time.
+You need `QLOO_API_KEY`, `DATABASE_URL` and the Vertex credentials (`GOOGLE_VERTEX_PROJECT`, `GOOGLE_VERTEX_CREDENTIALS_B64`). Mail and PostGrid are optional, and with `MAIL_LIVE` and `POSTGRID_LIVE` unset nothing real goes out.
+
+One thing that'll save you an hour. Qloo hackathon keys only work on `https://hackathon.api.qloo.com`. The main host gives a 401 with the same key. And Qloo quietly ignores parameters it doesn't recognise, so a typo gets you an empty 200 instead of an error.
 
 ## License
 
-MIT
+MIT. Built by [Onenept Studios](https://onenept.com).
