@@ -183,6 +183,9 @@ button.kcard { font: inherit; text-align: left; cursor: pointer; width: 100%; }
 .kcard-step { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .kcard-who { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .board-col.is-you .kcard-step { display: none; }
+/* A column holds about four cards and scrolls inside after that, so the board keeps one height however a run ends. */
+.live-cols .board-stack { max-height: 360px; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.kcard-org { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 @media (max-width: 720px) {
   .sky-card .sky-ctl { display: none; }
   .sky-card .sky { opacity: 0.45; }
