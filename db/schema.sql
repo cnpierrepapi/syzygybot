@@ -602,3 +602,10 @@ alter table custom_desks add column if not exists anchors jsonb;
 alter table custom_desks add column if not exists anchors_at timestamptz;
 alter table custom_desks drop constraint if exists custom_desks_type_check;
 alter table custom_desks add constraint custom_desks_type_check check (type in ('brand','artist','person','tv_show','movie','podcast','business'));
+
+-- 27 Oct: Gemini off. A run played back points at the finished run it copies; only a desk's first run uses the models.
+alter table runs add column if not exists replay_of uuid;
+alter table runs add column if not exists gemini boolean not null default false;
+create index if not exists runs_replay_of on runs (replay_of);
+-- Every draft on the desks as it stood when the models were switched off, kept as written.
+create table if not exists draft_archive as select now() archived_at, * from permission_requests with no data;

@@ -7,7 +7,7 @@ import { logAction } from "./actions";
 import { loadPersona, customOf } from "./personas";
 import { resolve } from "./live/qx";
 import { fromAddress, transport } from "./mail";
-import { askWeb, parseJson } from "./llm";
+import { askWeb, geminiOn, parseJson } from "./llm";
 import { hasMx } from "./web";
 
 // The desks written for the hackathon: their organisations' domains. Talent desks read their official site from Qloo.
@@ -59,7 +59,8 @@ export async function deskDomains(personaId: string): Promise<string[]> {
     // Qloo often has no site on record (Liquid Death, Bad Bunny): one web lookup for the domains its own team mails from.
     if (who) domains = [...new Set([...domains, ...await webDomains(who.name, who.type)])];
   }
-  await sql()`insert into desk_domains (persona, domains) values (${personaId}, ${JSON.stringify(domains)})
+  // With the models off the web lookup can't run, so an empty answer isn't kept for 30 days.
+  if (domains.length || geminiOn()) await sql()`insert into desk_domains (persona, domains) values (${personaId}, ${JSON.stringify(domains)})
     on conflict (persona) do update set domains = excluded.domains, checked_at = now()`;
   return domains;
 }

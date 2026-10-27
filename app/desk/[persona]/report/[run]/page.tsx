@@ -33,8 +33,9 @@ export default async function Report({ params }: { params: Promise<{ persona: st
   const s = await snapshot(run);
   const COLS = colsFor(p.id), review = COLS[0] !== "Spotted";
   if (!s || s.persona !== p.id) notFound();
-  const [{ insights }] = (await sql()`select insights from runs where id = ${run}`) as { insights: Partial<Insights> }[];
-  const checks = (await sql()`select a_name, b_name, ours, qloo_toward, qloo_back from estimate_checks where run_id = ${run} and source = 'run' order by a_name, ours desc`) as Check[];
+  // A run played back reports the measurements its original run took.
+  const [{ insights, src }] = (await sql()`select insights, coalesce(replay_of, id) src from runs where id = ${run}`) as { insights: Partial<Insights>; src: string }[];
+  const checks = (await sql()`select a_name, b_name, ours, qloo_toward, qloo_back from estimate_checks where run_id = ${src} and source = 'run' order by a_name, ours desc`) as Check[];
   const reqs = (await sql()`select id, title, target, preview, clearance from permission_requests where id = any(${s.cards.map(c => c.request_id).filter(Boolean)})`) as Req[];
   const reqOf = new Map(reqs.map(r => [r.id, r]));
   // How close our score is to Qloo, on this run's brands and on every brand any run has measured so far.

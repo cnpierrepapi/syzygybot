@@ -27,10 +27,10 @@ export const showSimulated = () => process.env.SHOW_SIMULATED === "1";
 
 export async function feed(limit = 40, after?: string): Promise<FeedItem[]> {
   const rows = (after
-    ? await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed from actions where date_trunc('milliseconds', created_at) > ${after}::timestamptz
+    ? await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed from actions where date_trunc('milliseconds', created_at) > ${after}::timestamptz and created_at <= now()
         and (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' and (detail ? 'run' or detail ? 'workspace') order by created_at desc limit ${limit}`
     : await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed from actions
-        where (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' and (detail ? 'run' or detail ? 'workspace') order by created_at desc limit ${limit}`
+        where created_at <= now() and (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' and (detail ? 'run' or detail ? 'workspace') order by created_at desc limit ${limit}`
   ) as (FeedItem & { ref_table: string | null; ref_id: string | null; seed: string | null })[];
   // Feed lines link to the readable address of whatever they're about.
   const slugs = new Map<string, string>(), stars = new Map<string, string[]>();

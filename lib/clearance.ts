@@ -1,7 +1,7 @@
 // Clearance: the release gate. Every outbound action passes these checks before it becomes a permission request, and the
 // record rides on the card. A failed rule doesn't kill the draft: it lands on hold with the reason, for a person to clear.
 // The rules are settings, so a clearance lead can tighten or loosen them per workspace (Rules below).
-import { ask, parseJson } from "./llm";
+import { ask, geminiOn, parseJson } from "./llm";
 import { SENSITIVE } from "./match";
 
 export type Rules = {
@@ -115,6 +115,12 @@ async function exclusivityRule(o: Outbound): Promise<Check> {
   const label = RULE_LABEL.exclusivity;
   const deals = (o.talentDeals ?? []).filter(d => d.exclusive || (d.year ?? 0) >= new Date().getFullYear() - 1);
   if (!o.targetBrand || !deals.length) return { rule: "exclusivity", label, pass: true, note: o.targetBrand ? "No current deals on record for the talent." : "No brand pitched." };
+  // With the models off: an exact brand-name match with a current deal holds; categories aren't judged.
+  if (!geminiOn()) {
+    const same = deals.find(d => d.brand.trim().toLowerCase() === o.targetBrand!.trim().toLowerCase());
+    return same ? { rule: "exclusivity", label, pass: false, note: `${o.talent[0] ?? "The talent"} already has a ${same.brand} deal. Hold until the deal terms are checked.` }
+      : { rule: "exclusivity", label, pass: true, note: `No current deal with ${o.targetBrand}.` };
+  }
   const r = await ask("fast", `You check brand-deal conflicts. Given a talent's current brand deals and a new brand, say if the new brand SELLS
 a directly competing product in the same category as a current deal (two sportswear makers, two beers, two phones, two fashion houses).
 A sports club, league, venue, media company or retailer of many brands is NOT a competitor of a product brand. When unsure, no conflict. Reply JSON only:

@@ -11,7 +11,7 @@ export type Act = { at: string; agent: string; kind: string; summary: string; pe
 export async function activity(f: { agent?: string; desk?: string; q?: string; limit?: number }): Promise<Act[]> {
   const agent = f.agent || null, desk = f.desk || null, q = f.q ? `%${f.q.replace(/[%_\\]/g, m => `\\${m}`)}%` : null;
   return (await sql()`select created_at at, agent, kind, summary, detail->>'persona' persona, llm_cost_usd cost from actions
-    where (${agent}::text is null or agent = ${agent})
+    where created_at <= now() and (${agent}::text is null or agent = ${agent})
       and (${desk}::text is null or detail->>'persona' = ${desk})
       and (${q}::text is null or summary ilike ${q} or kind ilike ${q})
     order by created_at desc limit ${Math.min(f.limit ?? 200, 500)}`) as Act[];
@@ -30,7 +30,7 @@ export async function errors() {
     sql()`select o.id, o.company, o.channel, o.status, o.created_at, o.detail, r.persona from outbound o join permission_requests r on r.id = o.request_id
       where o.status in ('held','failed','bounced') order by o.created_at desc limit 50`,
     sql()`select created_at at, agent, kind, summary, detail->>'persona' persona from actions
-      where created_at > now() - make_interval(days => ${DAYS}) and (kind ~ '(fail|error)' or summary ~* '^(the run stopped early|skipped .* lane)')
+      where created_at > now() - make_interval(days => ${DAYS}) and created_at <= now() and (kind ~ '(fail|error)' or summary ~* '^(the run stopped early|skipped .* lane)')
       order by created_at desc limit 80`,
     sql()`select max(created_at) last from actions where kind = 'desk.run'`,
     sql()`select max(updated_at) last from mailbox_state`,

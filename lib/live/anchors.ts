@@ -5,7 +5,8 @@
 // The anchors are the whole read, so they're listed on the desk, and its verified owner can swap one and run it again.
 import { sql } from "../db";
 import { logAction } from "../actions";
-import { ask, parseJson } from "../llm";
+import { ask, parseJson, withGemini } from "../llm";
+import { geminiLeft } from "./budget";
 import { readPage, fetchable } from "../web";
 import { search, type EntityType } from "../qloo";
 import { slugify, token } from "../slug";
@@ -89,7 +90,9 @@ export async function setUpBusiness(input: string): Promise<{ ok: true; id: stri
   if (have) return { ok: true, id: have.id };
   const [{ n }] = (await sql()`select count(*)::int n from custom_desks where created_at > now() - interval '1 day'`) as { n: number }[];
   if (n >= DESKS_PER_DAY) return { ok: false, why: "full" };
-  const got = await read(site).catch(() => null);
+  // Reading the site is one of the two Gemini uses left (lib/live/budget.ts).
+  if ((await geminiLeft()) <= 0) return { ok: false, why: "full" };
+  const got = await withGemini("new business desk", () => read(site)).catch(() => null);
   if (!got?.read?.name) return { ok: false, why: "site" };
   const anchors = await inQloo(got.read.anchors ?? []);
   if (anchors.length < MIN) return { ok: false, why: "anchors" };

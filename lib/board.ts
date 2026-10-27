@@ -56,7 +56,7 @@ export async function board(reqs: Request[]): Promise<BoardCard[]> {
   const refs = [...new Set(chains.flatMap(c => [c.touch, c.contact, c.account, c.pair, c.plan].filter(Boolean) as string[]).concat(ids))];
   const log = (await sql()`
     select ref_table, ref_id, agent, kind, summary, created_at from actions
-    where ref_id = any(${refs}) and kind not in ('touch.dry_run', 'desk.run') order by created_at`) as Row[];
+    where ref_id = any(${refs}) and created_at <= now() and kind not in ('touch.dry_run', 'desk.run') order by created_at`) as Row[];
   const byRef = new Map<string, Row[]>();
   for (const a of log) { const k = `${a.ref_table}:${a.ref_id}`; (byRef.get(k) ?? byRef.set(k, []).get(k)!).push(a); }
   const at = (table: string, id: string | null | undefined) => (id ? byRef.get(`${table}:${id}`) ?? [] : []);

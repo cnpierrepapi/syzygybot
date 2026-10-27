@@ -1,5 +1,19 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { generateText, stepCountIs, type ToolSet } from "ai";
 import { createVertex } from "@ai-sdk/google-vertex";
+
+// Gemini is OFF (27 Oct: Google Search grounding alone cost EUR 182 of the credit). The only way to reach a model is inside
+// withGemini(), which the code opens in exactly two places: a desk's first ever run (lib/live/run.ts) and setting up a new
+// business desk from its site (lib/live/anchors.ts), both under a daily cap. Every other call throws GeminiOff before any
+// request leaves. GEMINI_OFF=1 shuts those two as well.
+export class GeminiOff extends Error {
+  constructor() { super("Gemini is switched off"); this.name = "GeminiOff"; }
+}
+const gate = new AsyncLocalStorage<string>();
+export const geminiOn = () => !!gate.getStore() && process.env.GEMINI_OFF !== "1";
+/** Runs f with Gemini allowed. `why` names the reason, for the logs. */
+export const withGemini = <T,>(why: string, f: () => Promise<T>) => gate.run(why, f);
+const allowed = () => { if (!geminiOn()) throw new GeminiOff(); };
 
 // Gemini on Vertex AI, billed to his Google Cloud credit. Claude on Vertex has zero quota on
 // trial accounts (429 on the first call, 13 Oct), and Vercel AI Gateway is on its free tier.
@@ -60,6 +74,7 @@ export function costUsd(model: string, inputTokens = 0, outputTokens = 0) {
 let vertex: ReturnType<typeof createVertex> | null = null;
 
 function provider() {
+  allowed();
   if (vertex) return vertex;
   const b64 = process.env.GOOGLE_VERTEX_CREDENTIALS_B64;
   if (!b64) throw new Error("GOOGLE_VERTEX_CREDENTIALS_B64 is not set");
@@ -73,6 +88,7 @@ function provider() {
 
 /** One model call; returns the text plus what it cost, so actions can log spend. */
 export async function ask(tier: keyof typeof MODELS, system: string, prompt: string, maxOutputTokens = 400) {
+  allowed();
   // Gemini 3.x counts hidden reasoning against maxOutputTokens, so the cap gets headroom on top
   // (only tokens actually used are billed), and the writer reasons at "low".
   const run = (m: string, retries: number) => generateText({
@@ -97,6 +113,7 @@ export async function ask(tier: keyof typeof MODELS, system: string, prompt: str
 
 /** A model call that may call our own tools (e.g. live Qloo queries) for up to `steps` rounds. */
 export async function askTools(system: string, prompt: string, tools: ToolSet, steps = 6, maxOutputTokens = 600) {
+  allowed();
   const model = chainOf("write")[0];
   const r = await generateText({
     model: provider()(model), system, prompt, tools, stopWhen: stepCountIs(steps),
@@ -113,6 +130,7 @@ export type WebSource = { url: string; title: string };
 
 /** A model call that can search Google. Returns the text plus the search results it read. */
 export async function askWeb(prompt: string, system: string, maxOutputTokens = 1500) {
+  allowed();
   const v = provider();
   // Each model has its own search-grounding quota: when one is busy (429) or stuck, the next searches instead.
   const run = (model: string, retries: number) => generateText({

@@ -18,12 +18,15 @@ import { rivalHit, screenFor } from "../rivals";
 import { planOf, type Lane, type PitchPlan } from "./plans";
 import { affinities, audienceInsights, mergeSides, profile, resolve, sideOf, top, type Ent, type Insights } from "./qx";
 import { metroOf } from "../geo";
+import { withGemini } from "../llm";
+import { firstRunAllowed } from "./budget";
 
 const JOIN_MIN = 15;          // a run still going after this long is treated as stuck
 const REUSE_MIN = 3;          // a visit right after a run finished shows that run instead of starting another
 const DAILY_RUNS = 120;       // all personas together; each run costs about $0.30 of model calls
 const POOL = 12;              // candidates scored per lane (ours vs Qloo's)
 const BUYER_MS = 100_000, INBOX_MS = 60_000;
+const REPLAY_S = 240;         // a desk's run plays back in at most this long
 
 export const COL = { spotted: 0, checked: 1, person: 2, drafted: 3, clearance: 4, approval: 5 } as const;
 
@@ -73,13 +76,55 @@ export async function startOrJoin(personaId: string, trigger: "visit" | "warm" |
     and (status = 'running' or (${trigger} = 'visit' and finished_at > now() - make_interval(mins => ${REUSE_MIN})))
     order by started_at desc limit 1`) as { id: string; status: string }[];
   if (cur) return { id: cur.id, fresh: false };
-  const [{ n }] = (await sql()`select count(*)::int n from runs where started_at > now() - interval '1 day'`) as { n: number }[];
-  if (n >= DAILY_RUNS) return { id: null, fresh: false, why: "Today's live runs are used up. The board shows the last one." };
+  // A desk the agents have worked before plays one of their finished runs again, from the start (no model calls).
+  const src = await replaySource(personaId);
+  if (src) return { id: await replay(src, trigger), fresh: true, replay: true };
+  // Only a desk that has never run gets a run with the models, under the daily allowance (lib/live/budget.ts).
+  const busy = { id: null, fresh: false, why: "The agents are on other desks right now. This desk opens tomorrow." };
+  if (!(await firstRunAllowed(personaId))) return busy;
+  const [{ n }] = (await sql()`select count(*)::int n from runs where started_at > now() - interval '1 day' and replay_of is null`) as { n: number }[];
+  if (n >= DAILY_RUNS) return busy;
   // One running row per persona, even when two visitors arrive in the same second.
-  const [row] = (await sql()`insert into runs (persona, trigger) select ${personaId}, ${trigger}
+  const [row] = (await sql()`insert into runs (persona, trigger, gemini) select ${personaId}, ${trigger}, true
     where not exists (select 1 from runs where persona = ${personaId} and status = 'running') returning id`) as { id: string }[];
   if (!row) return startOrJoin(personaId, trigger);
   return { id: row.id, fresh: true };
+}
+
+/** The finished run of this desk played back least often (the one with most cards first), with a card that reached approval. */
+async function replaySource(personaId: string) {
+  const [r] = (await sql()`select r.id from runs r where r.persona = ${personaId} and r.replay_of is null and r.status = 'done'
+      and exists (select 1 from run_cards c where c.run_id = r.id and c.status = 'done')
+    order by (select count(*) from runs x where x.replay_of = r.id),
+      (select count(*) from run_cards c where c.run_id = r.id and c.status = 'done') desc, random() limit 1`) as { id: string }[];
+  return r?.id ?? null;
+}
+
+/**
+ * Plays a finished run again: its cards and every step the agents logged, copied under a new run that starts now, each
+ * step at the same point in the run it happened (scaled to REPLAY_S at most). Rows dated ahead show once their time comes
+ * (snapshot below, and every feed reads created_at <= now()).
+ */
+async function replay(srcId: string, trigger: "visit" | "warm" | "again") {
+  const [src] = (await sql()`select started_at, finished_at from runs where id = ${srcId}`) as { started_at: string; finished_at: string }[];
+  const dur = Math.max(1, (+new Date(src.finished_at) - +new Date(src.started_at)) / 1000);
+  const scale = Math.min(1, REPLAY_S / dur);
+  const [run] = (await sql()`insert into runs (persona, trigger, status, started_at, finished_at, qloo_calls, cost_usd, insights, replay_of)
+    select persona, ${trigger}, 'done', now(), now() + make_interval(secs => ${dur * scale}), qloo_calls, 0, insights, id from runs where id = ${srcId}
+    returning id, started_at`) as { id: string; started_at: string }[];
+  const t0 = new Date(run.started_at).toISOString(), s0 = new Date(src.started_at).toISOString();
+  await sql()`insert into run_cards (run_id, persona, desk, title, org, entity_id, status, request_id, detail, created_at)
+    select ${run.id}, persona, desk, title, org, entity_id, status, request_id, detail || jsonb_build_object('replay_of', id::text),
+      ${t0}::timestamptz + (created_at - ${s0}::timestamptz) * ${scale}::float8
+    from run_cards where run_id = ${srcId}`;
+  await sql()`insert into actions (agent, kind, summary, ref_table, ref_id, detail, llm_cost_usd, created_at)
+    select a.agent, a.kind, a.summary, a.ref_table,
+      case when a.ref_table = 'runs' then ${run.id} when a.ref_table = 'run_cards' then coalesce(m.id, a.ref_id) else a.ref_id end,
+      a.detail || jsonb_build_object('run', ${run.id}::text, 'replay_of', ${srcId}::text), null,
+      ${t0}::timestamptz + (a.created_at - ${s0}::timestamptz) * ${scale}::float8
+    from actions a left join (select id::text id, detail->>'replay_of' old from run_cards where run_id = ${run.id}) m on m.old = a.ref_id
+    where a.detail->>'run' = ${srcId}`;
+  return run.id;
 }
 
 type Card = { id: string; desk: string };
@@ -105,14 +150,17 @@ export function spearman(xs: number[], ys: number[]) {
 }
 
 export async function execute(runId: string) {
-  const [run] = (await sql()`select id, persona from runs where id = ${runId}`) as { id: string; persona: string }[];
+  const [run] = (await sql()`select id, persona, gemini, replay_of from runs where id = ${runId}`) as { id: string; persona: string; gemini: boolean; replay_of: string | null }[];
+  if (run?.replay_of) return;
   const p = run && await loadPersona(run.persona), plan = run && planOf(run.persona);
   if (!p || !plan) return;
   calls0.set(runId, qlooCallsMade());
   const calls = () => qlooCallsMade() - (calls0.get(runId) ?? 0);
   let cost = 0;
   try {
-    cost = plan.kind === "review" ? await review(runId, p, plan.n) : await pitch(runId, p, plan);
+    // The models only answer inside a desk's first run (lib/llm.ts); any other run stops at its first model call.
+    const work = () => plan.kind === "review" ? review(runId, p, plan.n) : pitch(runId, p, plan);
+    cost = run.gemini ? await withGemini("first run of a desk", work) : await work();
     await sql()`update runs set status = 'done', finished_at = now(), qloo_calls = ${calls()}, cost_usd = ${cost} where id = ${runId}`;
     const [{ n, held }] = (await sql()`select count(*) filter (where c.status = 'done')::int n,
         count(*) filter (where r.clearance->>'status' = 'hold')::int held
@@ -477,14 +525,21 @@ export type RunSnapshot = { id: string; persona: string; status: string; started
 export async function snapshot(runId: string): Promise<RunSnapshot | null> {
   const [r] = (await sql()`select id, persona, status, started_at, finished_at, qloo_calls, error from runs where id = ${runId}`) as Omit<RunSnapshot, "log" | "cards">[];
   if (!r) return null;
-  const cards = (await sql()`select id, desk, title, org, status, request_id from run_cards where run_id = ${runId} order by created_at`) as Omit<RunCard, "steps">[];
-  const acts = (await sql()`select ref_table, ref_id, agent, kind, summary, created_at at, detail from actions
+  // A run played back has rows dated ahead: only what has happened by now shows, and it's running until its last step.
+  const now = Date.now(), ahead = !!r.finished_at && +new Date(r.finished_at) > now;
+  const cards = (await sql()`select id, desk, title, org, status, request_id from run_cards where run_id = ${runId} and created_at <= now() order by created_at`) as Omit<RunCard, "steps">[];
+  const all = (await sql()`select ref_table, ref_id, agent, kind, summary, created_at at, detail from actions
     where detail->>'run' = ${runId} order by created_at`) as (RunStep & { ref_table: string; ref_id: string })[];
+  const acts = all.filter(a => +new Date(a.at) <= now);
+  const pending = new Set(all.filter(a => +new Date(a.at) > now).map(a => a.ref_id));
   const strip = ({ ref_table: _t, ref_id: _i, ...s }: RunStep & { ref_table: string; ref_id: string }) => ({ ...s, col: (s.detail?.col as number | null) ?? null, at: new Date(s.at).toISOString() });
+  const t0 = +new Date(r.started_at), part = ahead ? Math.max(0, now - t0) / (+new Date(r.finished_at!) - t0) : 1;
   return {
-    ...r, started_at: new Date(r.started_at).toISOString(), finished_at: r.finished_at ? new Date(r.finished_at).toISOString() : null,
+    ...r, status: ahead ? "running" : r.status, qloo_calls: Math.round(r.qloo_calls * part),
+    started_at: new Date(r.started_at).toISOString(), finished_at: r.finished_at && !ahead ? new Date(r.finished_at).toISOString() : null,
     log: acts.filter(a => a.ref_table === "runs").map(strip),
-    cards: cards.map(c => ({ ...c, steps: acts.filter(a => a.ref_table === "run_cards" && a.ref_id === c.id).map(strip) })),
+    cards: cards.map(c => ({ ...c, ...(pending.has(c.id) ? { status: "working", request_id: null } : {}),
+      steps: acts.filter(a => a.ref_table === "run_cards" && a.ref_id === c.id).map(strip) })),
   };
 }
 

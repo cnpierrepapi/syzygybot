@@ -272,7 +272,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
   const heldCount = pending.filter(r => status(r) === "hold").length;
   const news = await watchItems(p.id, 8);
   const log = (await sql()`select a.summary, a.agent, a.created_at from actions a
-    where a.detail->>'persona' = ${p.id} or (a.detail->>'workspace' = ${w.id})
+    where a.created_at <= now() and (a.detail->>'persona' = ${p.id} or a.detail->>'workspace' = ${w.id})
     order by a.created_at desc limit 14`) as { summary: string; agent: string; created_at: string }[];
   const counts = Object.fromEntries(desks.map(d => [d, all.filter(r => r.desk === d && (!r.decision || r.decision === "held")).length]));
   const cards = await board(sorted);

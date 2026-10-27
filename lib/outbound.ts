@@ -5,7 +5,8 @@
 // day, and for letters a daily cap on print-mail spend. Email needs MAIL_LIVE=1; letters print only with POSTGRID_LIVE=1.
 import { sql } from "./db";
 import { logAction } from "./actions";
-import { ask, parseJson } from "./llm";
+import { ask, geminiOn, parseJson } from "./llm";
+import { ruleReply } from "./replyrules";
 import { clear } from "./clearance";
 import { blocked, footer, inWindow, local } from "./sequencer";
 import { fromAddress, mailLive, nextWindow, SEND_CAP, transport } from "./mail";
@@ -235,7 +236,7 @@ export async function stopOutbound(address: string | null, company: string | nul
 
 /** A reply to one of these: sorted by the Inbox agent; opt-outs honoured; anything a person should see goes to them. */
 export async function handleOutboundReply(o: Outbound, text: string, meta: Record<string, unknown>) {
-  const c = await ask("fast", CLASSIFY_SYSTEM, JSON.stringify({ our_message: o.body, their_reply: text }), 400);
+  const c = geminiOn() ? await ask("fast", CLASSIFY_SYSTEM, JSON.stringify({ our_message: o.body, their_reply: text }), 400) : ruleReply(text);
   const parsed = parseJson<{ class: string; summary?: string }>(c.text);
   const cls = parsed && (CLASSES as readonly string[]).includes(parsed.class) ? parsed.class : "other";
   const [reply] = (await sql()`insert into outbound_replies (outbound_id, class, body, summary, detail)

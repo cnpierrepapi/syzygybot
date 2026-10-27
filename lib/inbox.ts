@@ -13,7 +13,8 @@ import { tool } from "ai";
 import { z } from "zod";
 import { sql } from "./db";
 import { logAction } from "./actions";
-import { ask, askTools, parseJson } from "./llm";
+import { ask, askTools, geminiOn, parseJson } from "./llm";
+import { ruleReply } from "./replyrules";
 import { audienceTags, demographics, pull, search, topFor, type EntityType } from "./qloo";
 import { addBusinessDays, nextSlot, stopSequence } from "./sequencer";
 import { writeTouch, type AccountRow } from "./outreach";
@@ -121,7 +122,7 @@ export async function handleReply(touchId: string, text: string, simulated = tru
   const who = t.contact_name ?? `${a.name}'s ${t.role}`;
   const tag = simulated ? " (simulated reply)" : "";
 
-  const c = await ask("fast", CLASSIFY_SYSTEM, JSON.stringify({ our_message: t.body, their_reply: text }), 400);
+  const c = geminiOn() ? await ask("fast", CLASSIFY_SYSTEM, JSON.stringify({ our_message: t.body, their_reply: text }), 400) : ruleReply(text);
   const parsed = parseJson<{ class: Class; questions?: string[]; referral?: { name?: string; role?: string; email?: string } | null; return_date?: string | null; revisit_date?: string | null; summary?: string }>(c.text);
   const cls: Class = parsed && CLASSES.includes(parsed.class) ? parsed.class : "other";
   let cost = c.costUsd ?? 0;

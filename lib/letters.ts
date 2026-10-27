@@ -4,7 +4,7 @@
 // status, but nothing is printed. A live letter is printed and handed to USPS within two business days.
 import { sql } from "./db";
 import { logAction } from "./actions";
-import { ask, parseJson } from "./llm";
+import { ask, geminiOn, parseJson } from "./llm";
 import { clear } from "./clearance";
 import { blocked, footer } from "./sequencer";
 import { findInbox } from "./desks/common";
@@ -37,6 +37,7 @@ const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 /** Free-text postal address → PostGrid fields. Every field must appear in the original, so nothing is made up. */
 export async function parseAddress(text: string): Promise<Address | null> {
+  if (!geminiOn()) return usAddress(text);
   const r = await ask("fast", `Split a postal address into fields. Copy text exactly from the input; never add or correct anything.
 JSON only: {"addressLine1":"","addressLine2":"","city":"","provinceOrState":"","postalOrZip":"","countryCode":"ISO-2"}`, text, 200);
   const a = parseJson<Address>(r.text);
@@ -45,6 +46,16 @@ JSON only: {"addressLine1":"","addressLine2":"","city":"","provinceOrState":"","
   const fields = [a.addressLine1, a.addressLine2, a.city, a.postalOrZip, a.provinceOrState].filter((x): x is string => !!x);
   if (!fields.every(f => src.includes(` ${norm(f)} `))) return null;
   return a;
+}
+
+/** With the models off: only the plain US shape "line 1, [line 2,] City, ST 12345[, US]". Anything else is held, never guessed. */
+function usAddress(text: string): Address | null {
+  const parts = text.split(/[,\n]+/).map(x => x.trim()).filter(Boolean);
+  if (parts.length && /^(us|usa|united states( of america)?)$/i.test(parts[parts.length - 1])) parts.pop();
+  const m = /^([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/.exec(parts[parts.length - 1] ?? "");
+  if (!m || parts.length < 3 || parts.length > 4) return null;
+  const [line1, ...mid] = parts.slice(0, -2);
+  return { addressLine1: line1, ...(mid[0] ? { addressLine2: mid[0] } : {}), city: parts[parts.length - 2], provinceOrState: m[1], postalOrZip: m[2], countryCode: "US" };
 }
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

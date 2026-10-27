@@ -1,14 +1,6 @@
 {
   "crons": [
     {
-      "path": "/api/outreach",
-      "schedule": "30 */3 * * *"
-    },
-    {
-      "path": "/api/desks",
-      "schedule": "5,35 * * * *"
-    },
-    {
       "path": "/api/mail",
       "schedule": "*/15 * * * *"
     }
