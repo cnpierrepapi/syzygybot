@@ -609,3 +609,7 @@ alter table runs add column if not exists gemini boolean not null default false;
 create index if not exists runs_replay_of on runs (replay_of);
 -- Every draft on the desks as it stood when the models were switched off, kept as written.
 create table if not exists draft_archive as select now() archived_at, * from permission_requests with no data;
+-- 27 Oct: a draft shows on its desk from shown_at on. Cleared desks have it null; a run played back sets it to when the
+-- card reaches Your approval. Past decisions kept in decision_archive.
+alter table permission_requests add column if not exists shown_at timestamptz default now();
+create table if not exists decision_archive as select now() archived_at, * from request_decisions with no data;

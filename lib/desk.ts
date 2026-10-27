@@ -58,8 +58,8 @@ export async function requests(personaId: string | "all", wsId: string | null) {
     select r.id, r.persona, r.desk, r.action, r.title, r.slug, r.ref_table, r.target, r.preview, r.evidence, r.clearance, r.created_at,
       d.decision, d.reason, d.edited, d.outcome, d.decided_at
     from permission_requests r left join request_decisions d on d.request_id = r.id and d.workspace_id = ${wsId}
-    where (${personaId} = 'all' or r.persona = ${personaId})
-    order by r.created_at desc limit 200`) as Request[];
+    where (${personaId} = 'all' or r.persona = ${personaId}) and r.shown_at <= now()
+    order by r.shown_at desc limit 200`) as Request[];
 }
 
 export async function watchItems(personaId: string, limit = 12) {

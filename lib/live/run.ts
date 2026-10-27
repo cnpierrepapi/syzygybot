@@ -124,6 +124,11 @@ async function replay(srcId: string, trigger: "visit" | "warm" | "again") {
       ${t0}::timestamptz + (a.created_at - ${s0}::timestamptz) * ${scale}::float8
     from actions a left join (select id::text id, detail->>'replay_of' old from run_cards where run_id = ${run.id}) m on m.old = a.ref_id
     where a.detail->>'run' = ${srcId}`;
+  // Each draft reaches the desk when its card reaches Your approval in this run (its last step), not before.
+  await sql()`update permission_requests pr set shown_at = case when pr.shown_at <= now() then pr.shown_at else x.due end
+    from (select c.request_id, max(a.created_at) due from run_cards c join actions a on a.ref_table = 'run_cards' and a.ref_id = c.id::text
+      where c.run_id = ${run.id} and c.request_id is not null group by 1) x
+    where pr.id = x.request_id`;
   return run.id;
 }
 

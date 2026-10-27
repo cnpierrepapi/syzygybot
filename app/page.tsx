@@ -31,8 +31,8 @@ async function load() {
           least((r.evidence->'match'->'qloo'->>'toward')::float, (r.evidence->'match'->'qloo'->>'back')::float) score,
           (select f from jsonb_array_elements_text(r.evidence->'facts') f where f like 'Qloo''s taste data%' limit 1) why
         from permission_requests r
-        where r.run_id is not null and r.evidence->'match'->'qloo'->>'toward' is not null
-        order by r.persona, r.created_at desc`.then(r => (r as Card[]).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 4)),
+        where r.run_id is not null and r.shown_at <= now() and r.evidence->'match'->'qloo'->>'toward' is not null
+        order by r.persona, r.shown_at desc`.then(r => (r as Card[]).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 4)),
       graph(),
     ]);
     // The legend only offers types the sky actually has, so no filter ever isolates an empty sky.
@@ -52,7 +52,7 @@ async function stackCounts(): Promise<Stack | null> {
       (select count(*) from pairs)::int + (select count(*) from estimate_checks where qloo_toward is not null and qloo_back is not null)::int measured,
       (select count(*) from venues)::int rooms,
       (select count(*) from contacts where role_status = 'confirmed')::int verified,
-      (select count(*) from permission_requests r where not exists (select 1 from request_decisions d where d.request_id = r.id))::int waiting`) as Omit<Stack, "sources" | "rules">[];
+      (select count(*) from permission_requests r where r.shown_at <= now() and not exists (select 1 from request_decisions d where d.request_id = r.id))::int waiting`) as Omit<Stack, "sources" | "rules">[];
     return { ...c, sources: SOURCES.length, rules: Object.keys(RULE_LABEL).length + 1 };
   } catch { return null; }
 }

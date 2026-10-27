@@ -4,6 +4,7 @@
 // moves only when an agent has really finished a step, and it holds each column for at least 5 seconds so you can read
 // what happened. The panel under the board says what the agents just did. People don't move cards.
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { RunCard, RunSnapshot, RunStep } from "@/lib/live/run";
 
 const PITCH = [
@@ -29,7 +30,7 @@ const AGENT: Record<string, string> = {
   // Steps logged before the agents were merged (23 Oct) under the desk names.
   sponsor: "Scout", talent: "Scout", podcast: "Scout", venue: "Scout", router: "Sequencer",
 };
-const HOLD_MS = 5_000, POLL_MS = 2_500;
+const HOLD_MS = 5_000, POLL_MS = 2_500, COL_APPROVAL = 5;
 
 type Shown = { idx: number; at: number };
 type Line = { key: string; who: string; agent: string; col: number | null; summary: string; at: string };
@@ -113,6 +114,10 @@ export default function LiveBoard({ persona, review = false, again = false }: { 
   }, [snap]);
 
   const placed = (snap?.cards ?? []).filter(c => shown[c.id]).map(c => ({ c, st: c.steps[shown[c.id].idx] }));
+  // A card that reaches Your approval files its draft on the desk: reload the desk's cards under the board to show it.
+  const router = useRouter();
+  const filed = placed.filter(p => p.st?.col === COL_APPROVAL).length;
+  useEffect(() => { if (filed) router.refresh(); }, [filed]); // eslint-disable-line react-hooks/exhaustive-deps
   const backlog = (snap?.cards ?? []).some(c => shown[c.id] && shown[c.id].idx < c.steps.length - 1);
   const running = snap?.status === "running" || backlog;
   const lead = (focus && placed.find(p => p.c.id === focus)) || null;
