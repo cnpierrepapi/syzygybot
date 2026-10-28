@@ -18,12 +18,10 @@ import { rivalHit, screenFor } from "../rivals";
 import { planOf, type Lane, type PitchPlan } from "./plans";
 import { affinities, audienceInsights, mergeSides, profile, resolve, sideOf, top, type Ent, type Insights } from "./qx";
 import { metroOf } from "../geo";
-import { withGemini } from "../llm";
-import { firstRunAllowed } from "./budget";
 
 const JOIN_MIN = 15;          // a run still going after this long is treated as stuck
 const REUSE_MIN = 3;          // a visit right after a run finished shows that run instead of starting another
-const DAILY_RUNS = 120;       // all personas together; each run costs about $0.30 of model calls
+const DAILY_RUNS = 120;       // all personas together, to keep inside Qloo's quota
 const POOL = 12;              // candidates scored per lane (ours vs Qloo's)
 const BUYER_MS = 100_000, INBOX_MS = 60_000;
 const REPLAY_S = 240;         // a desk's run plays back in at most this long
@@ -79,13 +77,12 @@ export async function startOrJoin(personaId: string, trigger: "visit" | "warm" |
   // A desk the agents have worked before plays one of their finished runs again, from the start (no model calls).
   const src = await replaySource(personaId);
   if (src) return { id: await replay(src, trigger), fresh: true, replay: true };
-  // Only a desk that has never run gets a run with the models, under the daily allowance (lib/live/budget.ts).
+  // A desk that has never run gets a real run: Qloo live, cached contacts and deals, the house writer (no model calls).
   const busy = { id: null, fresh: false, why: "The agents are on other desks right now. This desk opens tomorrow." };
-  if (!(await firstRunAllowed(personaId))) return busy;
   const [{ n }] = (await sql()`select count(*)::int n from runs where started_at > now() - interval '1 day' and replay_of is null`) as { n: number }[];
   if (n >= DAILY_RUNS) return busy;
   // One running row per persona, even when two visitors arrive in the same second.
-  const [row] = (await sql()`insert into runs (persona, trigger, gemini) select ${personaId}, ${trigger}, true
+  const [row] = (await sql()`insert into runs (persona, trigger) select ${personaId}, ${trigger}
     where not exists (select 1 from runs where persona = ${personaId} and status = 'running') returning id`) as { id: string }[];
   if (!row) return startOrJoin(personaId, trigger);
   return { id: row.id, fresh: true };
@@ -155,7 +152,7 @@ export function spearman(xs: number[], ys: number[]) {
 }
 
 export async function execute(runId: string) {
-  const [run] = (await sql()`select id, persona, gemini, replay_of from runs where id = ${runId}`) as { id: string; persona: string; gemini: boolean; replay_of: string | null }[];
+  const [run] = (await sql()`select id, persona, replay_of from runs where id = ${runId}`) as { id: string; persona: string; replay_of: string | null }[];
   if (run?.replay_of) return;
   const p = run && await loadPersona(run.persona), plan = run && planOf(run.persona);
   if (!p || !plan) return;
@@ -163,9 +160,8 @@ export async function execute(runId: string) {
   const calls = () => qlooCallsMade() - (calls0.get(runId) ?? 0);
   let cost = 0;
   try {
-    // The models only answer inside a desk's first run (lib/llm.ts); any other run stops at its first model call.
-    const work = () => plan.kind === "review" ? review(runId, p, plan.n) : pitch(runId, p, plan);
-    cost = run.gemini ? await withGemini("first run of a desk", work) : await work();
+    // No model answers (lib/llm.ts): searches and lookups fall back to what earlier runs found, drafts to the house writer.
+    cost = plan.kind === "review" ? await review(runId, p, plan.n) : await pitch(runId, p, plan);
     await sql()`update runs set status = 'done', finished_at = now(), qloo_calls = ${calls()}, cost_usd = ${cost} where id = ${runId}`;
     const [{ n, held }] = (await sql()`select count(*) filter (where c.status = 'done')::int n,
         count(*) filter (where r.clearance->>'status' = 'hold')::int held

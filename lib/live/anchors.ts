@@ -5,8 +5,6 @@
 // The anchors are the whole read, so they're listed on the desk, and its verified owner can swap one and run it again.
 import { sql } from "../db";
 import { logAction } from "../actions";
-import { ask, parseJson, withGemini } from "../llm";
-import { geminiLeft } from "./budget";
 import { readPage, fetchable } from "../web";
 import { search, type EntityType } from "../qloo";
 import { slugify, token } from "../slug";
@@ -38,29 +36,49 @@ const rootOf = (site: string) => new URL(site).hostname.split(".").slice(/\.(co|
 
 type Read = { name: string; about: string; audience: string; anchors: { name: string; type: string; why: string }[] };
 
-/** The business's own pages, read by us, and a model's picks from them. Picks only count once Qloo has the exact name. */
-async function read(site: string) {
+// Anchor sets by what a business does (28 Oct: no model reads the site any more). The site's own words pick the sets; only
+// names Qloo has under that exact name count (inQloo below). Tech first: it's the fallback when the words say little.
+const THEMES: { why: string; words: RegExp; anchors: [string, EntityType][] }[] = [
+  { why: "tech and startup audience", words: /\b(software|ai|saas|startup|developer|api|cloud|data|platform|app|agents?|automation|tech)\b/gi,
+    anchors: [["GitHub", "brand"], ["Y Combinator", "brand"], ["Lex Fridman Podcast", "podcast"], ["Silicon Valley", "tv_show"], ["TechCrunch", "brand"], ["Hard Fork", "podcast"]] },
+  { why: "food and drink audience", words: /\b(food|restaurant|kitchen|recipe|chef|coffee|wine|beer|drink|bakery|menu|dining|snack)s?\b/gi,
+    anchors: [["Bon Appétit", "brand"], ["The Bear", "tv_show"], ["Anthony Bourdain", "person"], ["Whole Foods Market", "brand"], ["Gordon Ramsay", "person"]] },
+  { why: "fashion and beauty audience", words: /\b(fashion|beauty|skin ?care|makeup|cosmetics?|apparel|clothing|style|hair|jewel(le)?ry|wear)\b/gi,
+    anchors: [["Vogue", "brand"], ["Glossier", "brand"], ["Fenty Beauty", "brand"], ["Emily in Paris", "tv_show"], ["Zara", "brand"]] },
+  { why: "sport and fitness audience", words: /\b(fitness|gym|sports?|training|athletes?|running|football|soccer|basketball|workout|coach)\b/gi,
+    anchors: [["Nike", "brand"], ["ESPN", "brand"], ["Peloton", "brand"], ["Gymshark", "brand"], ["LeBron James", "person"]] },
+  { why: "music audience", words: /\b(music|artists?|records?|label|concerts?|festival|songs?|albums?|tour|band)\b/gi,
+    anchors: [["Spotify", "brand"], ["Rolling Stone", "brand"], ["Billboard", "brand"], ["Pitchfork", "brand"], ["Taylor Swift", "artist"]] },
+  { why: "gaming audience", words: /\b(games?|gaming|gamers?|esports?|console|stream(er|ing)?|players?)\b/gi,
+    anchors: [["Twitch", "brand"], ["Nintendo", "brand"], ["PlayStation", "brand"], ["The Last of Us", "tv_show"], ["MrBeast", "person"]] },
+  { why: "money and investing audience", words: /\b(finance|fintech|invest(ing|ment|or)?s?|bank(ing)?|crypto|payments?|trading|wealth|money|loans?)\b/gi,
+    anchors: [["Bloomberg", "brand"], ["Robinhood", "brand"], ["Coinbase", "brand"], ["Planet Money", "podcast"], ["Billions", "tv_show"]] },
+  { why: "travel audience", words: /\b(travel|hotels?|trips?|tours?|flights?|vacation|holiday|resort|booking|stays?)\b/gi,
+    anchors: [["Airbnb", "brand"], ["Lonely Planet", "brand"], ["Delta Air Lines", "brand"], ["The White Lotus", "tv_show"], ["Expedia", "brand"]] },
+  { why: "health and wellness audience", words: /\b(wellness|health|meditation|mindful(ness)?|yoga|sleep|nutrition|therapy|mental)\b/gi,
+    anchors: [["Headspace", "brand"], ["Huberman Lab", "podcast"], ["Lululemon", "brand"], ["Goop", "brand"]] },
+  { why: "learning audience", words: /\b(learn(ing)?|courses?|education|students?|school|teach(ing|ers?)?|tutor(ing)?|university|study)\b/gi,
+    anchors: [["Khan Academy", "brand"], ["Duolingo", "brand"], ["Coursera", "brand"], ["TED Talks Daily", "podcast"], ["Freakonomics Radio", "podcast"]] },
+];
+
+/** The business's own pages, read by us, and anchors picked by what the pages talk about most. */
+export async function readSite(site: string): Promise<{ read: Read } | null> {
   const pages = (await Promise.all([site, `${site}about`].map(u => readPage(u)))).filter(p => p && p.status < 400 && p.text.length > 200);
   if (!pages.length) return null;
-  const text = pages.map(p => `${p!.title ?? ""}\n${p!.text}`).join("\n\n").slice(0, 9000);
-  const r = await ask("write", `You read a company's own website and say who its customers and fans are, in terms a taste-data company
-like Qloo would know. Qloo knows popular podcasts, consumer and tech brands, TV shows, public figures and artists, by their exact
-public names. Reply with JSON only.`, `Website: ${site}
-
-${text}
-
-Give:
-- name: the business's name as it calls itself
-- about: one plain sentence on what it does (under 25 words, no hype)
-- audience: one sentence on who buys from it or follows it
-- anchors: 10 well-known podcasts, brands, TV shows, people or artists whose audience is that same audience. Exact public names.
-  Mix the kinds, mostly podcasts and brands. Nothing the business itself owns.
-JSON: {"name": "", "about": "", "audience": "", "anchors": [{"name": "", "type": "podcast|brand|tv_show|person|artist|movie", "why": "under 12 words"}]}`, 1200);
-  return { read: parseJson<Read>(r.text), cost: r.costUsd };
+  const text = pages.map(p => `${p!.title ?? ""}\n${p!.text}`).join("\n\n").slice(0, 20000);
+  const ranked = THEMES.map(t => ({ t, n: text.match(t.words)?.length ?? 0 })).sort((a, b) => b.n - a.n);
+  const chosen = ranked[0].n ? ranked.filter(r => r.n >= ranked[0].n / 2).slice(0, 2).map(r => r.t) : [THEMES[0]];
+  const host = new URL(site).hostname.replace(/^www\./, "");
+  const fromTitle = pages[0]!.title?.split(/\s[|\-–:·]\s/)[0]?.trim();
+  const name = fromTitle && fromTitle.length <= 40 ? fromTitle : cap(host.split(".")[0]);
+  const about = text.split(/(?<=[.!?])\s+/).map(x => x.trim()).find(x => x.length > 40 && x.length < 200 && /\b(we|our|is|helps?|builds?|makes?)\b/i.test(x)) ?? "";
+  return { read: { name, about, audience: `People in the ${chosen.map(t => t.why).join(" and ")}.`,
+    anchors: chosen.flatMap(t => t.anchors.map(([n, type]) => ({ name: n, type, why: `shares the ${t.why}` }))) } };
 }
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** The model's picks that Qloo has under that exact name, at most three of a kind, so one kind doesn't become the whole read. */
-async function inQloo(picks: Read["anchors"]): Promise<Anchor[]> {
+/** The picks that Qloo has under that exact name, at most three of a kind, so one kind doesn't become the whole read. */
+export async function inQloo(picks: Read["anchors"]): Promise<Anchor[]> {
   const typed = picks.filter(a => KINDS.includes(a.type as EntityType)).slice(0, 12);
   const hits = await Promise.all(typed.map(async a => {
     const e = await resolve(a.name, a.type as EntityType).catch(() => null);
@@ -90,9 +108,7 @@ export async function setUpBusiness(input: string): Promise<{ ok: true; id: stri
   if (have) return { ok: true, id: have.id };
   const [{ n }] = (await sql()`select count(*)::int n from custom_desks where created_at > now() - interval '1 day'`) as { n: number }[];
   if (n >= DESKS_PER_DAY) return { ok: false, why: "full" };
-  // Reading the site is one of the two Gemini uses left (lib/live/budget.ts).
-  if ((await geminiLeft()) <= 0) return { ok: false, why: "full" };
-  const got = await withGemini("new business desk", () => read(site)).catch(() => null);
+  const got = await readSite(site).catch(() => null);
   if (!got?.read?.name) return { ok: false, why: "site" };
   const anchors = await inQloo(got.read.anchors ?? []);
   if (anchors.length < MIN) return { ok: false, why: "anchors" };
@@ -102,7 +118,7 @@ export async function setUpBusiness(input: string): Promise<{ ok: true; id: stri
   await sql()`insert into custom_desks (id, entity_id, name, type, image, site, about, anchors, anchors_at)
     values (${id}, ${entity}, ${name}, 'business', null, ${site}, ${about}, ${JSON.stringify(anchors)}, now()) on conflict (entity_id) do nothing`;
   const [row] = (await sql()`select id from custom_desks where entity_id = ${entity}`) as { id: string }[];
-  await logAction({ agent: "scout", kind: "desk.anchored", llmCostUsd: got.cost,
+  await logAction({ agent: "scout", kind: "desk.anchored",
     summary: `Set up a desk for ${name} from ${new URL(site).hostname}. Qloo has no record of it, so it reads through ${anchors.length} anchors Qloo does know: ${anchors.map(a => a.name).join(", ")}.`,
     detail: { persona: row.id, site, anchors } });
   return { ok: true, id: row.id };

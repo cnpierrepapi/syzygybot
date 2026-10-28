@@ -2,10 +2,9 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { generateText, stepCountIs, type ToolSet } from "ai";
 import { createVertex } from "@ai-sdk/google-vertex";
 
-// Gemini is OFF (27 Oct: Google Search grounding alone cost EUR 182 of the credit). The only way to reach a model is inside
-// withGemini(), which the code opens in exactly two places: a desk's first ever run (lib/live/run.ts) and setting up a new
-// business desk from its site (lib/live/anchors.ts), both under a daily cap. Every other call throws GeminiOff before any
-// request leaves. GEMINI_OFF=1 shuts those two as well.
+// Gemini is OFF (27 Oct: Google Search grounding alone cost EUR 182 of the credit; 28 Oct: Google Cloud billing unlinked).
+// Nothing opens withGemini() any more, so every call throws GeminiOff before a request leaves. Desks' first runs and new
+// business desks run without models (the house writer in lib/desks/housewriter.ts, anchors by theme in lib/live/anchors.ts).
 export class GeminiOff extends Error {
   constructor() { super("Gemini is switched off"); this.name = "GeminiOff"; }
 }

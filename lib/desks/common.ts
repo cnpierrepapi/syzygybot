@@ -2,7 +2,8 @@
 // A live run (lib/live/run.ts) decides WHO to approach and WHY; these steps work the same for every desk.
 import { sql } from "../db";
 import { logAction } from "../actions";
-import { ask, askWeb, parseJson } from "../llm";
+import { ask, askWeb, geminiOn, parseJson } from "../llm";
+import { houseDraft } from "./housewriter";
 import { hasMx, readAll } from "../web";
 import { clear, countryFromRole, emailAllowed, type Deal } from "../clearance";
 import { cleanTitle, judgePerson } from "../contacts";
@@ -105,6 +106,11 @@ export const style = (b: string, subject: string) => ({
 });
 
 export async function draft(brief: Record<string, unknown>) {
+  // With the models off, the house writer drafts from the brief, under the same rules.
+  if (!geminiOn()) {
+    const d = houseDraft(brief);
+    return { draft: d && Object.values(style(d.body, d.subject)).every(Boolean) ? d : null, cost: 0 };
+  }
   let cost = 0, last: { subject: string; body: string } | null = null, broke: Record<string, boolean> = {};
   for (let attempt = 0; attempt < 2; attempt++) {
     const r = await ask("pen", WRITER, attempt ? `${JSON.stringify(brief)}\n\nYour last draft broke a rule: ${JSON.stringify(broke)}. Fix it.` : JSON.stringify(brief), 450);
