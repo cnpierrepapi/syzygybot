@@ -28,10 +28,12 @@ When on, the picks from a bake-off on real inputs (`scripts/model-bakeoff.mts`) 
 
 ## Crons
 
-One, in `vercel.json`: `/api/mail` every 15 minutes.
+One, in `vercel.json`: `/api/mail` every 15 minutes. It sends what's due, reads the mailbox and checks on printed letters.
 
 ## Older code
 
-The first version was a pipeline with no desks: theses, accounts and a message queue. It stopped on 23 Oct. Its pages (`/thesis`, `/account`, `/floor`) stay up because they hold real research. Its cron routes return `{off: true}`, and most scripts in `scripts/` belong to it. The HubSpot and Salesforce connectors were built and never connected.
+The first version was a pipeline with no desks: theses, accounts and a message queue. It stopped on 23 Oct. Its pages (`/thesis`, `/account`, `/floor`) stay up because they hold real research, and so does `/claim`, where a brand can claim its page with a post from its own X account. No brand has yet. Nothing schedules the old routes any more, and most scripts in `scripts/` belong to this version. The HubSpot and Salesforce connectors were built and never connected.
+
+Market Watch stopped with the desks cron. The stories on a desk are the last ones it read, on 27 Oct.
 
 Schema is in `db/schema.sql`. `npm run db:migrate` applies it, and every statement is safe to run twice.

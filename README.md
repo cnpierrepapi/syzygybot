@@ -65,8 +65,8 @@ Rival check and reply sorting drop to plain rules in this mode, so a brand-new d
 
 ```
 npm install
-vercel env pull .env.local
-npm run qloo:smoke    # checks the Qloo key
+cp .env.example .env.local    # then fill in the two keys below
+npm run qloo:smoke            # checks the Qloo key
 npm run db:migrate
 npm run dev
 ```
