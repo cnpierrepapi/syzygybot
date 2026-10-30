@@ -69,7 +69,7 @@ export async function desks(q?: string): Promise<DeskRow[]> {
   const n = <T extends { persona: string; n: number }>(xs: T[], id: string, f: (x: T) => boolean = () => true) =>
     xs.filter(x => x.persona === id && f(x)).reduce((s, x) => s + x.n, 0);
   const all = [
-    ...PERSONAS.map(p => ({ id: p.id, title: p.title, kind: p.judge ? `judge: ${p.judge}` : p.demo ? "demo" : "built in" })),
+    ...PERSONAS.map(p => ({ id: p.id, title: p.title, kind: p.judge ? `written for: ${p.subject}` : p.demo ? "demo" : "built in" })),
     ...custom.map(c => ({ id: c.id, title: `${c.name}${/s$/i.test(c.name) ? "'" : "'s"} desk`, kind: c.type === "business" ? "set up from a website" : `set up: ${c.type.replace("_", " ")}` })),
   ];
   const needle = q?.trim().toLowerCase();

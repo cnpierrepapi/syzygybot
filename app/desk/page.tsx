@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 export const metadata: Metadata = {
   title: "Open a desk",
-  description: "Pick a judge's desk, or find your own brand, artist or show. Not in Qloo? Type its website. The agents run the desk live and ask before anything goes out.",
+  description: "Pick a desk, or find your own brand, artist or show. Not in Qloo? Type its website. The agents run the desk live and ask before anything goes out.",
   alternates: { canonical: "/desk" },
 };
 
@@ -79,7 +79,7 @@ export default async function DeskStart({ searchParams }: { searchParams: Promis
   const { full, q, why, site, bwhy } = await searchParams;
   const tile = (p: Persona, name: string, image: string | null, sub?: string) =>
     ({ id: p.id, title: p.title, judge: p.judge, who: p.who, forWhom: p.forWhom, role: p.role, desks: desksFor(p), demo: p.demo, name, sub, image });
-  const personas = PERSONAS.map(p => tile(p, p.judge ?? "Bad Bunny's team", `/judges/${p.id}.jpg`, p.judge ? undefined : "the demo"));
+  const personas = PERSONAS.map(p => tile(p, !p.judge ? "Bad Bunny's team" : p.role === "clearance" ? "Studio clearance" : p.subject, `/judges/${p.id}.jpg`, p.judge ? undefined : "the demo"));
   const [found, mineList] = await Promise.all([q ? find(q) : null, recentDesks()]);
   const setUpTiles = (await Promise.all(mineList.map(async d => {
     const p = await loadPersona(d.id);
@@ -90,9 +90,9 @@ export default async function DeskStart({ searchParams }: { searchParams: Promis
       <nav className="nav"><Logo /><a className="crumb" href="/">← Live floor</a></nav>
       <section style={{ padding: "36px 0 22px" }}>
         <p className="eyebrow">Open a desk</p>
-        <h1 style={{ fontSize: "clamp(30px, 4vw, 44px)", lineHeight: 1.05 }}>Pick a judge.<br /><span className="grad-text">The agents take it from there.</span></h1>
+        <h1 style={{ fontSize: "clamp(30px, 4vw, 44px)", lineHeight: 1.05 }}>Pick a brand or entity.<br /><span className="grad-text">The agents take it from there.</span></h1>
         <p style={{ color: "var(--dim)", maxWidth: 600, marginTop: 14 }}>
-          Every judge has a desk written for their own business. Open one and the agents run it live: they read the audience in
+          Each one has a desk written for its own business. Open one and the agents run it live: they read the audience in
           Qloo, pick who it leans toward, find the person who decides and write the pitch. Anything that would leave the building
           comes to you first, and you approve, edit, reject or park it.
         </p>
@@ -115,7 +115,7 @@ export default async function DeskStart({ searchParams }: { searchParams: Promis
           <button className="btn" type="submit">Open its desk</button>
         </form>
         {why && why in SETUP_WHY && <p className="chip" style={{ color: "#b4432f", margin: 0 }}>{SETUP_WHY[why as keyof typeof SETUP_WHY]}</p>}
-        {q && found === null && <p className="hint" style={{ margin: 0 }}>Today&apos;s searches are used up. Try again tomorrow, or open a judge&apos;s desk.</p>}
+        {q && found === null && <p className="hint" style={{ margin: 0 }}>Today&apos;s searches are used up. Try again tomorrow, or open one of the desks above.</p>}
         {q && found && !found.length && <p className="hint" style={{ margin: 0 }}>Qloo has nothing under &quot;{q}&quot; that a desk can work for. Try the full name, or set it up from its website below.</p>}
         {bwhy && bwhy in BUSINESS_WHY && <p className="chip" style={{ color: "#b4432f", margin: 0 }}>{BUSINESS_WHY[bwhy as keyof typeof BUSINESS_WHY]}</p>}
         <form action={business} style={{ display: "grid", gap: 8, borderTop: "1px solid var(--line)", paddingTop: 14 }}>

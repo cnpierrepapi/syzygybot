@@ -16,10 +16,13 @@ import { isLive, planOf } from "@/lib/live/plans";
 import { outboundFor, type Outbound } from "@/lib/outbound";
 import { deskDomains, ownedDesks, ownerOf, pendingCode, sendCode, verifyCode } from "@/lib/owners";
 import RealApprove from "./RealApprove";
+import QueuedPopup from "./QueuedPopup";
 import { addAnchor, anchorsOf, removeAnchor } from "@/lib/live/anchors";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+const QUEUED_COOKIE = "syz_desk_queued";
 
 export async function generateMetadata({ params }: { params: Promise<{ persona: string }> }): Promise<Metadata> {
   const p = await loadPersona((await params).persona);
@@ -47,6 +50,9 @@ async function act(fd: FormData) {
     subject != null && body != null ? { subject: String(subject).slice(0, 200), body: String(body).slice(0, 3000) } : null);
   const jar = await cookies();
   if (!r.ok) jar.set("syz_desk_flash", r.why.slice(0, 280), { httpOnly: true, sameSite: "lax", secure: true, maxAge: 60, path: "/desk" });
+  // A real email now waiting for its window: the popup says so and when. Not httpOnly, since the popup clears it on close.
+  else if (decision === "approved" && r.channel === "email" && r.real?.queued && (r.real.status ?? "queued") === "queued")
+    jar.set(QUEUED_COOKIE, JSON.stringify({ org: r.org, did: r.real.did, at: Date.now() }), { sameSite: "lax", secure: true, maxAge: 300, path: "/desk" });
   revalidatePath(back);
   redirect(`${back}${fd.get("desk") ? `?desk=${fd.get("desk")}` : ""}#r-${fd.get("id")}`);
 }
@@ -253,6 +259,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
   if (!w) redirect(`/desk/open?persona=${p.id}`);
   const jar = await cookies();
   const flash = jar.get("syz_desk_flash")?.value;
+  const queued = (() => { try { return JSON.parse(jar.get(QUEUED_COOKIE)?.value ?? "null") as { org: string; did: string; at: number } | null; } catch { return null; } })();
   const isClearance = p.role === "clearance";
   const rulesOn = rulesOf(w);
   const all = await requests(isClearance ? "all" : p.id, w.id);
@@ -292,7 +299,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
       <SkyCard>
         <div className="desk-hero">
           <div>
-            <p className="eyebrow">{p.demo ? "Demo desk · simulated persona" : p.judge ? `Written for ${p.judge} · simulated persona` : anchors ? "Your desk · set up from its website, read through Qloo" : "Your desk · set up from Qloo"}</p>
+            <p className="eyebrow">{p.demo ? "Demo desk · simulated persona" : p.judge ? `Written for ${p.role === "clearance" ? "a film and music studio" : p.subject} · simulated persona` : anchors ? "Your desk · set up from its website, read through Qloo" : "Your desk · set up from Qloo"}</p>
             <h1>{p.title}</h1>
             <p>{p.who} {p.forWhom}</p>
             {custom && !anchors && <p className="hint" style={{ margin: "8px 0 0" }}>
@@ -308,6 +315,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
       </SkyCard>
 
       {flash && <p className="panel" style={{ padding: "10px 14px", borderColor: "#e5b8ae", color: "#b4432f" }}>{flash}</p>}
+      {queued?.org && queued.did && <QueuedPopup key={queued.at} org={queued.org} did={queued.did} />}
 
       {!isClearance && (
         <section id="owner" className="panel" style={{ padding: "12px 16px", marginBottom: 12, borderColor: mine ? "#1f8a5b88" : undefined }}>

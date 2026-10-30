@@ -71,7 +71,7 @@ export async function recentDesks(n = 14): Promise<SetUpDesk[]> {
 // Why a setup didn't happen, by code: the page shows only these, never text taken from its own address.
 export const SETUP_WHY = {
   gone: "That record didn't come back from Qloo for this search. Search again.",
-  full: "Today's new desks are all set up. Try again tomorrow, or open one of the judges' desks.",
+  full: "Today's new desks are all set up. Try again tomorrow, or open one of the brand desks.",
 } as const;
 
 /** The desk for one of those records: the existing one if someone set it up already, else a new one. */

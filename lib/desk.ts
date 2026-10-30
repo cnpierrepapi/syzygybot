@@ -122,7 +122,7 @@ export async function decide(w: Workspace, requestId: string, decision: "approve
       const [prev] = (await sql()`select edited from request_decisions where workspace_id = ${w.id} and request_id = ${requestId}`) as { edited: { subject: string; body: string } | null }[];
       const res = await approveReal(requestId, edit ?? prev?.edited ?? r.preview, `owner:${w.id}`);
       if (!res.ok) return { ok: false as const, why: res.why };
-      realOutcome = { simulated: false, queued: res.status !== "sent", at: new Date().toISOString(), did: res.did };
+      realOutcome = { simulated: false, queued: res.status !== "sent", status: res.status, at: new Date().toISOString(), did: res.did };
     } else await cancelReal(requestId);
   }
   const outcome = realOutcome ?? (decision === "approved" ? {
@@ -142,7 +142,7 @@ export async function decide(w: Workspace, requestId: string, decision: "approve
       : `${p?.title ?? "A desk"} put "${r.title}" on hold.`,
     refTable: "permission_requests", refId: requestId, detail: { simulated: !realOutcome, workspace: w.id, reason },
   });
-  return { ok: true as const };
+  return { ok: true as const, real: realOutcome, org: r.target.org, channel: r.target.channel };
 }
 
 export async function saveRules(w: Workspace, rules: Partial<Rules>) {

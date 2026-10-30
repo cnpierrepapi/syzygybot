@@ -28,8 +28,8 @@ export default function DeskPicker({ personas, setUp, deskLabels, action }: {
   return (
     <form action={action} className="panel fade-up" style={{ padding: "22px 22px 24px", display: "grid", gap: 20 }}>
       <div>
-        <p className="eyebrow">Pick a judge</p>
-        <div className="judge-grid" role="radiogroup" aria-label="Pick a judge">
+        <p className="eyebrow">Pick a brand or entity</p>
+        <div className="judge-grid" role="radiogroup" aria-label="Pick a brand or entity">
           {tiles.map(tile)}
         </div>
         {setUp.length > 0 && <>
@@ -42,7 +42,7 @@ export default function DeskPicker({ personas, setUp, deskLabels, action }: {
         <>
           <input type="hidden" name="persona" value={p.id} />
           <div className="persona-card fade-up" style={{ marginTop: 0 }}>
-            {p.judge ? <span className="chip" style={{ marginBottom: 10 }}>Written for {p.judge}</span>
+            {p.judge ? <span className="chip" style={{ marginBottom: 10 }}>Written for {p.name}</span>
               : !p.demo && <span className="chip" style={{ marginBottom: 10 }}>Set up from Qloo</span>}
             <strong style={{ display: "block", fontSize: 18 }}>{p.title}</strong>
             <p style={{ margin: "6px 0 0", color: "var(--dim)" }}>{p.who} {p.forWhom}</p>

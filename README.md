@@ -10,7 +10,7 @@ Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/).
 
 ## Try it
 
-Go to [syzygybot.com/desk](https://syzygybot.com/desk) and pick a desk. Six were written with a hackathon judge in mind, plus a Bad Bunny touring desk. Or search any name ("Nike", "Hot Ones") and SYZYGY sets up a desk for it on the spot.
+Go to [syzygybot.com/desk](https://syzygybot.com/desk) and pick a desk. Six are written for a brand or entity, plus a Bad Bunny touring desk. Or search any name ("Nike", "Hot Ones") and SYZYGY sets up a desk for it on the spot.
 
 Not in Qloo at all? Type the business's website instead. SYZYGY reads the site and picks anchors, a handful of podcasts, brands and shows Qloo does know whose audience is that business's. Then it runs the desk through them. Both numbers on every card are still Qloo's: how the anchors' audience leans toward a candidate, and how the candidate's audience leans back toward the anchors. The desk lists its anchors, and once you've verified the desk you can swap one and run it again. [Onenept's desk](https://syzygybot.com/desk/my-onenept-studios-nys) was set up this way from onenept.com.
 

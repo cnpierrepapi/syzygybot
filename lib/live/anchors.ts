@@ -96,7 +96,7 @@ export async function inQloo(picks: Read["anchors"]): Promise<Anchor[]> {
 export const BUSINESS_WHY = {
   site: "That site didn't load for us, or there wasn't enough on it to read. Try the full address.",
   anchors: "We read the site but couldn't find enough things Qloo knows that share its audience. Try a page that says more about what you do.",
-  full: "Today's new desks are all set up. Try again tomorrow, or open one of the judges' desks.",
+  full: "Today's new desks are all set up. Try again tomorrow, or open one of the brand desks.",
 } as const;
 
 /** A desk for a business Qloo doesn't know, from its site. The existing one if someone set it up already. */
