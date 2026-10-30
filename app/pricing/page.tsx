@@ -24,7 +24,7 @@ const PLANS = [
   {
     name: "Qloo customers", price: "Free", per: "", cta: "Claim it", href: talk("SYZYGY: we're a Qloo customer"), lead: true,
     for: "You already pay for the data. The agents are on us.",
-    has: ["Everything in Send for real, at no charge", "As many desks as you've got rosters", "Runs on your own Qloo key", "Only letters cost anything: printing and postage at cost"],
+    has: ["Everything in Send for real, at no charge", "As many desks as you've got rosters", "Only letters cost anything: printing and postage at cost"],
   },
 ];
 
@@ -75,7 +75,7 @@ export default function Pricing() {
           <tbody>{VALUE.map(([k, a, b]) => <tr key={k}><th scope="row">{k}</th><td>{a}</td><td>{b}</td></tr>)}</tbody>
         </table>
       </section>
-      <p className="hint" style={{ marginTop: 26 }}>No checkout yet. Paid and Qloo desks are set up by hand, so email us. Customers who aren&apos;t on Qloo also need a Qloo data licence, and we&apos;ll sort that out with you first.</p>
+      <p className="hint" style={{ marginTop: 26 }}>No checkout yet. Paid and Qloo desks are set up by hand, so email us.</p>
     </main>
   );
 }
