@@ -29,7 +29,7 @@ A card replaces finding the right partner, finding who decides, and writing and 
 
 | | Minutes saved | Hourly cost | Worth per send | You keep at $5 |
 |---|---|---|---|---|
-| Low | 18 | $53 | $16 | 69% |
+| Low | 18 | $53 | $16 | 68% |
 | Middle | 28 | $65 | $30 | 83% |
 | High | 43 | $77 | $55 | 91% |
 
@@ -39,7 +39,7 @@ Most of the value should stay with the person sending. We set a rule first: you 
 
 That leaves about $4 a send over the model cost, which is enough to run this.
 
-## 5. Three tests
+## 5. Four tests
 
 **Against hiring.** An SDR costs $9,200 to $13,300 a month and books 15 to 25 meetings, so $370 to $890 a meeting. Cold email books a meeting from 0.5% to 2% of sends. At $5 that's $250 to $1,000 a meeting, and $500 at 1%. It beats a hire from about 1% up. It's close, not a landslide.
 

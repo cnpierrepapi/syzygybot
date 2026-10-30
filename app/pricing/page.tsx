@@ -28,7 +28,7 @@ const PLANS = [
   },
 ];
 
-const VALUE: [string, string, string][] = [["Low estimate", "$16", "69%"], ["Middle", "$30", "83%"], ["High estimate", "$55", "91%"]];
+const VALUE: [string, string, string][] = [["Low estimate", "$16", "68%"], ["Middle", "$30", "83%"], ["High estimate", "$55", "91%"]];
 
 export default function Pricing() {
   return (
