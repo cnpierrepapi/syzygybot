@@ -15,7 +15,7 @@ export default function QueuedPopup({ org, did }: { org: string; did: string }) 
       <div className="panel real-modal">
         <h3 id="queued-h" style={{ margin: "0 0 8px" }}>Your email to {org} is queued</h3>
         <p style={{ margin: "0 0 10px" }}>{did}</p>
-        <p style={{ margin: "0 0 14px", color: "var(--dim)", fontSize: 13.5 }}>It hasn&apos;t left yet. Changed your mind? Undo on the card takes it back before then.</p>
+        <p style={{ margin: "0 0 14px", color: "var(--dim)", fontSize: 13.5 }}>It hasn&apos;t left yet. It&apos;s under Queued to send on this desk, and Take back stops it any time before then.</p>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button className="btn" type="button" onClick={close} autoFocus>Got it</button>
         </div>

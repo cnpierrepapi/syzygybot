@@ -13,10 +13,11 @@ import SkyCard from "../../components/SkyCard";
 import LiveBoard from "./LiveBoard";
 import Carousel from "./Carousel";
 import { isLive, planOf } from "@/lib/live/plans";
-import { outboundFor, type Outbound } from "@/lib/outbound";
+import { outboundFor, queueFor, type Outbound } from "@/lib/outbound";
 import { deskDomains, ownedDesks, ownerOf, pendingCode, sendCode, verifyCode } from "@/lib/owners";
 import RealApprove from "./RealApprove";
 import QueuedPopup from "./QueuedPopup";
+import YourTime from "./YourTime";
 import { addAnchor, anchorsOf, removeAnchor } from "@/lib/live/anchors";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,23 @@ async function act(fd: FormData) {
     jar.set(QUEUED_COOKIE, JSON.stringify({ org: r.org, did: r.real.did, at: Date.now() }), { sameSite: "lax", secure: true, maxAge: 300, path: "/desk" });
   revalidatePath(back);
   redirect(`${back}${fd.get("desk") ? `?desk=${fd.get("desk")}` : ""}#r-${fd.get("id")}`);
+}
+
+// Stopping a queued real email: the card goes back to waiting on the desk, edits kept, with Approve there again.
+async function takeBack(fd: FormData) {
+  "use server";
+  const w = await ws();
+  const back = `/desk/${String(fd.get("persona"))}`, id = String(fd.get("id"));
+  if (!w) redirect("/desk");
+  const jar = await cookies();
+  const flash = (why: string) => jar.set("syz_desk_flash", why.slice(0, 280), { httpOnly: true, sameSite: "lax", secure: true, maxAge: 60, path: "/desk" });
+  if ((await outboundFor([id])).get(id)?.status !== "queued") flash("It already went out, so it can't be taken back.");
+  else {
+    const r = await decide(w, id, "held", null, null);
+    if (!r.ok) flash(r.why);
+  }
+  revalidatePath(back);
+  redirect(`${back}#r-${id}`);
 }
 
 // Proving the desk is yours: a code to an email at the desk's own domain. After that, Approve sends for real.
@@ -106,6 +124,8 @@ const STEP_AGENT: Record<string, string> = {
   sponsor: "Scout", talent: "Scout", venue: "Scout", podcast: "Scout", watch: "Scout",
 };
 
+const theirTime = (at: string, tz: string) => new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(at));
+
 const OUT_STATUS: Record<string, string> = { draft: "Not sent yet", queued: "Approved, waiting for its sending window", sent: "Sent", held: "Held at the gates", failed: "Failed", cancelled: "Cancelled", bounced: "Bounced" };
 
 function Card({ r, personaId, rulesOn, showPersona, desk, first, steps, owned, out: real0 }: { r: Request; personaId: string; rulesOn: Rules; showPersona: boolean; desk?: string; first: boolean; steps: Step[]; owned: boolean; out?: Outbound }) {
@@ -114,6 +134,8 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps, owned, o
   const msg = r.edited ?? r.preview;
   const held = c.status === "hold";
   const decided = r.decision;
+  // A card on hold is still waiting for a decision, so it keeps its buttons.
+  const final = decided && decided !== "held";
   // The Bad Bunny demo's pitches desk: an approved email really goes out (letters stay simulated).
   // On a desk this browser verified as its own, approving sends for real, exactly as the card reads.
   const liveCard = owned && r.ref_table === "run_cards" && (r.target.channel === "email" || r.target.channel === "letter");
@@ -121,7 +143,7 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps, owned, o
   const out = (r.outcome ?? {}) as { did?: string; simulated?: boolean; queued?: boolean };
   const sentForReal = out.simulated === false && !out.queued;
   return (
-    <article id={`r-${r.id}`} className={`panel req${held ? " req-held" : ""}${decided ? " req-done" : ""}`}>
+    <article id={`r-${r.id}`} className={`panel req${held ? " req-held" : ""}${final ? " req-done" : ""}`}>
       <header className="req-top">
         <span className="chip"><i style={{ background: "#a86400" }} />{DESKS[r.desk]?.label ?? r.desk}</span>
         <span className="chip">{(() => { const a = ACTION_LABEL[r.action] ?? r.action, ch = r.target.channel === "email" ? "email" : "letter"; return a.toLowerCase() === ch ? a : `${a} · ${ch}`; })()}</span>
@@ -196,19 +218,20 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps, owned, o
           </details>
         </div>
       </div>
-      {decided ? (
+      {final ? (
         <footer className="req-done-line">
-          <b>{decided === "approved" ? "Approved" : decided === "rejected" ? "Rejected" : "On hold"}</b>
+          <b>{decided === "approved" ? "Approved" : "Rejected"}</b>
           {r.reason ? ` · "${r.reason}"` : ""}
           {out.did ? ` · ${out.did}${out.simulated === false ? "" : " Simulated: nothing was sent."}` : ""}
           <form action={act} style={{ display: "inline" }}>
             <input type="hidden" name="id" value={r.id} /><input type="hidden" name="persona" value={personaId} /><input type="hidden" name="decision" value="held" />
             {desk && <input type="hidden" name="desk" value={desk} />}
-            {decided !== "held" && !sentForReal && <button className="linkish" type="submit">Undo, put it back on hold</button>}
+            {!sentForReal && <button className="linkish" type="submit">Undo, put it back on hold</button>}
           </form>
         </footer>
       ) : (
         <footer className="req-actions">
+          {decided === "held" && <span className="chip" style={{ alignSelf: "center" }}>On hold</span>}
           <form action={act}>
             <input type="hidden" name="id" value={r.id} /><input type="hidden" name="persona" value={personaId} /><input type="hidden" name="decision" value="approved" />
             {desk && <input type="hidden" name="desk" value={desk} />}
@@ -218,11 +241,11 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps, owned, o
                 ? <RealApprove channel={r.target.channel} org={r.target.org} sender={persona(r.persona)?.title ?? "this desk"} disabled={held} title={held ? "Clearance is holding this one" : undefined} />
                 : <button className="btn" type="submit" disabled={held} title={held ? "Clearance is holding this one" : undefined}>Approve</button>}
           </form>
-          <form action={act}>
+          {decided !== "held" && <form action={act}>
             <input type="hidden" name="id" value={r.id} /><input type="hidden" name="persona" value={personaId} /><input type="hidden" name="decision" value="held" />
             {desk && <input type="hidden" name="desk" value={desk} />}
             <button className="btn quiet" type="submit">Hold</button>
-          </form>
+          </form>}
           {!real && <details className="inline-form">
             <summary className="btn quiet">Edit</summary>
             <form action={act} className="edit-form">
@@ -270,7 +293,11 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
   const domains = isClearance || mine ? [] : await deskDomains(p.id);
   const anchors = custom?.type === "business" ? await anchorsOf(p.id) : null;
   const desks = desksFor(p).filter(d => d !== "watch" && d !== "clearance");
-  const shown = all.filter(r => !desk || r.desk === desk);
+  // What the owner already approved for real sits in Queued to send, so Requests only holds what still needs them.
+  const queue = mine ? await queueFor(p.id) : [];
+  const inQueue = new Set(queue.map(o => o.request_id));
+  const queuedCount = queue.filter(o => o.status === "queued").length;
+  const shown = all.filter(r => (!desk || r.desk === desk) && !inQueue.has(r.id));
   const status = (r: Request) => underRules(r.clearance, rulesOn).status;
   // The banner and the All tab count the whole desk, whichever tab is open.
   const pending = all.filter(r => !r.decision || r.decision === "held");
@@ -284,7 +311,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
   const counts = Object.fromEntries(desks.map(d => [d, all.filter(r => r.desk === d && (!r.decision || r.decision === "held")).length]));
   const cards = await board(sorted);
   const stepsOf = new Map(cards.map(c => [c.id, c.steps]));
-  const sentCount = cards.filter(c => c.col >= 7).length;
+  const sentCount = cards.filter(c => c.col >= 7).length + queue.length - queuedCount;
 
   return (
     <main className="wrap desk desk-mode">
@@ -309,6 +336,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
           <div className="desk-kpis">
             <a href="#queue"><b>{pending.length - heldCount}</b><small>waiting for you</small></a>
             <span><b>{heldCount}</b><small>held by Clearance</small></span>
+            {mine && (queuedCount ? <a href="#queued"><b>{queuedCount}</b><small>queued</small></a> : <span><b>0</b><small>queued</small></span>)}
             <span><b>{sentCount}</b><small>sent</small></span>
           </div>
         </div>
@@ -391,6 +419,36 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
 
       {desk && <p className="hint" style={{ margin: "0 0 12px" }}>{DESKS[desk as DeskId]?.blurb}</p>}
       {isLive(p.id) && <div id="board"><LiveBoard persona={p.id} review={planOf(p.id)?.kind === "review"} again={!!again && !!mine} /></div>}
+
+      {queue.length > 0 && (
+        <section id="queued" style={{ display: "grid", gap: 10, marginBottom: 22 }}>
+          <div>
+            <h2 style={{ fontSize: 20 }}>Queued to send</h2>
+            <p className="hint" style={{ margin: "4px 0 0" }}>You approved these for real. Each one leaves by itself when its sending window opens.</p>
+          </div>
+          <ul className="queue-list">
+            {queue.map(o => (
+              <li key={o.id} className="panel queue-row">
+                <div className="queue-who">
+                  <b>{o.company}</b> · {o.to_address ? <span className="mono">{maskEmail(o.to_address)}</span> : "by post"}
+                  <span className="queue-sub">{o.subject}</span>
+                </div>
+                {o.status === "sent" ? (
+                  <span className="queue-when" style={{ color: "#1f8a5b" }}>Sent{o.sent_at ? ` ${theirTime(o.sent_at, o.tz)} their time` : ""}</span>
+                ) : (
+                  <>
+                    <span className="queue-when">{o.scheduled_for ? <>Leaves {theirTime(o.scheduled_for, o.tz)} their time<YourTime at={o.scheduled_for} /></> : "Leaves on the next mail run"}</span>
+                    <form action={takeBack}>
+                      <input type="hidden" name="id" value={o.request_id} /><input type="hidden" name="persona" value={p.id} />
+                      <button className="btn quiet" type="submit">Take back</button>
+                    </form>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section id="queue" style={{ display: "grid", gap: 10, marginBottom: 22 }}>
         <h2 style={{ fontSize: 20 }}>Requests</h2>

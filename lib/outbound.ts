@@ -38,6 +38,13 @@ export async function outboundFor(requestIds: string[]) {
   return new Map(rows.map(o => [o.request_id, o]));
 }
 
+/** What this desk has approved for real: waiting for a window first, then the latest sent. */
+export async function queueFor(personaId: string) {
+  return (await sql()`select o.* from outbound o join permission_requests r on r.id = o.request_id
+    where r.persona = ${personaId} and o.status in ('queued', 'sent')
+    order by o.status = 'sent', o.scheduled_for nulls first, o.sent_at desc limit 20`) as Outbound[];
+}
+
 /** The card's message, exactly as it will leave, staged for sending. A message already queued or sent is left alone. */
 async function stage(requestId: string, msg: { subject: string; body: string }, by: string) {
   const [r] = (await sql()`select id, persona, title, run_id, target from permission_requests where id = ${requestId}`) as Req[];

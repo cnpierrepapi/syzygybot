@@ -347,3 +347,11 @@ body:has(.desk-mode) .sky-labels { display: none; }
 /* The warning before a real send (app/desk/[persona]/RealApprove.tsx). */
 .real-modal-back { position: fixed; inset: 0; background: rgba(20, 14, 48, 0.45); display: grid; place-items: center; z-index: 50; padding: 16px; }
 .real-modal { max-width: 440px; width: 100%; padding: 20px 22px; background: #fff; box-shadow: 0 18px 50px rgba(20, 14, 48, 0.3); }
+
+/* Queued to send, on a desk its owner verified */
+.queue-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.queue-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 12px 16px; }
+.queue-who { flex: 1 1 280px; min-width: 0; }
+.queue-sub { display: block; margin-top: 2px; font-size: 13.5px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-when { font-size: 13.5px; }
+.queue-row .btn { padding: 7px 16px; font-size: 13.5px; }
