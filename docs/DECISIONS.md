@@ -24,4 +24,4 @@ Short log. Newest at the bottom.
 
 **Models off.** Search grounding alone used EUR 182 of the Google Cloud credit, so billing was switched off on 28 Oct. Desks that have run play back their finished runs, and new desks run on live Qloo with a template writer.
 
-**Start free, pay when it sends.** Simulation costs almost nothing to serve and shows the whole product. Real sending is what's worth paying for, and it already sits behind domain verification.
+**$5 a send, free for Qloo customers.** A monthly fee charges for cards people rejected, so the price follows messages that really left. The number comes from a rule: the sender keeps at least two thirds of the time saved. Qloo customers already paid for the data. The working is in [PRICING.md](PRICING.md).

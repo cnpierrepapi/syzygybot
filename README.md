@@ -86,4 +86,4 @@ Qloo hackathon keys only work on `https://hackathon.api.qloo.com`. The main host
 | `lib/outbound.ts` | send gates, caps, windows |
 | `db/schema.sql` | every table |
 
-More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DECISIONS.md](docs/DECISIONS.md). Built by [Onenept Studios](https://onenept.com).
+More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DECISIONS.md](docs/DECISIONS.md) and [docs/PRICING.md](docs/PRICING.md). Built by [Onenept Studios](https://onenept.com).

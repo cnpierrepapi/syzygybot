@@ -243,8 +243,14 @@ button.kcard { font: inherit; text-align: left; cursor: pointer; width: 100%; }
 .price-tag small { font: 400 14px var(--body); color: var(--dim); margin-left: 4px; }
 .price-card ul { margin: 0; padding-left: 18px; color: var(--dim); font-size: 14.5px; display: grid; gap: 6px; flex: 1; align-content: start; }
 .price-card .btn { text-align: center; justify-content: center; }
-.price-notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; margin-top: 30px; color: var(--dim); font-size: 14.5px; }
-.price-notes b { display: block; color: var(--fg); margin-bottom: 4px; }
+.price-why { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 26px; align-items: center; margin-top: 36px; }
+.price-why p { color: var(--dim); font-size: 15px; margin: 10px 0 0; }
+.price-math { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.price-math th, .price-math td { padding: 11px 12px; text-align: right; border-bottom: 1px solid var(--line); font-weight: 400; }
+.price-math thead th { color: var(--dim); font-size: 13px; }
+.price-math tbody th { text-align: left; color: var(--dim); }
+.price-math tbody td { font-weight: 600; }
+.price-math tbody tr:last-child > * { border-bottom: 0; }
 .find-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .find-row { width: 100%; text-align: left; display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line, #d9d6cf); background: #fff; font: inherit; color: inherit; cursor: pointer; }
 .find-row:hover { border-color: #8b84c7; }
