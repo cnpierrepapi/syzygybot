@@ -13,11 +13,11 @@ import { typeColors } from "@/lib/ui";
 import { graph } from "@/lib/graph";
 import { SOURCES } from "@/lib/sources";
 import { RULE_LABEL } from "@/lib/clearance";
-import { persona } from "@/lib/personas";
+import { loadPersona } from "@/lib/personas";
 
 export const dynamic = "force-dynamic";
 
-type Card = { id: string; persona: string; title: string; created_at: string; score: number; why: string | null };
+type Card = { id: string; persona: string; title: string; created_at: string; score: number; why: string | null; desk?: string };
 
 async function load() {
   if (!process.env.DATABASE_URL) return { items: [] as FeedItem[], counts: [] as Funnel, cards: [] as Card[], types: [] as string[] };
@@ -35,8 +35,9 @@ async function load() {
         order by r.persona, r.shown_at desc`.then(r => (r as Card[]).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 4)),
       graph(),
     ]);
+    const named = await Promise.all(cards.map(async c => ({ ...c, desk: (await loadPersona(c.persona))?.title })));
     // The legend only offers types the sky actually has, so no filter ever isolates an empty sky.
-    return { items, counts, cards, types: [...new Set(g.stars.map(s => s.type))] };
+    return { items, counts, cards: named, types: [...new Set(g.stars.map(s => s.type))] };
   } catch {
     return { items: [] as FeedItem[], counts: [] as Funnel, cards: [] as Card[], types: [] as string[] };
   }
@@ -111,7 +112,7 @@ function Featured({ cards }: { cards: Card[] }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10 }}>
         {cards.map((c, i) => (
           <a key={c.id} href={`/desk/${c.persona}`} className="panel fade-up" style={{ padding: 18, display: "block", animationDelay: `${i * 70}ms` }}>
-            <span className="eyebrow" style={{ margin: 0 }}>{persona(c.persona)?.title ?? c.persona}</span>
+            <span className="eyebrow" style={{ margin: 0 }}>{c.desk ?? c.persona}</span>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 10, gap: 8 }}>
               <strong style={{ fontSize: 16.5, lineHeight: 1.25 }}>{c.title}</strong>
               <span className="band band-PITCH">{c.score.toFixed(2)}</span>
