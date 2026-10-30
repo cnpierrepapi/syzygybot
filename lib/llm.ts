@@ -14,9 +14,7 @@ export const geminiOn = () => !!gate.getStore() && process.env.GEMINI_OFF !== "1
 export const withGemini = <T,>(why: string, f: () => Promise<T>) => gate.run(why, f);
 const allowed = () => { if (!geminiOn()) throw new GeminiOff(); };
 
-// Gemini on Vertex AI, billed to his Google Cloud credit. Claude on Vertex has zero quota on
-// trial accounts (429 on the first call, 13 Oct), and Vercel AI Gateway is on its free tier.
-// Picked by the bake-off on real inputs (scripts/model-bakeoff.mts, 23 Oct):
+// Gemini on Vertex AI. Picked by the bake-off on real inputs (scripts/model-bakeoff.mts, 23 Oct):
 // - fast, screening: 3.5 Flash-Lite got 31 of 31 deal conflicts and reply classes right in about a second.
 // - write, research and strategy: 3.5 Flash confirmed the person at 11 of 12 orgs in 33 s (median) with no hung calls;
 //   3.8 Flash, used until then, confirmed 6 and hung on 5 of 12.

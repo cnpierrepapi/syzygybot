@@ -43,7 +43,7 @@ export default function DeskPicker({ personas, setUp, deskLabels, action }: {
           <input type="hidden" name="persona" value={p.id} />
           <div className="persona-card fade-up" style={{ marginTop: 0 }}>
             {p.judge ? <span className="chip" style={{ marginBottom: 10 }}>Written for {p.name}</span>
-              : !p.demo && <span className="chip" style={{ marginBottom: 10 }}>Set up from Qloo</span>}
+              : !p.demo && <span className="chip" style={{ marginBottom: 10 }}>{p.sub === "Business" ? "Set up from its website" : "Set up from Qloo"}</span>}
             <strong style={{ display: "block", fontSize: 18 }}>{p.title}</strong>
             <p style={{ margin: "6px 0 0", color: "var(--dim)" }}>{p.who} {p.forWhom}</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>

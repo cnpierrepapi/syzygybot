@@ -132,7 +132,7 @@ export default async function Floor() {
       <nav className="nav">
         <Logo />
         <span style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <span className="crumb nav-hide-sm">Live floor</span>
+          <a className="crumb" href="/pricing">Pricing</a>
           <a className="btn" href="/desk" style={{ padding: "7px 16px", fontSize: 13.5 }}>Open a desk →</a>
         </span>
       </nav>

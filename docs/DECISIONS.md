@@ -14,10 +14,14 @@ Short log. Newest at the bottom.
 
 **Neon over Supabase.** The Supabase free tier was full, and the Vercel Marketplace hooks Neon up to the project directly.
 
-**Gemini, not Claude.** Claude on Vertex had zero quota on the trial account and the AI Gateway was on its free tier, so the models moved to Gemini on Vertex. A bake-off on real inputs picked one model per kind of call.
+**Gemini on Vertex.** It was the provider with quota on the trial account. A bake-off on real inputs picked one model per kind of call.
 
 **Qloo's number leads.** SYZYGY built its own match score while the Qloo quota was spent. Once the quota came back, Qloo's two-way score became the number on every card. Ours stays in small type.
 
 **A desk sends as itself, once its owner proves it.** Approve on a desk sends the card as written, in the desk's name. The condition is a code sent to an email at the desk's own domain. Free mail doesn't count, and neither do majors and big agencies. Without that, anyone could post letters signed as Live Nation.
 
 **Not in Qloo still gets Qloo's numbers.** For a business Qloo doesn't know, the score is Qloo's affinity between the candidates and the business's anchors, both ways. The card and the draft both say it was measured against anchors.
+
+**Models off.** Search grounding alone used EUR 182 of the Google Cloud credit, so billing was switched off on 28 Oct. Desks that have run play back their finished runs, and new desks run on live Qloo with a template writer.
+
+**Start free, pay when it sends.** Simulation costs almost nothing to serve and shows the whole product. Real sending is what's worth paying for, and it already sits behind domain verification.

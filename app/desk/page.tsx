@@ -87,7 +87,7 @@ export default async function DeskStart({ searchParams }: { searchParams: Promis
   }))).filter(x => x !== null);
   return (
     <main className="wrap desk-mode" style={{ maxWidth: 820 }}>
-      <nav className="nav"><Logo /><a className="crumb" href="/">← Live floor</a></nav>
+      <nav className="nav"><Logo /><a className="crumb" href="/pricing">Pricing</a></nav>
       <section style={{ padding: "36px 0 22px" }}>
         <p className="eyebrow">Open a desk</p>
         <h1 style={{ fontSize: "clamp(30px, 4vw, 44px)", lineHeight: 1.05 }}>Pick a brand or entity.<br /><span className="grad-text">The agents take it from there.</span></h1>

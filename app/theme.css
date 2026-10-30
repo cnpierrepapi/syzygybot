@@ -129,7 +129,7 @@ body { overflow-x: clip; }
 .stack-strip li { background: #fff; }
 
 /* The board. */
-.board { margin: 6px 0 22px; position: relative; left: 50%; transform: translateX(-50%); width: calc(100vw - 40px); max-width: 1560px; }
+.board { margin: 6px 0 22px; position: relative; left: 50%; transform: translateX(-50%); width: calc(100vw - 72px); max-width: 1560px; }
 @media (max-width: 900px) { .board { width: auto; left: 0; transform: none; } }
 .board-bar { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 12px; }
 .board-bar h2 { font-size: 20px; }
@@ -221,7 +221,9 @@ button.kcard { font: inherit; text-align: left; cursor: pointer; width: 100%; }
 .carousel-bar .btn { padding: 6px 14px; }
 .carousel-bar .btn:disabled { opacity: 0.4; cursor: default; }
 .carousel-track { display: grid; grid-auto-flow: column; grid-auto-columns: min(600px, 88vw); gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
-  padding-bottom: 10px; align-items: start; overscroll-behavior-x: contain; }
+  padding-bottom: 10px; align-items: start; overscroll-behavior-x: contain; overflow-anchor: none;
+  /* Room after the last card, so it can line up on the left like the rest instead of chopping its neighbour. */
+  padding-inline-end: max(0px, calc(100% - min(600px, 88vw))); }
 .carousel-track > * { scroll-snap-align: start; min-width: 0; }
 .desk-side { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; align-items: start; }
 /* Grid items default to min-width: auto, which lets the track push the page sideways (the min-content trap). */
@@ -230,6 +232,19 @@ button.kcard { font: inherit; text-align: left; cursor: pointer; width: 100%; }
 /* /desk "find yours": the search box and Qloo's matches, one tappable row each. */
 .find-input { flex: 1 1 260px; min-width: 0; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--line, #d9d6cf); background: #fff; font: inherit; font-size: 15px; color: inherit; }
 .find-input:focus { outline: 2px solid #8b84c7; outline-offset: 1px; }
+.owner-input { flex: 0 1 240px; padding: 8px 12px; font-size: 14px; }
+
+/* Pricing */
+.price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; align-items: stretch; }
+.price-card { display: flex; flex-direction: column; gap: 12px; padding: 22px; }
+.price-card.lead { border-color: var(--lav); box-shadow: 0 0 0 1px var(--lav); }
+.price-card h2 { font-size: 18px; }
+.price-tag { font: 700 36px var(--display); line-height: 1; }
+.price-tag small { font: 400 14px var(--body); color: var(--dim); margin-left: 4px; }
+.price-card ul { margin: 0; padding-left: 18px; color: var(--dim); font-size: 14.5px; display: grid; gap: 6px; flex: 1; }
+.price-card .btn { text-align: center; justify-content: center; }
+.price-notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; margin-top: 30px; color: var(--dim); font-size: 14.5px; }
+.price-notes b { display: block; color: var(--fg); margin-bottom: 4px; }
 .find-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .find-row { width: 100%; text-align: left; display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line, #d9d6cf); background: #fff; font: inherit; color: inherit; cursor: pointer; }
 .find-row:hover { border-color: #8b84c7; }

@@ -53,7 +53,11 @@ export async function board(reqs: Request[]): Promise<BoardCard[]> {
     join contacts c on c.id = t.contact_id join accounts ac on ac.id = c.account_id
     where r.id = any(${ids})`) as { req: string; touch: string; touch_status: string; contact: string; account: string; pair: string; plan: string | null; replies: number }[];
   const chainOf = new Map(chains.map(c => [c.req, c]));
-  const refs = [...new Set(chains.flatMap(c => [c.touch, c.contact, c.account, c.pair, c.plan].filter(Boolean) as string[]).concat(ids))];
+  // Cards from a live run: their steps are logged against the run's own card, the first time the agents worked it.
+  const runCards = (await sql()`select distinct on (request_id) request_id req, id::text card from run_cards
+    where request_id = any(${ids}) and detail->>'replay_of' is null order by request_id, created_at desc`) as { req: string; card: string }[];
+  const runCardOf = new Map(runCards.map(c => [c.req, c.card]));
+  const refs = [...new Set(chains.flatMap(c => [c.touch, c.contact, c.account, c.pair, c.plan].filter(Boolean) as string[]).concat(ids, runCards.map(c => c.card)))];
   const log = (await sql()`
     select ref_table, ref_id, agent, kind, summary, created_at from actions
     where ref_id = any(${refs}) and created_at <= now() and kind not in ('touch.dry_run', 'desk.run') order by created_at`) as Row[];
@@ -65,6 +69,7 @@ export async function board(reqs: Request[]): Promise<BoardCard[]> {
     const ch = chainOf.get(r.id);
     const rows = [
       ...(ch ? [...at("pairs", ch.pair), ...at("accounts", ch.account), ...at("contacts", ch.contact), ...at("plans", ch.plan), ...at("touches", ch.touch)] : []),
+      ...at("run_cards", runCardOf.get(r.id)),
       ...at("permission_requests", r.id).filter(a => !/^request\.(approved|rejected|held)$/.test(a.kind)),
     ];
     const steps = rows.map(a => ({ col: columnOf(a.agent, a.kind), agent: a.agent, kind: a.kind, at: a.created_at, summary: a.summary }))

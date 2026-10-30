@@ -12,7 +12,7 @@ import { Logo } from "../../../../components/visuals";
 import SaveButton from "./SaveButton";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Run report · SYZYGY", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Run report", robots: { index: false, follow: false } };
 
 
 const AGENT: Record<string, string> = {

@@ -36,7 +36,9 @@ type Shown = { idx: number; at: number };
 type Line = { key: string; who: string; agent: string; col: number | null; summary: string; at: string };
 
 const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-const mins = (a: string, b: string | null) => { const s = Math.round(((b ? +new Date(b) : Date.now()) - +new Date(a)) / 1000); return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; };
+// Never below zero: this browser's clock can run a few seconds behind the server's.
+const secs = (a: string, b: string | null) => Math.max(0, Math.round(((b ? +new Date(b) : Date.now()) - +new Date(a)) / 1000));
+const dur = (s: number) => s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
 
 export default function LiveBoard({ persona, review = false, again = false }: { persona: string; review?: boolean; again?: boolean }) {
   const COLS = review ? REVIEW : PITCH;
@@ -45,14 +47,14 @@ export default function LiveBoard({ persona, review = false, again = false }: { 
   const [shown, setShown] = useState<Record<string, Shown>>({});
   const [lines, setLines] = useState<Line[]>([]);
   const [focus, setFocus] = useState<string | null>(null);
-  const runId = useRef<string | null>(null), joined = useRef(false), logged = useRef(new Set<string>());
+  const runId = useRef<string | null>(null), joined = useRef(false), logged = useRef(new Set<string>()), watched = useRef(0);
 
   const begin = async (again = false) => {
     const r = await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ persona, again }) }).then(x => x.json()).catch(() => null);
     if (!r?.id) { setWhy(r?.why ?? "The run couldn't start. Reload to try again."); return; }
     // Joining a run already under way: what it did before you came shows at once; only new steps play out.
     joined.current = !r.fresh;
-    runId.current = r.id; logged.current = new Set(); setShown({}); setLines([]); setSnap(null); setWhy(null);
+    runId.current = r.id; logged.current = new Set(); watched.current = 0; setShown({}); setLines([]); setSnap(null); setWhy(null);
   };
   // "Run it again" from the anchors panel arrives as ?again=1: start a fresh run once, then drop it so a reload only joins.
   useEffect(() => {
@@ -118,8 +120,11 @@ export default function LiveBoard({ persona, review = false, again = false }: { 
   const router = useRouter();
   const filed = placed.filter(p => p.st?.col === COL_APPROVAL).length;
   useEffect(() => { if (filed) router.refresh(); }, [filed]); // eslint-disable-line react-hooks/exhaustive-deps
-  const backlog = (snap?.cards ?? []).some(c => shown[c.id] && shown[c.id].idx < c.steps.length - 1);
+  // A card not on the board yet counts too, so a finished run doesn't read as finished before its cards have played.
+  const backlog = (snap?.cards ?? []).some(c => c.steps.length && (!shown[c.id] || shown[c.id].idx < c.steps.length - 1));
   const running = snap?.status === "running" || backlog;
+  // The board holds each step 5 seconds, so a quick run can play for longer than it took. The final time never drops below the clock you watched.
+  if (snap && running) watched.current = Math.max(watched.current, secs(snap.started_at, null));
   const lead = (focus && placed.find(p => p.c.id === focus)) || null;
   const now = lead ? { who: lead.c.org, agent: lead.st.agent, col: lead.st.col, summary: lead.st.summary, at: lead.st.at } : lines[0];
 
@@ -135,10 +140,10 @@ export default function LiveBoard({ persona, review = false, again = false }: { 
         <div className="board-bar-right">
           {!snap && !why && <span className="replay-tag"><i />Starting the agents</span>}
           {why && <span className="replay-tag">{why}</span>}
-          {snap && running && <span className="replay-tag live-tag"><i />Live run · {mins(snap.started_at, null)}</span>}
+          {snap && running && <span className="replay-tag live-tag"><i />Live run · {dur(watched.current)}</span>}
           {snap && !running && (
             <span style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <span className="replay-tag">{snap.status === "done" ? `Run finished in ${mins(snap.started_at, snap.finished_at)}` : "Run stopped early"} · {snap.qloo_calls} Qloo calls</span>
+              <span className="replay-tag">{snap.status === "done" ? `Run finished in ${dur(Math.max(watched.current, secs(snap.started_at, snap.finished_at)))}` : "Run stopped early"} · {snap.qloo_calls} Qloo calls</span>
               <a className="btn" href={`/desk/${persona}/report/${snap.id}`} target="_blank" rel="noopener">Open the report ↗</a>
               <button className="btn quiet" type="button" onClick={() => begin(true)}>Run it again</button>
             </span>

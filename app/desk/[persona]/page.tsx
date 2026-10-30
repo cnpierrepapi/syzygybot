@@ -18,6 +18,7 @@ import { deskDomains, ownedDesks, ownerOf, pendingCode, sendCode, verifyCode } f
 import RealApprove from "./RealApprove";
 import QueuedPopup from "./QueuedPopup";
 import YourTime from "./YourTime";
+import Clock from "../../components/Clock";
 import { addAnchor, anchorsOf, removeAnchor } from "@/lib/live/anchors";
 
 export const dynamic = "force-dynamic";
@@ -189,10 +190,10 @@ function Card({ r, personaId, rulesOn, showPersona, desk, first, steps, owned, o
       )}
       {steps.length > 0 && (
         <details className="req-msg">
-          <summary>How the agents got here · {steps.length} steps</summary>
+          <summary>How the agents got here · {steps.length} {steps.length === 1 ? "step" : "steps"}</summary>
           <ul className="req-steps" style={{ padding: "0 14px 14px" }}>
             {steps.map((s, i) => (
-              <li key={i}><span>{new Date(s.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} {new Date(s.at).toISOString().slice(11, 16)}</span>
+              <li key={i}><span>{new Date(s.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} <Clock iso={String(s.at)} /></span>
                 <span><b>{STEP_AGENT[s.agent] ?? s.agent}</b> {s.summary}</span></li>
             ))}
           </ul>
@@ -311,7 +312,8 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
   const counts = Object.fromEntries(desks.map(d => [d, all.filter(r => r.desk === d && (!r.decision || r.decision === "held")).length]));
   const cards = await board(sorted);
   const stepsOf = new Map(cards.map(c => [c.id, c.steps]));
-  const sentCount = cards.filter(c => c.col >= 7).length + queue.length - queuedCount;
+  // Only what really left counts as sent, not a simulated approval.
+  const sentCount = cards.filter(c => c.col >= 7 && c.note !== "Simulated: nothing was sent").length + queue.length - queuedCount;
 
   return (
     <main className="wrap desk desk-mode">
@@ -319,7 +321,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
         <Logo />
         <span style={{ display: "flex", gap: 18, alignItems: "center" }}>
           <a className="crumb" href="/desk">Switch desk</a>
-          <a className="crumb" href="/">Live floor</a>
+          <a className="crumb" href="/pricing">Pricing</a>
         </span>
       </nav>
 
@@ -355,14 +357,14 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
             <form action={owner} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <input type="hidden" name="persona" value={p.id} />
               <span>We sent a code to {maskEmail(codeTo)}. Enter it to send for real from this desk.</span>
-              <input name="code" inputMode="numeric" required placeholder="6-digit code" aria-label="Code" style={{ width: 120 }} />
+              <input name="code" inputMode="numeric" required placeholder="6-digit code" aria-label="Code" className="find-input owner-input" style={{ flex: "0 0 130px" }} />
               <button className="btn" type="submit">Verify</button>
             </form>
           ) : (
             <form action={owner} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <input type="hidden" name="persona" value={p.id} />
               <span>Approvals here are simulations. Is this desk yours? Confirm with your email at {domains.join(" or ")} and Approve sends for real.</span>
-              <input name="email" type="email" required placeholder={`you@${domains[0]}`} aria-label="Work email" style={{ minWidth: 220 }} />
+              <input name="email" type="email" required placeholder={`you@${domains[0]}`} aria-label="Work email" className="find-input owner-input" />
               <button className="btn quiet" type="submit">Send me a code</button>
             </form>
           )}
@@ -398,7 +400,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
               {anchors.length < 6 && (
                 <form action={anchor} style={{ display: "flex", gap: 8 }}>
                   <input type="hidden" name="persona" value={p.id} />
-                  <input name="add" required maxLength={60} placeholder="Add a podcast, brand, show or person" aria-label="Add an anchor" style={{ minWidth: 260 }} />
+                  <input name="add" required maxLength={60} placeholder="Add a podcast, brand, show or person" aria-label="Add an anchor" className="find-input owner-input" style={{ flexBasis: 280 }} />
                   <button className="btn quiet" type="submit">Add</button>
                 </form>
               )}
@@ -490,7 +492,7 @@ export default async function Desk({ params, searchParams }: { params: Promise<{
           <section className="panel" style={{ padding: 18 }}>
             <p className="eyebrow">What the agents did</p>
             <ul className="log">
-              {log.map((l, i) => <li key={i}><span>{new Date(l.created_at).toISOString().slice(11, 16)}</span>{l.summary}</li>)}
+              {log.map((l, i) => <li key={i}><span><Clock iso={new Date(l.created_at).toISOString()} /></span>{l.summary}</li>)}
             </ul>
           </section>
         </aside>

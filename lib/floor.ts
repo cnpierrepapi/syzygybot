@@ -27,11 +27,23 @@ export const showSimulated = () => process.env.SHOW_SIMULATED === "1";
 
 export async function feed(limit = 40, after?: string): Promise<FeedItem[]> {
   const rows = (after
-    ? await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed from actions where date_trunc('milliseconds', created_at) > ${after}::timestamptz and created_at <= now()
+    ? await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed, detail->>'persona' persona, detail->>'run' run from actions where date_trunc('milliseconds', created_at) > ${after}::timestamptz and created_at <= now()
         and (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' and (detail ? 'run' or detail ? 'workspace') order by created_at desc limit ${limit}`
-    : await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed from actions
+    : await sql()`select id, agent, kind, summary, created_at, ref_table, ref_id, detail->>'entity_id' seed, detail->>'persona' persona, detail->>'run' run from actions
         where created_at <= now() and (${showSimulated()} or coalesce(detail->>'simulated', 'false') <> 'true') and not (kind = any(${OFF_FLOOR})) and coalesce(detail->>'correction', 'false') <> 'true' and (detail ? 'run' or detail ? 'workspace') order by created_at desc limit ${limit}`
-  ) as (FeedItem & { ref_table: string | null; ref_id: string | null; seed: string | null })[];
+  ) as (FeedItem & { ref_table: string | null; ref_id: string | null; seed: string | null; persona: string | null; run: string | null })[];
+  // A step in a run opens that run's report; a decision on a card opens the card on its desk.
+  const cardIds = rows.filter(r => r.ref_table === "permission_requests" && r.ref_id).map(r => r.ref_id!);
+  const deskOf = new Map(cardIds.length
+    ? ((await sql()`select id::text id, persona from permission_requests where id::text = any(${cardIds})`) as { id: string; persona: string }[]).map(x => [x.id, x.persona])
+    : []);
+  const linkFor = (r: (typeof rows)[number]) => {
+    if (r.ref_table && r.ref_id && SUBPAGE[r.ref_table]) return SUBPAGE[r.ref_table] + (slugs.get(`${r.ref_table}:${r.ref_id}`) ?? r.ref_id);
+    if (r.persona && r.run) return `/desk/${r.persona}/report/${r.run}`;
+    const desk = r.ref_id ? deskOf.get(r.ref_id) : null;
+    if (desk) return `/desk/${desk}#r-${r.ref_id}`;
+    return r.persona ? `/desk/${r.persona}` : null;
+  };
   // Feed lines link to the readable address of whatever they're about.
   const slugs = new Map<string, string>(), stars = new Map<string, string[]>();
   for (const table of new Set(rows.map(r => r.ref_table).filter((t): t is string => !!t && !!STARS_SQL[t]))) {
@@ -44,7 +56,7 @@ export async function feed(limit = 40, after?: string): Promise<FeedItem[]> {
   return rows.map(r => ({
     id: r.id, agent: r.agent, kind: r.kind, summary: r.summary,
     created_at: new Date(r.created_at).toISOString(),
-    href: r.ref_table && r.ref_id && SUBPAGE[r.ref_table] ? SUBPAGE[r.ref_table] + (slugs.get(`${r.ref_table}:${r.ref_id}`) ?? r.ref_id) : null,
+    href: linkFor(r),
     stars: stars.get(`${r.ref_table}:${r.ref_id}`) ?? (r.seed ? [r.seed] : []),
   }));
 }

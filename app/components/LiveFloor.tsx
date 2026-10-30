@@ -4,29 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import type { FeedItem, Funnel } from "@/lib/floor";
 import { agentColor, AGENT_LABEL } from "@/lib/ui";
 import { pulse } from "@/lib/sky";
+import Clock from "./Clock";
 
 const POLL_MS = 5000;
 const CHAR_MS = 14;       // typewriter speed for arriving actions
 const INTRO = 10;         // on load, replay the newest N actions as if they were arriving
-
-const hhmmss = (iso: string) => new Date(iso).toISOString().slice(11, 19);
-
-function nextScoutRun(now: Date) {
-  // Cron: 0 * * * * (UTC), on the hour.
-  const n = new Date(now);
-  n.setUTCMinutes(0, 0, 0);
-  n.setUTCHours(now.getUTCHours() + 1);
-  return n;
-}
-
-function useCountdown() {
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => { setNow(new Date()); const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
-  if (!now) return "--:--:--";
-  const ms = nextScoutRun(now).getTime() - now.getTime();
-  const s = Math.max(0, Math.floor(ms / 1000));
-  return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map(x => String(x).padStart(2, "0")).join(":");
-}
 
 function CountUp({ value }: { value: number }) {
   const [shown, setShown] = useState(0);
@@ -79,7 +61,6 @@ export default function LiveFloor({ initialItems, initialFunnel, middle }: { ini
   const typing = useRef(false);
   const [counts, setCounts] = useState<Funnel>(initialFunnel);
   const [status, setStatus] = useState<"live" | "offline">("live");
-  const countdown = useCountdown();
 
   // Print queued items one at a time, newest on top.
   useEffect(() => {
@@ -129,7 +110,6 @@ export default function LiveFloor({ initialItems, initialFunnel, middle }: { ini
         <h2 style={{ fontSize: 22 }}>Live agent feed</h2>
         <div style={{ display: "flex", gap: 10, alignItems: "center", fontFamily: "var(--mono)", fontSize: 12, color: "var(--dim)" }}>
           <span className="chip">{status === "live" ? <span className="live-dot" /> : <i style={{ background: "#e66767" }} />}{status === "live" ? "LIVE" : "RECONNECTING"}</span>
-          <span className="chip">next Scout pass in {countdown}</span>
         </div>
       </div>
 
@@ -141,7 +121,7 @@ export default function LiveFloor({ initialItems, initialFunnel, middle }: { ini
           const text = r.summary.slice(0, r.typed);
           return (
             <div key={r.id} className={`feed-row${r.fresh ? " fresh" : ""}`} style={{ boxShadow: r.fresh && !done ? `inset 3px 0 0 ${c}` : `inset 3px 0 0 ${c}55` }}>
-              <span className="feed-time">{hhmmss(r.created_at)}</span>
+              <span className="feed-time"><Clock iso={r.created_at} seconds /></span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "var(--mono)", fontSize: 12, color: "var(--fg)" }}>
                 <i style={{ width: 8, height: 8, borderRadius: "50%", background: c, display: "block" }} />
                 {AGENT_LABEL[r.agent] ?? r.agent}
