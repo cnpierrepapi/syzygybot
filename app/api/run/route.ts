@@ -6,7 +6,7 @@ import { isLive } from "@/lib/live/plans";
 import { loadPersona } from "@/lib/personas";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 800;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const { persona, again } = (await req.json().catch(() => ({}))) as { persona?: string; again?: boolean };
