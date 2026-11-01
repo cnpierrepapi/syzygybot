@@ -28,7 +28,7 @@ When on, the picks from a bake-off on real inputs (`scripts/model-bakeoff.mts`) 
 
 ## Crons
 
-One, in `vercel.json`: `/api/mail` every 15 minutes. It sends what's due, reads the mailbox and checks on printed letters.
+One, on a GitHub Actions schedule (`.github/workflows/mail-cron.yml`): it calls `/api/mail` every 15 minutes with `CRON_SECRET`. It sends what's due, reads the mailbox and checks on printed letters. It isn't in `vercel.json` because Vercel's Hobby plan only runs crons once a day.
 
 ## Older code
 

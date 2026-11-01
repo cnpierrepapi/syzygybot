@@ -1,0 +1,24 @@
+name: Mail cron
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: mail-cron
+  cancel-in-progress: false
+
+jobs:
+  mail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Call /api/mail
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        # The response goes to /dev/null because logs on a public repo are public.
+        run: |
+          curl -fsS --max-time 295 -o /dev/null -w "%{http_code}\n" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://syzygybot.com/api/mail
