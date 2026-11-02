@@ -1,8 +1,7 @@
 name: Mail cron
 
+# The 15-minute schedule lives in Upstash QStash (schedule "syzygy-mail"). This is the manual fallback.
 on:
-  schedule:
-    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 concurrency:
